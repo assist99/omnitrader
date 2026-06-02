@@ -67,9 +67,8 @@ class PendingSetupService {
     }
 
     const lastCandle = closedBars[closedBars.length - 1];
-    const currentPrice = lastCandle.close;
-
-    const ignoreBoxCheck = TimeUtils.isWithinIgnoreBox(currentPrice, setup.ignore_box_lower, setup.ignore_box_upper);
+    
+    const ignoreBoxCheck = TimeUtils.isWithinIgnoreBox(lastCandle, setup.ignore_box_lower, setup.ignore_box_upper);
     if (!ignoreBoxCheck.within) {
       logger.info(`Setup #${setup.id} cancelled: ${ignoreBoxCheck.reason}`);
       await this.cancelSetup(ctx, setup, ignoreBoxCheck.reason);

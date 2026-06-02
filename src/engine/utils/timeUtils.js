@@ -66,13 +66,13 @@ static getNextScheduleTime() {
     return '0,15,30,45 * * * *';
   }
 
-  static isWithinIgnoreBox(price, lower, upper) {
-    if (lower > 0 && price <= lower) {
-      return { within: false, reason: `Price ${price} ≤ ignore box lower ${lower}` };
+  static isWithinIgnoreBox(lastCandle, lower, upper) {
+    if (lower > 0 && lastCandle.low <= lower) {
+      return { within: false, reason: `Candle low ${lastCandle.low} ≤ ignore box lower ${lower}` };
     }
     
-    if (upper > 0 && price >= upper) {
-      return { within: false, reason: `Price ${price} ≥ ignore box upper ${upper}` };
+    if (upper > 0 && lastCandle.high >= upper) {
+      return { within: false, reason: `Candle high ${lastCandle.high} ≥ ignore box upper ${upper}` };
     }
     
     return { within: true, reason: '' };
