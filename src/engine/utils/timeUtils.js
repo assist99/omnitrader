@@ -103,6 +103,30 @@ static getNextScheduleTime() {
     startTime.setUTCMinutes(now.getUTCMinutes() - (minutes * count));
     return Math.floor(startTime.getTime() / 1000);
   }
+
+  static getTimeframeStartUnix(timeframe, referenceDate = new Date()) {
+    const minutes = this.timeframeToMinutes(timeframe);
+    const date = new Date(referenceDate);
+    date.setUTCSeconds(0);
+    date.setUTCMilliseconds(0);
+
+    if (minutes < 60) {
+      const startMinute = Math.floor(date.getUTCMinutes() / minutes) * minutes;
+      date.setUTCMinutes(startMinute);
+    } else if (minutes === 60) {
+      date.setUTCMinutes(0);
+    } else if (minutes < 1440) {
+      const intervalHours = minutes / 60;
+      const startHour = Math.floor(date.getUTCHours() / intervalHours) * intervalHours;
+      date.setUTCHours(startHour);
+      date.setUTCMinutes(0);
+    } else {
+      date.setUTCHours(0);
+      date.setUTCMinutes(0);
+    }
+
+    return Math.floor(date.getTime() / 1000);
+  }
 }
 
 module.exports = TimeUtils;

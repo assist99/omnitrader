@@ -59,7 +59,7 @@ class PendingSetupService {
 
     const candles = await bybitService.getCandles(setup.symbol, setup.entry_indicator_tf, 100);
     const parsedCandles = CandleUtils.parseBybitCandles(candles);
-    const closedBars = CandleUtils.filterClosedBars(parsedCandles);
+    const closedBars = CandleUtils.filterClosedBars(parsedCandles, setup.entry_indicator_tf);
 
     if (closedBars.length === 0) {
       logger.warn(`No closed bars available for setup #${setup.id}`);

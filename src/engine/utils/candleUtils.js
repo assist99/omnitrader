@@ -1,29 +1,37 @@
 const logger = require('../logger');
+const TimeUtils = require('./timeUtils');
 
 class CandleUtils {
-  static filterClosedBars(candles) {
+  static filterClosedBars(candles, timeframe = null) {
     if (!Array.isArray(candles) || candles.length === 0) {
       return [];
     }
-    
-    // Remove the last candle as it's still forming
-    // Always work with closed bars only
-    const closedBars = candles.slice(0, -1);
-    
+
+    if (!timeframe) {
+      const closedBars = candles.slice(0, -1);
+      if (closedBars.length === 0) {
+        logger.warn('No closed bars available after filtering');
+      }
+      return closedBars;
+    }
+
+    const currentIntervalStart = TimeUtils.getTimeframeStartUnix(timeframe);
+    const closedBars = candles.filter(candle => candle.timestamp < currentIntervalStart);
+
     if (closedBars.length === 0) {
       logger.warn('No closed bars available after filtering');
     }
-    
+
     return closedBars;
   }
 
   static getLastCandle(candles) {
     const closedBars = this.filterClosedBars(candles);
-    
+
     if (closedBars.length === 0) {
       return null;
     }
-    
+
     return closedBars[closedBars.length - 1];
   }
 
