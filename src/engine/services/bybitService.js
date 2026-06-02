@@ -85,7 +85,7 @@ class BybitService {
     try {
       const interval = this.timeframeToInterval(timeframe);
       const params = {
-        category: 'spot',
+        category: 'linear',
         symbol: symbol,
         interval: interval,
         limit: limit
