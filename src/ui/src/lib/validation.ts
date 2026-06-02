@@ -1,0 +1,53 @@
+import { z } from 'zod';
+
+const timeframeEnum = z.enum(['m15', 'm30', 'h1', 'h2', 'h4', 'd1']);
+const indicatorEnum = z.enum(['superTrend', 'macd', 'ema']);
+
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+export const registerSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+export const setupSchema = z.object({
+  account_id: z.number().positive('Please select an account'),
+  symbol: z.string().min(1, 'Symbol is required').toUpperCase(),
+  side: z.enum(['long', 'short']),
+  memo: z.string().optional().default(''),
+  activation_price: z.number().nonnegative('Must be zero or positive'),
+  ignore_box_upper: z.number().nonnegative('Must be zero or positive'),
+  ignore_box_lower: z.number().nonnegative('Must be zero or positive'),
+  entry_indicator_type: indicatorEnum,
+  entry_indicator_tf: timeframeEnum,
+  risk_type: z.enum(['percent', 'fixed']),
+  risk_value: z.number().positive('Must be positive'),
+  sl_price: z.number().optional().default(0),
+  tp_prices: z.array(z.number()).min(1).max(4).default([1, 2, 3, 4]),
+  be_enabled: z.boolean().default(false),
+  be_trigger_price: z.number().optional().default(0),
+  exit_indicator_type: indicatorEnum.optional(),
+  exit_indicator_tf: timeframeEnum.optional(),
+}).refine(
+  (data) => {
+    if (data.ignore_box_upper === 0 && data.ignore_box_lower === 0) return true;
+    if (data.ignore_box_lower >= data.ignore_box_upper) return false;
+    return true;
+  },
+  { message: 'Ignore box lower must be less than upper', path: ['ignore_box_lower'] }
+).refine(
+  (data) => {
+    if (data.be_enabled && (data.be_trigger_price === undefined || data.be_trigger_price < 0)) {
+      return false;
+    }
+    return true;
+  },
+  { message: 'BE trigger price is required when BE is enabled', path: ['be_trigger_price'] }
+);

@@ -1,0 +1,25 @@
+services:
+  ui:
+    build:
+      context: ./src/ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./src/ui/.env
+    volumes:
+      - ./db:/app/db
+    depends_on:
+      - engine
+
+  engine:
+    build:
+      context: ./src/engine
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./src/engine/.env
+    volumes:
+      - ./db:/app/db
+      - ./logs:/app/src/engine/logs

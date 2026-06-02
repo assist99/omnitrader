@@ -1,0 +1,10 @@
+/.kilo
+/src/engine/node_modules
+/src/engine/.env
+/src/engine/logs
+/src/ui/node_modules
+/src/ui/.next
+/src/ui/.env
+/logs
+/db
+/.env
