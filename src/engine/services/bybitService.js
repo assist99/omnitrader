@@ -109,7 +109,7 @@ class BybitService {
   async getTicker(symbol) {
     try {
       const params = {
-        category: 'spot',
+        category: 'linear',
         symbol: symbol
       };
       
@@ -151,7 +151,7 @@ class BybitService {
   async placeOrder(orderParams) {
     try {
       const params = {
-        category: 'spot',
+        category: 'linear',
         symbol: orderParams.symbol,
         side: orderParams.side,
         orderType: orderParams.orderType,
@@ -190,7 +190,7 @@ class BybitService {
   async getOrderStatus(orderId, symbol) {
     try {
       const params = {
-        category: 'spot',
+        category: 'linear',
         orderId: orderId,
         symbol: symbol
       };
@@ -211,7 +211,7 @@ class BybitService {
   async cancelOrder(orderId, symbol) {
     try {
       const params = {
-        category: 'spot',
+        category: 'linear',
         orderId: orderId,
         symbol: symbol
       };
@@ -233,7 +233,7 @@ class BybitService {
   async getPositions(symbol) {
     try {
       const params = {
-        category: 'spot',
+        category: 'linear',
         symbol: symbol
       };
       
@@ -259,7 +259,7 @@ class BybitService {
       // Get position size (simplified - would need actual position data)
       // This is a placeholder - actual implementation would need position tracking
       const params = {
-        category: 'spot',
+        category: 'linear',
         symbol: symbol,
         side: side === 'long' ? 'Sell' : 'Buy',
         orderType: 'Market',
