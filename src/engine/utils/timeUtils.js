@@ -1,8 +1,10 @@
 const logger = require('../logger');
 
 class TimeUtils {
-  static timeframeToMinutes(tf) {
+static timeframeToMinutes(tf) {
     const tfMap = {
+      'm1': 1,
+      'm5': 5,
       'm15': 15,
       'm30': 30,
       'h1': 60,
@@ -10,41 +12,45 @@ class TimeUtils {
       'h4': 240,
       'd1': 1440
     };
-    
+
     const minutes = tfMap[tf];
     if (!minutes) {
       throw new Error(`Invalid timeframe: ${tf}`);
     }
-    
+
     return minutes;
   }
 
-  static isTriggerTime(timeframe) {
+static isTriggerTime(timeframe) {
     try {
       const minutes = this.timeframeToMinutes(timeframe);
       const now = new Date();
       const currentMinute = now.getUTCMinutes();
-      
-      // Check if current minute is divisible by the timeframe minutes
-      return currentMinute % minutes === 0;
+      const currentSeconds = now.getUTCSeconds();
+
+      if (minutes === 1) {
+        return currentSeconds < 5;
+      }
+
+      return currentMinute % minutes === 0 && currentSeconds < 5;
     } catch (error) {
       logger.error(`Error checking trigger time for timeframe ${timeframe}:`, error);
       return false;
     }
   }
 
-  static getNextScheduleTime() {
+static getNextScheduleTime() {
     const now = new Date();
-    const currentMinute = now.getUTCMinutes();
-    
-    // Find next 15-minute boundary
-    const minutesToNext = 15 - (currentMinute % 15);
     const nextTime = new Date(now);
-    nextTime.setUTCMinutes(now.getUTCMinutes() + minutesToNext);
     nextTime.setUTCSeconds(0);
     nextTime.setUTCMilliseconds(0);
-    
+    nextTime.setUTCMinutes(now.getUTCMinutes() + 1);
+
     return nextTime;
+  }
+
+  static getSchedulePattern() {
+    return '* * * * *';
   }
 
   static getCurrentUTCTimestamp() {

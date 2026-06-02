@@ -285,8 +285,10 @@ class BybitService {
     }
   }
 
-  timeframeToInterval(timeframe) {
+timeframeToInterval(timeframe) {
     const intervalMap = {
+      'm1': '1',
+      'm5': '5',
       'm15': '15',
       'm30': '30',
       'h1': '60',
@@ -294,12 +296,12 @@ class BybitService {
       'h4': '240',
       'd1': 'D'
     };
-    
+
     const interval = intervalMap[timeframe];
     if (!interval) {
       throw new Error(`Unsupported timeframe: ${timeframe}`);
     }
-    
+
     return interval;
   }
 

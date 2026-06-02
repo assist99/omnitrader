@@ -294,7 +294,7 @@ class IndicatorService {
 
   static validateIndicatorConfig(indicatorType, timeframe) {
     const validIndicators = ['supertrend', 'macd', 'ema'];
-    const validTimeframes = ['m15', 'm30', 'h1', 'h2', 'h4', 'd1'];
+    const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1'];
     
     if (!validIndicators.includes(indicatorType.toLowerCase())) {
       return { valid: false, error: `Invalid indicator type: ${indicatorType}` };

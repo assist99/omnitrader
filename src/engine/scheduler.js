@@ -5,7 +5,7 @@ const TradingEngine = require('./tradingEngine');
 
 class Scheduler {
   constructor() {
-    this.schedulePattern = Config.getSchedulePattern();
+    this.schedulePattern = '* * * * *';
     this.tradingEngine = new TradingEngine();
     this.isRunning = false;
     this.currentJob = null;
@@ -25,8 +25,7 @@ class Scheduler {
       // Schedule the job
       this.scheduleJob();
       
-      // Run immediately on startup (optional)
-      // await this.runScheduledTask();
+// Run immediately on startup
       
       logger.info(`Scheduler started with pattern: ${this.schedulePattern}`);
       this.isRunning = true;
@@ -201,7 +200,7 @@ class Scheduler {
     const currentMinute = now.getUTCMinutes();
     
     // Find next 15-minute boundary
-    const minutesToNext = 15 - (currentMinute % 15);
+    const minutesToNext = 1 - (currentMinute % 1);
     const nextTime = new Date(now);
     nextTime.setUTCMinutes(now.getUTCMinutes() + minutesToNext);
     nextTime.setUTCSeconds(0);
