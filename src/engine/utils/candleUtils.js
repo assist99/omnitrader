@@ -15,7 +15,7 @@ class CandleUtils {
       return closedBars;
     }
 
-    const currentIntervalStart = TimeUtils.getTimeframeStartUnix(timeframe);
+    const currentIntervalStart = TimeUtils.getTimeframeStartMillis(timeframe);
     const closedBars = candles.filter(candle => candle.timestamp < currentIntervalStart);
 
     if (closedBars.length === 0) {

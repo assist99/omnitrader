@@ -104,7 +104,7 @@ static getNextScheduleTime() {
     return Math.floor(startTime.getTime() / 1000);
   }
 
-  static getTimeframeStartUnix(timeframe, referenceDate = new Date()) {
+  static getTimeframeStartMillis(timeframe, referenceDate = new Date()) {
     const minutes = this.timeframeToMinutes(timeframe);
     const date = new Date(referenceDate);
     date.setUTCSeconds(0);
@@ -125,7 +125,7 @@ static getNextScheduleTime() {
       date.setUTCMinutes(0);
     }
 
-    return Math.floor(date.getTime() / 1000);
+    return date.getTime();
   }
 }
 
