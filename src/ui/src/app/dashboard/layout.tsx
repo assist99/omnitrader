@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle } from 'lucide-react';
+import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, Menu, X } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<{ email: string } | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -30,54 +31,82 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user) return null;
 
+  const navItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard/accounts', label: 'Accounts', icon: Settings },
+    { href: '/dashboard/setups/new', label: 'New Setup', icon: PlusCircle },
+  ];
+
   return (
     <div className="flex h-screen flex-col bg-slate-900">
-      <header className="flex items-center justify-between border-b border-slate-700/50 bg-slate-800/80 px-6 py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
-            <Activity className="h-5 w-5 text-white" />
+      <header className="flex items-center justify-between border-b border-slate-700/50 bg-slate-800/80 px-4 sm:px-6 py-3 backdrop-blur-xl">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex sm:hidden items-center justify-center rounded-lg p-1.5 text-slate-400 hover:text-white"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-blue-600">
+            <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
           </div>
-          <Link href="/dashboard" className="text-lg font-bold text-white">OmniTrader</Link>
+          <Link href="/dashboard" className="text-base sm:text-lg font-bold text-white">OmniTrader</Link>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Link
-            href="/dashboard/accounts"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/dashboard/accounts"
+            className={`flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-sm transition-colors ${
               pathname === '/dashboard/accounts' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
+            }`}>
             <Settings className="h-4 w-4" />
-            Accounts
+            <span className="hidden sm:inline">Accounts</span>
           </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 transition-colors hover:text-white"
-          >
+          <button onClick={handleLogout}
+            className="flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-sm text-slate-400 transition-colors hover:text-white">
             <LogOut className="h-4 w-4" />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
           </button>
-          <span className="text-sm text-slate-500">{user.email}</span>
+          <span className="hidden sm:block text-sm text-slate-500">{user.email}</span>
         </div>
       </header>
 
+      {mobileMenuOpen && (
+        <div className="sm:hidden border-b border-slate-700/50 bg-slate-800/60 px-4 py-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.href === '/dashboard'
+              ? pathname === '/dashboard'
+              : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                  isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
-        <nav className="flex w-56 flex-col border-r border-slate-700/50 bg-slate-800/40 p-4">
-          <Link
-            href="/dashboard"
+        <nav className="hidden sm:flex w-56 flex-col border-r border-slate-700/50 bg-slate-800/40 p-4">
+          <Link href="/dashboard"
             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
               pathname === '/dashboard' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
+            }`}>
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Link>
-          <Link
-            href="/dashboard/setups/new"
+          <Link href="/dashboard/setups/new"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
               pathname.includes('/setups/new') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
+            }`}>
             <PlusCircle className="h-4 w-4" />
             New Setup
           </Link>
@@ -86,10 +115,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </nav>
 
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 pb-24 sm:pb-6">
           {children}
         </main>
       </div>
+
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around border-t border-slate-700/50 bg-slate-800/95 backdrop-blur-xl px-2 py-2 pb-safe z-50">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.href === '/dashboard'
+            ? pathname === '/dashboard'
+            : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs transition-colors ${
+                isActive ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { PlusCircle, ExternalLink, XCircle } from 'lucide-react';
+import { PlusCircle, ExternalLink, XCircle, Trash2 } from 'lucide-react';
 import { STATUS_STYLES, parseTpPrices } from '@/lib/constants';
 import type { TradingSetup } from '@/lib/types';
 
@@ -16,18 +16,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   canceled:   { label: 'Canceled',   color: 'text-red-400',    bg: 'bg-red-900/20 border-red-700/30' },
 };
 
-function SetupCardRaw({
-  setup,
-  onCancel,
-}: {
+function SetupCardRaw({ setup, onCancel, onDelete }: {
   setup: TradingSetup & { account_label?: string };
   onCancel: (id: number) => void;
+  onDelete: (id: number) => void;
 }) {
   const tpArr = parseTpPrices(setup.tp_prices);
   const statusCfg = STATUS_CONFIG[setup.status] || STATUS_CONFIG.pending;
 
   return (
-    <div className={`rounded-xl border ${statusCfg.bg} p-5 transition-colors hover:border-slate-600`}>
+    <div className={`rounded-xl border ${statusCfg.bg} p-4 sm:p-5 transition-colors hover:border-slate-600`}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2">
@@ -43,53 +41,54 @@ function SetupCardRaw({
             </span>
           </div>
         </div>
-        <Link
-          href={`/dashboard/setups/${setup.id}`}
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
-        >
+        <Link href={`/dashboard/setups/${setup.id}`}
+          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-slate-400 transition-colors hover:bg-slate-700 hover:text-white">
           <ExternalLink className="h-3.5 w-3.5" />
           Details
         </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 text-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
         <div>
           <p className="text-xs text-slate-500">Activation</p>
-          <p className="font-mono text-white">{setup.activation_price}</p>
+          <p className="font-mono text-white text-xs sm:text-sm">{setup.activation_price}</p>
         </div>
         <div>
           <p className="text-xs text-slate-500">Ignore Box</p>
-          <p className="font-mono text-white">{setup.ignore_box_lower} - {setup.ignore_box_upper}</p>
+          <p className="font-mono text-white text-xs sm:text-sm">{setup.ignore_box_lower} - {setup.ignore_box_upper}</p>
         </div>
-        <div>
+        <div className="col-span-2 sm:col-span-1">
           <p className="text-xs text-slate-500">TP Levels</p>
-          <p className="text-white">{tpArr.length > 0 ? `${tpArr.length}x RR: ${tpArr.join(':')}` : '—'}</p>
+          <p className="text-white text-xs sm:text-sm">{tpArr.length > 0 ? `${tpArr.length}x RR: ${tpArr.join(':')}` : '\u2014'}</p>
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex gap-3 text-xs text-slate-500">
+      <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
           <span>{setup.entry_indicator_type} ({setup.entry_indicator_tf})</span>
-          {setup.exit_indicator_type && <span>→ Exit: {setup.exit_indicator_type} ({setup.exit_indicator_tf})</span>}
+          {setup.exit_indicator_type && <span>\u2192 Exit: {setup.exit_indicator_type} ({setup.exit_indicator_tf})</span>}
         </div>
         <div className="flex gap-2">
           {(setup.status === 'pending' || setup.status === 'triggered') && (
-            <button
-              onClick={() => onCancel(setup.id)}
-              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-900/30"
-            >
+            <button onClick={() => onCancel(setup.id)}
+              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-900/30">
               <XCircle className="h-3.5 w-3.5" />
               Cancel
             </button>
           )}
-          <Link
-            href={setup.status === 'active' ? `/dashboard/setups/${setup.id}/edit?mode=be` : `/dashboard/setups/${setup.id}/edit`}
+          {(setup.status === 'closed' || setup.status === 'canceled') && (
+            <button onClick={() => onDelete(setup.id)}
+              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-900/30">
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
+          )}
+          <Link href={setup.status === 'active' ? `/dashboard/setups/${setup.id}/edit?mode=be` : `/dashboard/setups/${setup.id}/edit`}
             className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
               setup.status === 'closed' || setup.status === 'canceled'
                 ? 'text-slate-600 cursor-not-allowed'
                 : 'text-blue-400 hover:bg-blue-900/30'
-            }`}
-          >
+            }`}>
             {setup.status === 'active' ? 'Adjust BE' : setup.status === 'closed' || setup.status === 'canceled' ? 'Read-only' : 'Edit'}
           </Link>
         </div>
@@ -133,9 +132,7 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => {
-    fetchSetups();
-  }, [tab, closedPage]);
+  useEffect(() => { fetchSetups(); }, [tab, closedPage]);
 
   useEffect(() => {
     const timer = setTimeout(fetchSetups, 300);
@@ -145,50 +142,44 @@ export default function DashboardPage() {
   const handleCancel = useCallback(async (id: number) => {
     const res = await fetch(`/api/setups/${id}`, { method: 'DELETE' });
     const data = await res.json();
-    if (data.success) {
-      fetchSetups();
-    }
+    if (data.success) { fetchSetups(); }
+  }, []);
+
+  const handleDelete = useCallback(async (id: number) => {
+    if (!confirm('Permanently delete this setup? This cannot be undone.')) return;
+    const res = await fetch(`/api/setups/${id}?hard=true`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) { fetchSetups(); }
   }, []);
 
   const totalPages = Math.ceil(totalClosed / PER_PAGE);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white">Trading Setups</h1>
-        <Link
-          href="/dashboard/setups/new"
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Trading Setups</h1>
+        <Link href="/dashboard/setups/new"
+          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 w-full sm:w-auto">
           <PlusCircle className="h-4 w-4" />
           New Setup
         </Link>
       </div>
 
-      <div className="mb-6 flex items-center gap-2 border-b border-slate-700/50">
-{(['pending', 'triggered', 'active', 'closed'] as TabType[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => { setTab(t); setClosedPage(1); }}
-              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-                tab === t
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              {t === 'pending' ? 'Pending' : t === 'triggered' ? 'Triggered' : t === 'active' ? 'Active' : 'Closed / Canceled'}
-            </button>
-          ))}
+      <div className="mb-6 flex items-center gap-1 sm:gap-2 border-b border-slate-700/50 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+        {(['pending', 'triggered', 'active', 'closed'] as TabType[]).map((t) => (
+          <button key={t} onClick={() => { setTab(t); setClosedPage(1); }}
+            className={`whitespace-nowrap px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 ${
+              tab === t ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'
+            }`}>
+            {t === 'pending' ? 'Pending' : t === 'triggered' ? 'Triggered' : t === 'active' ? 'Active' : 'Closed / Canceled'}
+          </button>
+        ))}
       </div>
 
       <div className="mb-4">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by symbol or memo..."
-          className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
-        />
+          className="w-full sm:max-w-md rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500" />
       </div>
 
       {loading ? (
@@ -206,24 +197,16 @@ export default function DashboardPage() {
         <>
           <div className="space-y-4">
             {setups.map((setup) => (
-              <SetupCard key={setup.id} setup={setup} onCancel={handleCancel} />
+              <SetupCard key={setup.id} setup={setup} onCancel={handleCancel} onDelete={handleDelete} />
             ))}
           </div>
-
           {tab === 'closed' && totalPages > 1 && (
             <div className="mt-6 flex items-center justify-center gap-2">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setClosedPage(p)}
+                <button key={p} onClick={() => setClosedPage(p)}
                   className={`h-8 w-8 rounded-lg text-sm transition-colors ${
-                    p === closedPage
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  {p}
-                </button>
+                    p === closedPage ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}>{p}</button>
               ))}
             </div>
           )}

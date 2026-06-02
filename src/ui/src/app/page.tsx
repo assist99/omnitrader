@@ -48,7 +48,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-800/60 p-8 backdrop-blur-xl">
+      <div className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-800/60 p-6 sm:p-8 backdrop-blur-xl">
         <h2 className="mb-6 text-xl font-semibold text-white">Sign In</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">

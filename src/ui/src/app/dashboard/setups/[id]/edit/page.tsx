@@ -229,9 +229,9 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
         Back
       </button>
 
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-white">
-          {isBeOnly ? 'Adjust Break-Even Price' : `Edit Setup — ${originalSetup.symbol}`}
+<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">
+          {isBeOnly ? 'Adjust Break-Even Price' : `Edit Setup \u2014 ${originalSetup.symbol}`}
         </h1>
         <span className="inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-medium text-yellow-400 bg-yellow-900/20 border-yellow-700/30">
           {STATUS_LABELS[status] || status}
@@ -242,15 +242,15 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
       {isActive && <p className="text-sm text-slate-400 mb-6">BE trigger price and exit conditions can be adjusted for active setups.</p>}
       {isTriggered && <p className="text-sm text-slate-400 mb-6">Activation price and ignore box cannot be changed for triggered setups.</p>}
 
-      <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
+      <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 max-w-3xl">
         {(isPending || isTriggered) && (
           <>
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">1</span>
                 Account & Basic Info
               </h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Account</label>
                   <select value={formData.account_id} onChange={(e) => updateField('account_id', Number(e.target.value))}
@@ -291,12 +291,12 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
             </div>
 
             <InputWrapper disabled={isTriggered} reason="Cannot change activation/ignore box for triggered setups">
-              <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+              <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
                 <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">2</span>
                   Activation & Ignore Box
                 </h2>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="mb-1 block text-sm text-slate-400">Activation Price</label>
                     <input type="number" step="any" value={numVal('activation_price')}
@@ -325,12 +325,12 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
               </div>
             </InputWrapper>
 
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">3</span>
                 Entry Conditions
               </h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Indicator Type</label>
                   <select value={formData.entry_indicator_type}
@@ -350,12 +350,12 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">4</span>
                 Risk Management
               </h2>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Risk Type</label>
                   <div className="flex gap-4 mt-2">
@@ -383,24 +383,26 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">5</span>
                 Take Profit Settings
               </h2>
               <div className="space-y-3">
                 {formData.tp_prices.map((rr, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <span className="w-24 text-sm text-slate-400">TP{index + 1} (RR):</span>
-                    <input type="number" step="0.1" min="0.1" value={rr}
-                      onChange={(e) => updateTpLevel(index, Number(e.target.value))}
-                      className="w-24 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-2 text-white outline-none focus:border-blue-500" />
-                    {formData.tp_prices.length > 0 && (
-                      <button type="button" onClick={() => removeTpLevel(index)}
-                        className="p-1 text-red-400 hover:text-red-300 transition-colors">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    <span className="w-full sm:w-24 text-sm text-slate-400">TP{index + 1} (RR):</span>
+                    <div className="flex items-center gap-2 flex-1">
+                      <input type="number" step="0.1" min="0.1" value={rr}
+                        onChange={(e) => updateTpLevel(index, Number(e.target.value))}
+                        className="w-20 sm:w-24 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-2 text-white outline-none focus:border-blue-500" />
+                      {formData.tp_prices.length > 0 && (
+                        <button type="button" onClick={() => removeTpLevel(index)}
+                          className="p-1 text-red-400 hover:text-red-300 transition-colors shrink-0">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {formData.tp_prices.length < 8 && (
@@ -412,7 +414,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">6</span>
                 Break-Even Settings
@@ -430,19 +432,19 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
                     <label className="mb-1 block text-sm text-slate-400">BE Trigger Price</label>
                     <input type="number" step="any" value={numVal('be_trigger_price')}
                       onChange={(e) => handleNum('be_trigger_price', e.target.value)}
-                      className="w-full max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
+                      className="w-full sm:max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
                     {showZeroWarning('be_trigger_price')}
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">7</span>
                 Exit Conditions<span className="text-xs text-slate-500 font-normal">(optional)</span>
               </h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Indicator Type</label>
                   <select value={formData.exit_indicator_type || ''}
@@ -467,12 +469,12 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
         )}
 
         {isBeOnly && (
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white">Break-Even Trigger Price</h2>
               <label className="mb-1 block text-sm text-slate-400">BE Trigger Price</label>
               <input type="number" step="any" value={numVal('be_trigger_price')}
                 onChange={(e) => handleNum('be_trigger_price', e.target.value)}
-                className="w-full max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
+                className="w-full sm:max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
               {showZeroWarning('be_trigger_price')}
               <p className="mt-1 text-xs text-slate-500">SL will move to entry price when TP1 is hit</p>
             </div>
@@ -480,7 +482,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
 
           {isActive && (
             <>
-              <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+              <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
                 <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">1</span>
                   Break-Even Settings
@@ -498,19 +500,19 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
                       <label className="mb-1 block text-sm text-slate-400">BE Trigger Price</label>
                       <input type="number" step="any" value={numVal('be_trigger_price')}
                         onChange={(e) => handleNum('be_trigger_price', e.target.value)}
-                        className="w-full max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
+                        className="w-full sm:max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
                       {showZeroWarning('be_trigger_price')}
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+              <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
                 <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">2</span>
                   Exit Conditions<span className="text-xs text-slate-500 font-normal">(optional)</span>
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="mb-1 block text-sm text-slate-400">Indicator Type</label>
                     <select value={formData.exit_indicator_type || ''}
@@ -534,17 +536,17 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
             </>
           )}
 
-        {error && (
+{error && (
           <div className="rounded-lg bg-red-900/30 border border-red-800 px-4 py-3 text-sm text-red-400">{error}</div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button type="submit" disabled={submitting}
-            className="rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50">
+            className="rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto">
             {submitting ? 'Saving...' : 'Save Changes'}
           </button>
           <button type="button" onClick={() => router.back()}
-            className="rounded-lg border border-slate-600 px-6 py-2.5 font-medium text-slate-300 transition-colors hover:bg-slate-700">
+            className="rounded-lg border border-slate-600 px-6 py-2.5 font-medium text-slate-300 transition-colors hover:bg-slate-700 w-full sm:w-auto">
             Cancel
           </button>
         </div>

@@ -167,12 +167,12 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const auth = getAuthFromRequest(_request);
+    const auth = getAuthFromRequest(request);
     if (!auth) return unauthorizedResponse();
 
     const existing = await queryOne<TradingSetup>(
@@ -181,6 +181,21 @@ export async function DELETE(
     );
     if (!existing) {
       return Response.json({ success: false, error: 'Setup not found' }, { status: 404 });
+    }
+
+    const url = new URL(request.url);
+    const hardDelete = url.searchParams.get('hard') === 'true';
+
+    if (hardDelete) {
+      if (existing.status !== 'closed' && existing.status !== 'canceled') {
+        return Response.json(
+          { success: false, error: 'Can only delete closed or canceled setups' },
+          { status: 400 }
+        );
+      }
+      await execute('DELETE FROM orders WHERE setup_id = ?', [id]);
+      await execute('DELETE FROM trading_setups WHERE id = ?', [id]);
+      return Response.json({ success: true, data: null });
     }
 
     if (existing.status !== 'pending' && existing.status !== 'triggered') {

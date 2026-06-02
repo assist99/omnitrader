@@ -55,3 +55,9 @@ input[type="radio"], input[type="checkbox"] {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

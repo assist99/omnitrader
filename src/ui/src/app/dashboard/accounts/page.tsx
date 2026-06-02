@@ -46,11 +46,11 @@ export default function AccountsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white">Bybit Accounts</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Bybit Accounts</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 w-full sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Link Account
@@ -58,7 +58,7 @@ export default function AccountsPage() {
       </div>
 
       {showForm && (
-        <div className="mb-6 rounded-xl border border-slate-700/50 bg-slate-800 p-6">
+        <div className="mb-6 rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
           <h2 className="mb-4 font-semibold text-white">Link Bybit Account</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -102,7 +102,7 @@ export default function AccountsPage() {
               <span className="text-sm text-slate-400">Testnet</span>
             </label>
             {error && <p className="text-sm text-red-400">{error}</p>}
-            <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            <button type="submit" className="w-full sm:w-auto rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
               Save Account
             </button>
           </form>

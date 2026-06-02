@@ -6,8 +6,8 @@ class TelegramService {
   constructor() {
     this.botToken = Config.getTelegramBotToken();
     this.bot = null;
-    this.chatIds = new Map(); // user_id -> chat_id mapping
-    
+    this.defaultChatId = Config.getTelegramUserId();
+
     if (this.botToken) {
       this.initializeBot();
     } else {
@@ -19,9 +19,7 @@ class TelegramService {
     try {
       this.bot = new TelegramBot(this.botToken, { polling: false });
       logger.info('Telegram bot initialized');
-      
-      // Note: For production, chat IDs should be stored in database
-      // and retrieved per user. This is a simplified implementation.
+
     } catch (error) {
       logger.error('Failed to initialize Telegram bot:', error);
       this.bot = null;
@@ -35,20 +33,20 @@ class TelegramService {
     }
 
     try {
-      const chatId = await this.getUserChatId(userId);
+      const chatId = this.getUserChatId();
       if (!chatId) {
-        logger.warn(`No Telegram chat ID found for user ${userId}`);
+        logger.warn('TELEGRAM_USER_ID not set. Skipping notification.');
         return false;
       }
 
       const message = this.formatMessage(messageType, data);
-      
+
       await this.bot.sendMessage(chatId, message, {
         parse_mode: 'HTML',
         disable_web_page_preview: true
       });
-      
-      logger.info(`Telegram notification sent to user ${userId}: ${messageType}`);
+
+      logger.info(`Telegram notification sent: ${messageType}`);
       return true;
     } catch (error) {
       logger.error('Failed to send Telegram notification:', error);
@@ -66,7 +64,7 @@ class TelegramService {
         parse_mode: 'HTML',
         disable_web_page_preview: true
       });
-      
+
       return true;
     } catch (error) {
       logger.error('Failed to send direct Telegram notification:', error);
@@ -302,26 +300,8 @@ Setup #${data.setupId} • ${data.symbol}
     return titleMap[messageType] || 'Notification';
   }
 
-  async getUserChatId(userId) {
-    // In a real implementation, this would fetch from database
-    // For now, return from cache or use environment variable
-    if (this.chatIds.has(userId)) {
-      return this.chatIds.get(userId);
-    }
-    
-    // Could also use a default chat ID from environment for testing
-    const defaultChatId = process.env.TELEGRAM_DEFAULT_CHAT_ID;
-    if (defaultChatId) {
-      this.chatIds.set(userId, defaultChatId);
-      return defaultChatId;
-    }
-    
-    return null;
-  }
-
-  setUserChatId(userId, chatId) {
-    this.chatIds.set(userId, chatId);
-    logger.info(`Telegram chat ID set for user ${userId}: ${chatId}`);
+  getUserChatId() {
+    return this.defaultChatId || null;
   }
 
   isAvailable() {

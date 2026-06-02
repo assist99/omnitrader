@@ -23,6 +23,10 @@ class Config {
     return process.env.TELEGRAM_BOT_TOKEN;
   }
 
+  static getTelegramUserId() {
+    return process.env.TELEGRAM_USER_ID;
+  }
+
   static getBybitApiUrl(isTestnet = true) {
     return isTestnet 
       ? process.env.BYBIT_TESTNET_API_URL || 'https://api-testnet.bybit.com'

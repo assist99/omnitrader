@@ -35,7 +35,12 @@ export async function GET(request: NextRequest) {
       params.push(`%${search}%`, `%${search}%`);
     }
 
-    const dataSql = `SELECT ts.*, ba.label as account_label FROM trading_setups ts LEFT JOIN bybit_accounts ba ON ts.account_id = ba.id WHERE ${whereClause} ORDER BY ts.created_at DESC LIMIT ? OFFSET ?`;
+    let orderClause = 'ORDER BY ts.created_at DESC';
+    if (status === 'closed_canceled') {
+      orderClause = 'ORDER BY ts.updated_at DESC';
+    }
+
+    const dataSql = `SELECT ts.*, ba.label as account_label FROM trading_setups ts LEFT JOIN bybit_accounts ba ON ts.account_id = ba.id WHERE ${whereClause} ${orderClause} LIMIT ? OFFSET ?`;
     const dataParams = [...params, limit, offset];
 
     const countSql = `SELECT COUNT(*) as total FROM trading_setups ts WHERE ${whereClause}`;

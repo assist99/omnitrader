@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit3, XCircle } from 'lucide-react';
+import { ArrowLeft, Edit3, XCircle, Trash2 } from 'lucide-react';
 import type { TradingSetup, Order } from '@/lib/types';
 import { TIMEFRAMES, INDICATORS, STATUS_STYLES, parseTpPrices } from '@/lib/constants';
 
@@ -51,6 +51,15 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  async function handleDelete() {
+    if (!confirm('Permanently delete this setup? This cannot be undone.')) return;
+    const res = await fetch(`/api/setups/${id}?hard=true`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      router.push('/dashboard');
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -75,10 +84,10 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
         Back to Dashboard
       </button>
 
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white">{setup.symbol}</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold text-white">{setup.symbol}</h1>
             <span className={`inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-medium ${STATUS_STYLES[setup.status] || ''}`}>
               {setup.status.charAt(0).toUpperCase() + setup.status.slice(1)}
             </span>
@@ -87,32 +96,35 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            {setup.account_label || `Account #${setup.account_id}`} • Created {new Date(setup.created_at).toLocaleString()}
+            {setup.account_label || `Account #${setup.account_id}`} &bull; Created {new Date(setup.created_at).toLocaleString()}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(setup.status === 'pending' || setup.status === 'triggered' || setup.status === 'active') && (
             <>
-              <button
-                onClick={() => router.push(`/dashboard/setups/${id}/edit${setup.status === 'active' ? '?mode=be' : ''}`)}
-                className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600"
-              >
+              <button onClick={() => router.push(`/dashboard/setups/${id}/edit${setup.status === 'active' ? '?mode=be' : ''}`)}
+                className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600">
                 <Edit3 className="h-4 w-4" />
-                {setup.status === 'active' ? 'Edit BE / Exit' : 'Edit'}
+                {setup.status === 'active' ? 'Edit BE' : 'Edit'}
               </button>
-              <button
-                onClick={handleCancel}
-                className="flex items-center gap-1.5 rounded-lg bg-red-900/30 px-3 py-2 text-sm text-red-400 hover:bg-red-900/50"
-              >
+              <button onClick={handleCancel}
+                className="flex items-center gap-1.5 rounded-lg bg-red-900/30 px-3 py-2 text-sm text-red-400 hover:bg-red-900/50">
                 <XCircle className="h-4 w-4" />
                 Cancel
               </button>
             </>
           )}
+          {(setup.status === 'closed' || setup.status === 'canceled') && (
+            <button onClick={handleDelete}
+              className="flex items-center gap-1.5 rounded-lg bg-red-900/30 px-3 py-2 text-sm text-red-400 hover:bg-red-900/50">
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
         <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-5">
           <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Entry Configuration</h3>
           <dl className="space-y-3">
@@ -122,7 +134,7 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <div className="flex justify-between">
               <dt className="text-sm text-slate-500">Ignore Box</dt>
-              <dd className="text-sm font-mono text-white">{setup.ignore_box_lower} — {setup.ignore_box_upper}</dd>
+              <dd className="text-sm font-mono text-white">{setup.ignore_box_lower} &mdash; {setup.ignore_box_upper}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-sm text-slate-500">Indicator</dt>
