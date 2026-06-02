@@ -5,7 +5,7 @@ const TradingEngine = require('./tradingEngine');
 
 class Scheduler {
   constructor() {
-    this.schedulePattern = '* * * * *';
+    this.schedulePattern = Config.getSchedulePattern();
     this.tradingEngine = new TradingEngine();
     this.isRunning = false;
     this.currentJob = null;

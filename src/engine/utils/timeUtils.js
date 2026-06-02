@@ -49,21 +49,12 @@ static getNextScheduleTime() {
     return nextTime;
   }
 
-  static getSchedulePattern() {
-    return '* * * * *';
-  }
-
   static getCurrentUTCTimestamp() {
     return new Date().toISOString();
   }
 
   static formatUTCDate(date) {
     return date.toISOString().replace('T', ' ').substring(0, 19);
-  }
-
-  static getSchedulePattern() {
-    // Returns cron pattern for 15-minute intervals: 0,15,30,45 * * * *
-    return '0,15,30,45 * * * *';
   }
 
   static isWithinIgnoreBox(lastCandle, lower, upper) {
