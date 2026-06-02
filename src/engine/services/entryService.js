@@ -2,6 +2,7 @@ const IndicatorService = require('./indicatorService');
 const PriceUtils = require('../utils/priceUtils');
 const CandleUtils = require('../utils/candleUtils');
 const TimeUtils = require('../utils/timeUtils');
+const PendingSetupService = require('./pendingSetupService');
 const logger = require('../logger');
 
 class EntryService {
@@ -21,6 +22,14 @@ class EntryService {
 
     if (closedBars.length === 0) {
       logger.warn(`No closed bars available for setup #${setup.id}`);
+      return;
+    }
+
+    const lastCandle = closedBars[closedBars.length - 1];
+    const ignoreBoxCheck = TimeUtils.isWithinIgnoreBox(lastCandle, setup.ignore_box_lower, setup.ignore_box_upper);
+    if (!ignoreBoxCheck.within) {
+      logger.info(`Triggered setup #${setup.id} cancelled: ${ignoreBoxCheck.reason}`);
+      await PendingSetupService.cancelSetup(ctx, setup, ignoreBoxCheck.reason);
       return;
     }
 
