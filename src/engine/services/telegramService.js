@@ -75,9 +75,11 @@ class TelegramService {
   formatMessage(messageType, data) {
     const emoji = this.getEmojiForMessageType(messageType);
     const timestamp = new Date().toUTCString().substring(0, 22);
-    
-    let message = `${emoji} <b>${this.getMessageTitle(messageType)}</b>\n`;
-    message += `⏰ ${timestamp}\n\n`;
+    const subtitle = this.getMessageSubtitle(messageType, data);
+
+    let message = `${emoji} <b>${this.getMessageTitle(messageType)}</b>`;
+    if (subtitle) message += `\n${subtitle}`;
+    message += `\n⏰ ${timestamp}\n\n`;
     
     switch (messageType) {
       case 'setup_created':
@@ -117,12 +119,38 @@ class TelegramService {
     return message;
   }
 
-  formatSetupCreated(data) {
-    return `
-📈 <b>Setup #${data.setupId}</b>
-${data.symbol} • ${data.side.toUpperCase()}
+  getMessageSubtitle(messageType, data) {
+    try {
+      switch (messageType) {
+        case 'setup_created':
+        case 'setup_activated':
+        case 'setup_cancelled':
+        case 'order_placed':
+        case 'order_filled':
+        case 'tp_hit':
+        case 'sl_hit':
+        case 'be_activated':
+        case 'exit_triggered':
+          if (data && data.setupId && data.symbol) {
+            const side = data.side ? ` • ${data.side.toUpperCase()}` : '';
+            return `Setup #${data.setupId} • ${data.symbol}${side}`;
+          }
+          if (data && data.symbol) {
+            return `${data.symbol}${data.side ? ` • ${data.side.toUpperCase()}` : ''}`;
+          }
+          return '';
+        case 'error':
+          return data && data.component ? `Component: ${data.component}` : '';
+        default:
+          return '';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
 
-🎯 Activation: $${data.activationPrice}
+  formatSetupCreated(data) {
+    return `🎯 Activation: $${data.activationPrice}
 📊 Entry: ${data.entryIndicatorType} (${data.entryIndicatorTf})
 ⚖️ Risk: ${data.riskValue} ${data.riskType}
 
@@ -131,25 +159,14 @@ ${data.symbol} • ${data.side.toUpperCase()}
   }
 
   formatSetupActivated(data) {
-    return `
-🚀 <b>Setup #${data.setupId} Activated</b>
-${data.symbol} • ${data.side.toUpperCase()}
-
-💰 Price: $${data.price}
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
+    return `💰 Price: $${data.price}
 
 📊 Checking entry conditions...
 `;
   }
 
   formatSetupCancelled(data) {
-    return `
-❌ <b>Setup #${data.setupId} Cancelled</b>
-${data.symbol} • ${data.side.toUpperCase()}
-
-📝 Reason: ${data.reason}
-
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
+    return `📝 Reason: ${data.reason}
 `;
   }
 
@@ -163,16 +180,12 @@ ${data.symbol} • ${data.side.toUpperCase()}
       'sl': 'SL'
     };
     
-    return `
-🔄 <b>${orderTypeMap[data.orderType]} Order Placed</b>
-Setup #${data.setupId} • ${data.symbol}
+    return `💰 Price: $${data.price}
+  📊 Quantity: ${data.quantity}
 
-💰 Price: $${data.price}
-📊 Quantity: ${data.quantity}
-
-📈 Side: ${data.side.toUpperCase()}
-🎯 Type: ${data.orderType.toUpperCase()}
-`;
+  📈 Side: ${data.side.toUpperCase()}
+  🎯 Type: ${data.orderType.toUpperCase()}
+  `;
   }
 
   formatOrderFilled(data) {
@@ -186,83 +199,48 @@ Setup #${data.setupId} • ${data.symbol}
     };
     
     const pnlInfo = data.pnl ? `\n💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)` : '';
-    
-    return `
-✅ <b>${orderTypeMap[data.orderType]} Order Filled</b>
-Setup #${data.setupId} • ${data.symbol}
 
-💰 Price: $${data.price}
-📊 Quantity: ${data.quantity}${pnlInfo}
-
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
-`;
+    return `💰 Price: $${data.price}
+  📊 Quantity: ${data.quantity}${pnlInfo}
+  `;
   }
 
   formatTpHit(data) {
-    return `
-🎯 <b>TP${data.tpLevel} Hit!</b>
-Setup #${data.setupId} • ${data.symbol}
-
-💰 Price: $${data.price}
+    return `💰 Price: $${data.price}
 📊 Quantity: ${data.quantity}
 
 💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)
 📈 RR: ${data.tpLevel}:1
-
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
 `;
   }
 
   formatSlHit(data) {
-    return `
-🛑 <b>Stop Loss Hit</b>
-Setup #${data.setupId} • ${data.symbol}
-
-💰 Price: $${data.price}
+    return `💰 Price: $${data.price}
 📊 Quantity: ${data.quantity}
 
 💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)
-
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
 `;
   }
 
   formatBeActivated(data) {
-    return `
-🛡️ <b>Break-Even Activated</b>
-Setup #${data.setupId} • ${data.symbol}
-
-🎯 SL moved to entry price: $${data.entryPrice}
+    return `🎯 SL moved to entry price: $${data.entryPrice}
 
 📊 Position now risk-free!
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
 `;
   }
 
   formatExitTriggered(data) {
-    return `
-🚪 <b>Exit Condition Triggered</b>
-Setup #${data.setupId} • ${data.symbol}
-
-📊 Exit: ${data.exitIndicatorType} (${data.exitIndicatorTf})
+    return `📊 Exit: ${data.exitIndicatorType} (${data.exitIndicatorTf})
 💰 Price: $${data.price}
 
 💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)
-
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
 `;
   }
 
   formatError(data) {
-    return `
-⚠️ <b>Error Alert</b>
-
-🔧 Component: ${data.component}
-❌ Error: ${data.error}
+    return `❌ Error: ${data.error}
 
 📝 Details: ${data.details || 'No additional details'}
-
-⏰ Time: ${new Date(data.timestamp).toUTCString().substring(0, 22)}
 `;
   }
 
