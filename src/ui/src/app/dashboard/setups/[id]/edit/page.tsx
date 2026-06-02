@@ -240,7 +240,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
 
       {isBeOnly && <p className="text-sm text-slate-400 mb-6">Only BE trigger price can be adjusted for active setups.</p>}
       {isActive && <p className="text-sm text-slate-400 mb-6">BE trigger price and exit conditions can be adjusted for active setups.</p>}
-      {isTriggered && <p className="text-sm text-slate-400 mb-6">Activation price and ignore box cannot be changed for triggered setups.</p>}
+      {isTriggered && <p className="text-sm text-slate-400 mb-6">Activation price cannot be changed for triggered setups. Ignore box upper and lower can still be edited.</p>}
 
       <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 max-w-3xl">
         {(isPending || isTriggered) && (
@@ -290,7 +290,6 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            <InputWrapper disabled={isTriggered} reason="Cannot change activation/ignore box for triggered setups">
               <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
                 <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">2</span>
@@ -310,7 +309,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
                     <input type="number" step="any" value={numVal('ignore_box_upper')}
                       onChange={(e) => handleNum('ignore_box_upper', e.target.value)}
                       className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500"
-                      disabled={isTriggered} required />
+                      required />
                     {showZeroWarning('ignore_box_upper')}
                   </div>
                   <div>
@@ -318,12 +317,11 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
                     <input type="number" step="any" value={numVal('ignore_box_lower')}
                       onChange={(e) => handleNum('ignore_box_lower', e.target.value)}
                       className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500"
-                      disabled={isTriggered} required />
+                      required />
                     {showZeroWarning('ignore_box_lower')}
                   </div>
                 </div>
               </div>
-            </InputWrapper>
 
             <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white flex items-center gap-2">
