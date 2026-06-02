@@ -57,7 +57,13 @@ class EntryService {
           indicatorParams
         );
       }
-      console.log(`Calculated SL price for setup #${setup.id}: ${slPrice}`);
+      const symbolInfo = await bybitService.getSymbolInfo(setup.symbol);
+      const tickSize = parseFloat(symbolInfo.priceFilter?.tickSize) || 0.01;
+      const qtyStepSize = parseFloat(symbolInfo.lotSizeFilter?.qtyStep) || 0.001;
+
+      slPrice = PriceUtils.roundToTickSize(slPrice, tickSize);
+      console.log(`Calculated and rounded SL price for setup #${setup.id}: ${slPrice}`);
+
       const accountBalance = await bybitService.getAccountBalance();
       const riskType = setup.risk_type || 'percent';
       const positionSize = PriceUtils.calculatePositionSize(
@@ -68,18 +74,25 @@ class EntryService {
         setup.side,
         riskType
       );
+      const roundedPositionSize = PriceUtils.roundQuantity(positionSize, qtyStepSize);
+      if (roundedPositionSize <= 0) {
+        throw new Error(`Calculated position size for setup #${setup.id} is too small after rounding`);
+      }
       console.log('place order with params', {
         entryPrice,
         slPrice,
         positionSize,
+        roundedPositionSize,
         accountBalance,
-        riskType
+        riskType,
+        tickSize,
+        qtyStepSize
       });
       const entryOrder = await bybitService.placeOrder({
         symbol: setup.symbol,
         side: setup.side === 'long' ? 'Buy' : 'Sell',
         orderType: 'Market',
-        qty: positionSize,
+        qty: roundedPositionSize,
         timeInForce: 'GTC'
       });
 
@@ -88,19 +101,20 @@ class EntryService {
         order_type: 'entry',
         side: setup.side === 'long' ? 'buy' : 'sell',
         price: entryPrice,
-        qty: positionSize,
+        qty: roundedPositionSize,
         bybit_order_id: entryOrder.orderId,
         status: 'pending'
       });
 
       const rrRatios = PriceUtils.parseTpPricesJson(setup.tp_prices);
-      const tpPrices = PriceUtils.calculateTPPrices(entryPrice, slPrice, rrRatios);
+      const tpPrices = PriceUtils.calculateTPPrices(entryPrice, slPrice, rrRatios)
+        .map(price => PriceUtils.roundToTickSize(price, tickSize));
 
       const slOrder = await bybitService.placeOrder({
         symbol: setup.symbol,
         side: setup.side === 'long' ? 'Sell' : 'Buy',
         orderType: 'Limit',
-        qty: positionSize,
+        qty: roundedPositionSize,
         price: slPrice,
         timeInForce: 'GTC'
       });
@@ -110,17 +124,16 @@ class EntryService {
         order_type: 'sl',
         side: setup.side === 'long' ? 'sell' : 'buy',
         price: slPrice,
-        qty: positionSize,
+        qty: roundedPositionSize,
         bybit_order_id: slOrder.orderId,
         status: 'pending'
       });
 
-      const tpQtys = [
-        positionSize * 0.25,
-        positionSize * 0.25,
-        positionSize * 0.25,
-        positionSize * 0.25
-      ];
+      const tpQtys = PriceUtils.splitQuantity(
+        roundedPositionSize,
+        Math.min(tpPrices.length, 4),
+        qtyStepSize
+      );
 
       for (let i = 0; i < Math.min(tpPrices.length, 4); i++) {
         const tpOrder = await bybitService.placeOrder({
@@ -145,7 +158,7 @@ class EntryService {
 
       await ctx.db.updateSetupStatus(setup.id, 'active', {
         entry_price: entryPrice,
-        entry_qty: positionSize,
+        entry_qty: roundedPositionSize,
         sl_price: slPrice
       });
 
@@ -158,7 +171,7 @@ class EntryService {
         orderType: 'entry',
         side: setup.side,
         price: entryPrice,
-        quantity: positionSize,
+        quantity: roundedPositionSize,
         timestamp: new Date().toISOString()
       });
 

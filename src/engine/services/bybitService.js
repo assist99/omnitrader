@@ -10,6 +10,7 @@ class BybitService {
     this.apiSecret = apiSecretEnc ? Encryption.decrypt(apiSecretEnc) : null;
     this.baseUrl = Config.getBybitApiUrl(isTestnet);
     this.isTestnet = isTestnet;
+    this.symbolInfoCache = new Map();
     
     this.axiosInstance = axios.create({
       baseURL: this.baseUrl,
@@ -79,6 +80,31 @@ class BybitService {
     config.headers['X-BAPI-SIGN'] = signature;
     
     return config;
+  }
+
+  async getSymbolInfo(symbol) {
+    if (this.symbolInfoCache.has(symbol)) {
+      return this.symbolInfoCache.get(symbol);
+    }
+
+    try {
+      const params = {
+        category: 'linear',
+        symbol: symbol
+      };
+
+      const response = await this.axiosInstance.get('/v5/market/instruments-info', { params });
+      if (response.data && response.data.result && response.data.result.list && response.data.result.list.length > 0) {
+        const info = response.data.result.list[0];
+        this.symbolInfoCache.set(symbol, info);
+        return info;
+      }
+
+      throw new Error(`No instrument info for ${symbol}`);
+    } catch (error) {
+      logger.apiError('getSymbolInfo', error);
+      throw error;
+    }
   }
 
   async getCandles(symbol, timeframe, limit = 100) {

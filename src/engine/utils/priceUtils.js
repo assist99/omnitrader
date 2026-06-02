@@ -170,8 +170,20 @@ class PriceUtils {
     }
   }
 
-  static isValidPrice(price) {
-    return typeof price === 'number' && price > 0 && !isNaN(price) && isFinite(price);
+  static getDecimalPlaces(value) {
+    const valueString = value.toString();
+    if (valueString.includes('e-')) {
+      const [, exponent] = valueString.split('e-');
+      return parseInt(exponent, 10);
+    }
+    if (!valueString.includes('.')) {
+      return 0;
+    }
+    return valueString.split('.')[1].length;
+  }
+
+  static normalizeValue(value, decimals) {
+    return parseFloat(value.toFixed(decimals));
   }
 
   static roundToTickSize(price, tickSize = 0.01) {
@@ -179,8 +191,43 @@ class PriceUtils {
       throw new Error('Invalid price or tick size for rounding');
     }
     
+    const precision = this.getDecimalPlaces(tickSize);
     const multiplier = 1 / tickSize;
-    return Math.round(price * multiplier) / multiplier;
+    const rounded = Math.round(price * multiplier) / multiplier;
+    return this.normalizeValue(rounded, precision);
+  }
+
+  static roundQuantity(quantity, stepSize = 0.001) {
+    if (!this.isValidPrice(quantity) || !this.isValidPrice(stepSize)) {
+      throw new Error('Invalid quantity or step size for rounding');
+    }
+
+    const precision = this.getDecimalPlaces(stepSize);
+    const multiplier = 1 / stepSize;
+    const rounded = Math.floor(quantity * multiplier) / multiplier;
+    return this.normalizeValue(rounded, precision);
+  }
+
+  static splitQuantity(quantity, parts, stepSize = 0.001) {
+    if (parts <= 0) {
+      return [];
+    }
+
+    const roundedQuantity = this.roundQuantity(quantity, stepSize);
+    const baseQty = this.roundQuantity(roundedQuantity / parts, stepSize);
+    const quantities = Array(parts).fill(baseQty);
+    let remaining = this.roundQuantity(roundedQuantity - baseQty * parts, stepSize);
+
+    for (let i = 0; i < parts && remaining >= stepSize; i++) {
+      quantities[i] = this.roundQuantity(quantities[i] + stepSize, stepSize);
+      remaining = this.roundQuantity(remaining - stepSize, stepSize);
+    }
+
+    return quantities;
+  }
+
+  static isValidPrice(price) {
+    return typeof price === 'number' && price > 0 && !isNaN(price) && isFinite(price);
   }
 }
 
