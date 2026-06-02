@@ -1,4 +1,6 @@
 export const TIMEFRAMES = [
+  { value: 'm1', label: '1 Minute' },
+  { value: 'm5', label: '5 Minutes' },
   { value: 'm15', label: '15 Minutes' },
   { value: 'm30', label: '30 Minutes' },
   { value: 'h1', label: '1 Hour' },

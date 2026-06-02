@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS trading_setups (
   ignore_box_upper REAL NOT NULL CHECK(ignore_box_upper >= 0),
   ignore_box_lower REAL NOT NULL CHECK(ignore_box_lower >= 0),
   entry_indicator_type TEXT NOT NULL CHECK(entry_indicator_type IN ('superTrend','macd','ema')),
-  entry_indicator_tf TEXT NOT NULL CHECK(entry_indicator_tf IN ('m15','m30','h1','h2','h4','d1')),
+  entry_indicator_tf TEXT NOT NULL CHECK(entry_indicator_tf IN ('m1','m5','m15','m30','h1','h2','h4','d1')),
   risk_type TEXT NOT NULL CHECK(risk_type IN ('percent','fixed')),
   risk_value REAL NOT NULL CHECK(risk_value > 0),
   sl_price REAL DEFAULT 0,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS trading_setups (
   entry_qty REAL,
   activated_at TEXT,
   exit_indicator_type TEXT CHECK(exit_indicator_type IN ('superTrend','macd','ema')),
-  exit_indicator_tf TEXT CHECK(exit_indicator_tf IN ('m15','m30','h1','h2','h4','d1')),
+  exit_indicator_tf TEXT CHECK(exit_indicator_tf IN ('m1','m5','m15','m30','h1','h2','h4','d1')),
   closed_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now')),
@@ -113,4 +113,41 @@ CREATE TABLE trading_setups_v2 (
 INSERT INTO trading_setups_v2 SELECT * FROM trading_setups;
 DROP TABLE trading_setups;
 ALTER TABLE trading_setups_v2 RENAME TO trading_setups;
+`;
+
+export const MIGRATION_3_SQL = `
+CREATE TABLE trading_setups_v3 (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  account_id INTEGER NOT NULL,
+  symbol TEXT NOT NULL,
+  side TEXT NOT NULL CHECK(side IN ('long','short')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','triggered','active','closed','canceled')),
+  memo TEXT,
+  activation_price REAL NOT NULL CHECK(activation_price >= 0),
+  ignore_box_upper REAL NOT NULL CHECK(ignore_box_upper >= 0),
+  ignore_box_lower REAL NOT NULL CHECK(ignore_box_lower >= 0),
+  entry_indicator_type TEXT NOT NULL CHECK(entry_indicator_type IN ('superTrend','macd','ema')),
+  entry_indicator_tf TEXT NOT NULL CHECK(entry_indicator_tf IN ('m1','m5','m15','m30','h1','h2','h4','d1')),
+  risk_type TEXT NOT NULL CHECK(risk_type IN ('percent','fixed')),
+  risk_value REAL NOT NULL CHECK(risk_value > 0),
+  sl_price REAL DEFAULT 0,
+  tp_prices TEXT DEFAULT '[1,2,3,4]',
+  be_enabled INTEGER DEFAULT 0,
+  be_trigger_price REAL DEFAULT 0,
+  entry_price REAL,
+  entry_qty REAL,
+  activated_at TEXT,
+  exit_indicator_type TEXT CHECK(exit_indicator_type IN ('superTrend','macd','ema')),
+  exit_indicator_tf TEXT CHECK(exit_indicator_tf IN ('m1','m5','m15','m30','h1','h2','h4','d1')),
+  closed_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (account_id) REFERENCES bybit_accounts(id)
+);
+
+INSERT INTO trading_setups_v3 SELECT * FROM trading_setups;
+DROP TABLE trading_setups;
+ALTER TABLE trading_setups_v3 RENAME TO trading_setups;
 `;

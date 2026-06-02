@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const timeframeEnum = z.enum(['m15', 'm30', 'h1', 'h2', 'h4', 'd1']);
+const timeframeEnum = z.enum(['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1']);
 const indicatorEnum = z.enum(['superTrend', 'macd', 'ema']);
 
 export const loginSchema = z.object({
@@ -30,7 +30,7 @@ export const setupSchema = z.object({
   risk_type: z.enum(['percent', 'fixed']),
   risk_value: z.number().positive('Must be positive'),
   sl_price: z.number().optional().default(0),
-  tp_prices: z.array(z.number()).min(1).max(4).default([1, 2, 3, 4]),
+  tp_prices: z.array(z.number()).min(0).max(8).default([1, 2, 3, 4]),
   be_enabled: z.boolean().default(false),
   be_trigger_price: z.number().optional().default(0),
   exit_indicator_type: indicatorEnum.optional(),

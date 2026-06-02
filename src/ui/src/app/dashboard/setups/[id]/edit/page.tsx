@@ -139,7 +139,9 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
 
   function addTpLevel() {
     const maxTp = formData.tp_prices.length > 0 ? Math.max(...formData.tp_prices) : 1;
-    updateField('tp_prices', [...formData.tp_prices, +(maxTp + 1).toFixed(1)]);
+    if (formData.tp_prices.length < 8) {
+      updateField('tp_prices', [...formData.tp_prices, +(maxTp + 1).toFixed(1)]);
+    }
   }
 
   function handleTpRaw(index: number, raw: string) {
@@ -393,7 +395,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
                     <input type="number" step="0.1" min="0.1" value={rr}
                       onChange={(e) => updateTpLevel(index, Number(e.target.value))}
                       className="w-24 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-2 text-white outline-none focus:border-blue-500" />
-                    {formData.tp_prices.length > 1 && (
+                    {formData.tp_prices.length > 0 && (
                       <button type="button" onClick={() => removeTpLevel(index)}
                         className="p-1 text-red-400 hover:text-red-300 transition-colors">
                         <Trash2 className="h-4 w-4" />
@@ -401,10 +403,10 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
                     )}
                   </div>
                 ))}
-                {formData.tp_prices.length < 4 && (
+                {formData.tp_prices.length < 8 && (
                   <button type="button" onClick={addTpLevel}
                     className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                    <Plus className="h-4 w-4" /> Add TP Level ({formData.tp_prices.length}/4)
+                    <Plus className="h-4 w-4" /> Add TP Level
                   </button>
                 )}
               </div>

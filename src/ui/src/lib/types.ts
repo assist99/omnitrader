@@ -1,7 +1,7 @@
 export type Side = 'long' | 'short';
 export type SetupStatus = 'pending' | 'triggered' | 'active' | 'closed' | 'canceled';
 export type EntryIndicatorType = 'superTrend' | 'macd' | 'ema';
-export type Timeframe = 'm15' | 'm30' | 'h1' | 'h2' | 'h4' | 'd1';
+export type Timeframe = 'm1' | 'm5' | 'm15' | 'm30' | 'h1' | 'h2' | 'h4' | 'd1';
 export type RiskType = 'percent' | 'fixed';
 export type OrderType = 'entry' | 'tp1' | 'tp2' | 'tp3' | 'tp4' | 'sl';
 export type OrderSide = 'buy' | 'sell';

@@ -41,7 +41,12 @@ export default function SetupFormPage() {
     try {
       const res = await fetch('/api/accounts');
       const data = await res.json();
-      if (data.success) setAccounts(data.data);
+      if (data.success) {
+        setAccounts(data.data);
+        if (data.data.length > 0 && formData.account_id === 0) {
+          updateField('account_id', data.data[0].id);
+        }
+      }
     } catch {
       // fetch failed — accounts will remain empty
     }
@@ -82,17 +87,15 @@ export default function SetupFormPage() {
   }
 
   function addTpLevel() {
-    if (formData.tp_prices.length < 4) {
+    if (formData.tp_prices.length < 8) {
       const nextRr = formData.tp_prices.length + 1;
       updateField('tp_prices', [...formData.tp_prices, nextRr]);
     }
   }
 
   function removeTpLevel(index: number) {
-    if (formData.tp_prices.length > 1) {
-      const updated = formData.tp_prices.filter((_, i) => i !== index);
-      updateField('tp_prices', updated);
-    }
+    const updated = formData.tp_prices.filter((_, i) => i !== index);
+    updateField('tp_prices', updated);
   }
 
   function updateTpLevel(index: number, value: number) {
@@ -375,7 +378,7 @@ type="number"
                     ? `Target: ${formData.activation_price - Math.abs(formData.activation_price - formData.sl_price) * rr}`
                     : 'Enter SL to calculate'}
                 </span>
-                {formData.tp_prices.length > 1 && (
+                {formData.tp_prices.length > 0 && (
                   <button
                     type="button"
                     onClick={() => removeTpLevel(index)}
@@ -386,14 +389,14 @@ type="number"
                 )}
               </div>
             ))}
-            {formData.tp_prices.length < 4 && (
+            {formData.tp_prices.length < 8 && (
               <button
                 type="button"
                 onClick={addTpLevel}
                 className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                Add TP Level ({formData.tp_prices.length}/4)
+                Add TP Level
               </button>
             )}
           </div>

@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { CREATE_TABLES_SQL, MIGRATIONS_SQL, MIGRATION_2_SQL } from './schema';
+import { CREATE_TABLES_SQL, MIGRATIONS_SQL, MIGRATION_2_SQL, MIGRATION_3_SQL } from './schema';
 
 const projectRoot = path.resolve(process.cwd(), '..', '..');
 const DB_PATH = process.env.DATABASE_PATH
@@ -42,16 +42,31 @@ export function getDb(): Promise<sqlite3.Database> {
                 instance.exec(MIGRATION_2_SQL, (mig2Err) => {
                   if (mig2Err) { reject(mig2Err); return; }
                   instance.run('INSERT INTO _migrations (version) VALUES (2)', () => {});
-                  db = instance;
-                  initializing = null;
-                  resolve(instance);
+                  runMigration3(instance, resolve, reject);
                 });
               } else {
-                db = instance;
-                initializing = null;
-                resolve(instance);
+                runMigration3(instance, resolve, reject);
               }
             });
+
+function runMigration3(instance: sqlite3.Database, resolve: (db: sqlite3.Database) => void, reject: (err: Error) => void) {
+  instance.get('SELECT version FROM _migrations WHERE version = 3', (checkErr, row) => {
+    if (checkErr) { reject(checkErr); return; }
+    if (!row) {
+      instance.exec(MIGRATION_3_SQL, (mig3Err) => {
+        if (mig3Err) { reject(mig3Err); return; }
+        instance.run('INSERT INTO _migrations (version) VALUES (3)', () => {});
+        db = instance;
+        initializing = null;
+        resolve(instance);
+      });
+    } else {
+      db = instance;
+      initializing = null;
+      resolve(instance);
+    }
+  });
+}
           });
         });
       });
