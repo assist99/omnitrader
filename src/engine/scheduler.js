@@ -199,8 +199,7 @@ class Scheduler {
     const now = new Date();
     const currentMinute = now.getUTCMinutes();
     
-    // Find next 15-minute boundary
-    const minutesToNext = 1 - (currentMinute % 1);
+    const minutesToNext = 5 - (currentMinute % 5);
     const nextTime = new Date(now);
     nextTime.setUTCMinutes(now.getUTCMinutes() + minutesToNext);
     nextTime.setUTCSeconds(0);
