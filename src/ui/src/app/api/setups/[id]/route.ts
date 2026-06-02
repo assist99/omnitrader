@@ -116,6 +116,7 @@ export async function PUT(
       await execute(
         `UPDATE trading_setups SET
           account_id = ?, symbol = ?, side = ?, memo = ?,
+          ignore_box_upper = ?, ignore_box_lower = ?,
           entry_indicator_type = ?, entry_indicator_tf = ?,
           risk_type = ?, risk_value = ?, sl_price = ?, tp_prices = ?,
           be_enabled = ?, be_trigger_price = ?,
@@ -124,6 +125,7 @@ export async function PUT(
         WHERE id = ?`,
         [
           data.account_id, data.symbol, data.side, data.memo || null,
+          data.ignore_box_upper, data.ignore_box_lower,
           data.entry_indicator_type, data.entry_indicator_tf,
           data.risk_type, data.risk_value, data.sl_price || 0,
           JSON.stringify(data.tp_prices),
