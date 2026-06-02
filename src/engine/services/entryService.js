@@ -113,10 +113,10 @@ class EntryService {
       const slOrder = await bybitService.placeOrder({
         symbol: setup.symbol,
         side: setup.side === 'long' ? 'Sell' : 'Buy',
-        orderType: 'Limit',
+        orderType: 'Market',
         qty: roundedPositionSize,
-        price: slPrice,
-        timeInForce: 'GTC'
+        stopPx: slPrice,
+        triggerBy: 'LastPrice'
       });
 
       await ctx.db.createOrder({
