@@ -140,11 +140,11 @@ class EntryService {
 
       const tpQtys = PriceUtils.splitQuantity(
         roundedPositionSize,
-        Math.min(tpPrices.length, 4),
+        tpPrices.length,
         qtyStepSize
       );
 
-      for (let i = 0; i < Math.min(tpPrices.length, 4); i++) {
+      for (let i = 0; i < tpPrices.length; i++) {
         const tpOrder = await bybitService.placeOrder({
           symbol: setup.symbol,
           side: setup.side === 'long' ? 'Sell' : 'Buy',
@@ -172,7 +172,7 @@ class EntryService {
       });
 
       ctx.stats.setupsActivated++;
-      ctx.stats.ordersPlaced += (2 + Math.min(tpPrices.length, 4));
+      ctx.stats.ordersPlaced += (2 + tpPrices.length);
 
       await ctx.telegramService.sendNotification(setup.user_id, 'order_placed', {
         setupId: setup.id,
