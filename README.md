@@ -233,7 +233,9 @@ Each service has its own environment file:
 | Service | File | Key Variables |
 |---------|------|---------------|
 | **UI** | `src/ui/.env` | `JWT_SECRET`, `ENCRYPTION_KEY`, `DATABASE_PATH` |
-| **Engine** | `src/engine/.env` | `ENCRYPTION_KEY`, `DATABASE_PATH`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `BYBIT_API_*`, `SCHEDULE_PATTERN`, `LOG_*` |
+| **Engine** | `src/engine/.env` | `ENCRYPTION_KEY`, `DATABASE_PATH`, `TELEGRAM_BOT_TOKEN`, `BYBIT_API_*`, `SCHEDULE_PATTERN`, `LOG_*` |
+
+> **Note**: Telegram User ID is now configured per-user in the UI Settings page, not in the engine `.env` file. If `TELEGRAM_USER_ID` is still set in the engine `.env`, it will be used as a fallback. Set it via **Settings → Telegram** in the dashboard for proper per-user notifications.
 
 Reference copies with all available variables are at `src/ui/.env.example` and `src/engine/.env.example`.
 

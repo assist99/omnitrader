@@ -37,13 +37,6 @@ export const setupSchema = z.object({
   exit_indicator_tf: timeframeEnum.optional(),
 }).refine(
   (data) => {
-    if (data.ignore_box_upper === 0 || data.ignore_box_lower === 0) return true;
-    if (data.ignore_box_lower >= data.ignore_box_upper) return false;
-    return true;
-  },
-  { message: 'Ignore box lower must be less than upper unless either side is disabled', path: ['ignore_box_lower'] }
-).refine(
-  (data) => {
     if (data.be_enabled && (data.be_trigger_price === undefined || data.be_trigger_price < 0)) {
       return false;
     }
@@ -51,3 +44,16 @@ export const setupSchema = z.object({
   },
   { message: 'BE trigger price is required when BE is enabled', path: ['be_trigger_price'] }
 );
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+export const telegramSchema = z.object({
+  telegram_chat_id: z.string().nullable(),
+});

@@ -11,6 +11,7 @@ export interface User {
   id: number;
   email: string;
   password_hash: string;
+  telegram_chat_id: string | null;
   created_at: string;
 }
 

@@ -222,10 +222,11 @@ class Database {
   }
 
   async getUserTelegramChatId(userId) {
-    // Note: Currently users table doesn't have telegram_chat_id field
-    // This would need to be added to the schema
-    // For now, return null or implement via separate config
-    return null;
+    const result = await this.get(
+      'SELECT telegram_chat_id FROM users WHERE id = ?',
+      [userId]
+    );
+    return result?.telegram_chat_id || null;
   }
 
   async getSetupById(setupId) {

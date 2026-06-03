@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  telegram_chat_id TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -150,4 +151,8 @@ CREATE TABLE trading_setups_v3 (
 INSERT INTO trading_setups_v3 SELECT * FROM trading_setups;
 DROP TABLE trading_setups;
 ALTER TABLE trading_setups_v3 RENAME TO trading_setups;
+`;
+
+export const MIGRATION_4_SQL = `
+ALTER TABLE users ADD COLUMN telegram_chat_id TEXT;
 `;

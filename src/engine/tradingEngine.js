@@ -9,7 +9,7 @@ const logger = require('./logger');
 class TradingEngine {
   constructor() {
     this.db = new Database();
-    this.telegramService = new TelegramService();
+    this.telegramService = new TelegramService(this.db);
     this.bybitServices = new Map();
     this.isInitialized = false;
     this.stats = {

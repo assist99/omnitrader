@@ -33,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/accounts', label: 'Accounts', icon: Settings },
+    { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/setups/new', label: 'New Setup', icon: PlusCircle },
   ];
 
@@ -54,12 +54,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <Link href="/dashboard/accounts"
+          <Link href="/dashboard/settings"
             className={`flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-sm transition-colors ${
-              pathname === '/dashboard/accounts' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+              pathname === '/dashboard/settings' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
             }`}>
             <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Accounts</span>
+            <span className="hidden sm:inline">Settings</span>
           </Link>
           <button onClick={handleLogout}
             className="flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-sm text-slate-400 transition-colors hover:text-white">

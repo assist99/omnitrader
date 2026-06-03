@@ -3,10 +3,11 @@ const Config = require('../config');
 const logger = require('../logger');
 
 class TelegramService {
-  constructor() {
+  constructor(db) {
     this.botToken = Config.getTelegramBotToken();
     this.bot = null;
     this.defaultChatId = Config.getTelegramUserId();
+    this.db = db || null;
 
     if (this.botToken) {
       this.initializeBot();
@@ -33,7 +34,7 @@ class TelegramService {
     }
 
     try {
-      const chatId = this.getUserChatId();
+      const chatId = await this.getUserChatId(userId);
       if (!chatId) {
         logger.warn('TELEGRAM_USER_ID not set. Skipping notification.');
         return false;
@@ -278,7 +279,15 @@ class TelegramService {
     return titleMap[messageType] || 'Notification';
   }
 
-  getUserChatId() {
+  async getUserChatId(userId) {
+    if (this.db && userId) {
+      try {
+        const chatId = await this.db.getUserTelegramChatId(userId);
+        if (chatId) return chatId;
+      } catch (err) {
+        logger.warn('Failed to query user telegram chat id:', err.message);
+      }
+    }
     return this.defaultChatId || null;
   }
 

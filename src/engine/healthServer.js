@@ -115,6 +115,39 @@ class HealthServer {
       
       res.json(metrics);
     });
+
+    // Telegram test endpoint
+    this.app.post('/telegram/test', async (req, res) => {
+      try {
+        if (!this.scheduler || !this.scheduler.tradingEngine) {
+          return res.status(503).json({ error: 'Trading engine not available' });
+        }
+        
+        const { chatId } = req.body;
+        
+        if (!chatId) {
+          return res.status(400).json({ error: 'chatId is required' });
+        }
+        
+        const telegramService = this.scheduler.tradingEngine.telegramService;
+        
+        if (!telegramService.isAvailable()) {
+          return res.status(503).json({ error: 'Telegram service not available. Check TELEGRAM_BOT_TOKEN.' });
+        }
+        
+        const message = '✅ OmniTrader test notification - your Telegram configuration is working!';
+        const success = await telegramService.sendDirectNotification(chatId, message);
+        
+        if (success) {
+          res.json({ success: true, message: 'Test notification sent' });
+        } else {
+          res.status(500).json({ error: 'Failed to send test notification' });
+        }
+      } catch (error) {
+        logger.error('Error sending test Telegram message:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
   }
 
   setScheduler(scheduler) {

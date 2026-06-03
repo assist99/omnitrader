@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const auth = getAuthFromRequest(request);
   if (!auth) return unauthorizedResponse();
 
-  const user = await queryOne<User>('SELECT id, email, created_at FROM users WHERE id = ?', [auth.userId]);
+  const user = await queryOne<User>('SELECT id, email, telegram_chat_id, created_at FROM users WHERE id = ?', [auth.userId]);
   if (!user) return unauthorizedResponse();
 
   return Response.json({ success: true, data: user });
