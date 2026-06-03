@@ -8,6 +8,19 @@ class BybitService {
   constructor(apiKeyEnc, apiSecretEnc, isTestnet = true) {
     this.apiKey = apiKeyEnc ? Encryption.decrypt(apiKeyEnc) : null;
     this.apiSecret = apiSecretEnc ? Encryption.decrypt(apiSecretEnc) : null;
+    
+    // Trim any whitespace from decrypted values
+    if (this.apiKey) this.apiKey = this.apiKey.trim();
+    if (this.apiSecret) this.apiSecret = this.apiSecret.trim();
+    
+    // Log for debugging
+    logger.debug(`BybitService initialized with credentials - key_len=${this.apiKey?.length || 0}, secret_len=${this.apiSecret?.length || 0}, testnet=${isTestnet}`);
+    
+    // Validate credentials are available
+    if (!this.apiKey || !this.apiSecret) {
+      logger.warn(`BybitService initialized with incomplete credentials - key=${!!this.apiKey}, secret=${!!this.apiSecret}`);
+    }
+    
     this.baseUrl = Config.getBybitApiUrl(isTestnet);
     this.isTestnet = isTestnet;
     this.symbolInfoCache = new Map();
@@ -60,17 +73,44 @@ class BybitService {
     const timestamp = Date.now().toString();
     const recvWindow = '5000';
     
-    // Create query string for GET requests
-    let queryString = '';
-    if (config.params) {
-      queryString = new URLSearchParams(config.params).toString();
+    // Validate credentials first
+    if (!this.apiKey || !this.apiSecret) {
+      throw new Error('Bybit API credentials not available for signing');
+    }
+    
+    // Create signature string based on request type
+    let signString = '';
+    let bodyString = '';
+    
+    // For POST/PUT requests with body data
+    if (config.data) {
+      // Ensure consistent JSON stringification
+      if (typeof config.data === 'string') {
+        bodyString = config.data;
+      } else {
+        // Remove undefined values before stringifying
+        const cleanData = JSON.parse(JSON.stringify(config.data));
+        bodyString = JSON.stringify(cleanData);
+      }
+      signString = timestamp + this.apiKey + recvWindow + bodyString;
+      logger.debug(`Sign string for POST: timestamp=${timestamp}, key_len=${this.apiKey.length}, recvWindow=${recvWindow}, body_len=${bodyString.length}`);
+    } 
+    // For GET requests with query parameters
+    else if (config.params) {
+      const queryString = new URLSearchParams(config.params).toString();
+      signString = timestamp + this.apiKey + recvWindow + queryString;
+      logger.debug(`Sign string for GET: timestamp=${timestamp}, key_len=${this.apiKey.length}, recvWindow=${recvWindow}, query=${queryString}`);
+    }
+    // Fallback for requests with no data or params
+    else {
+      signString = timestamp + this.apiKey + recvWindow;
+      logger.debug(`Sign string for empty: timestamp=${timestamp}, key_len=${this.apiKey.length}, recvWindow=${recvWindow}`);
     }
     
     // Create signature
-    const paramString = timestamp + this.apiKey + recvWindow + queryString;
     const signature = crypto
       .createHmac('sha256', this.apiSecret)
-      .update(paramString)
+      .update(signString)
       .digest('hex');
     
     // Add headers
@@ -78,6 +118,8 @@ class BybitService {
     config.headers['X-BAPI-TIMESTAMP'] = timestamp;
     config.headers['X-BAPI-RECV-WINDOW'] = recvWindow;
     config.headers['X-BAPI-SIGN'] = signature;
+    
+    logger.debug(`Bybit request signed - Method: ${config.method}, URL: ${config.url}, Signature length: ${signature.length}`);
     
     return config;
   }
@@ -182,13 +224,15 @@ class BybitService {
         side: orderParams.side,
         orderType: orderParams.orderType,
         qty: orderParams.qty.toString(),
-        price: orderParams.price?.toString(),
         timeInForce: orderParams.timeInForce || 'GTC'
       };
       
-      if (orderParams.orderType === 'Market') {
-        delete params.price;
+      // Only include price for limit orders
+      if (orderParams.orderType === 'Limit' && orderParams.price) {
+        params.price = orderParams.price.toString();
       }
+      
+      logger.debug(`Placing order: ${JSON.stringify(params)}`);
       
       const response = await this.axiosInstance.post('/v5/order/create', params);
       
