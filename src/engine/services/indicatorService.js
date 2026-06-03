@@ -1,5 +1,4 @@
 const {
-  SuperTrend,
   MACD,
   EMA,
   SMA,
@@ -37,28 +36,14 @@ class IndicatorService {
 
   static checkSuperTrend(candles, params = {}) {
     try {
-      // Check if SuperTrend is available
-      if (typeof SuperTrend === 'undefined') {
-        return { met: false, error: 'SuperTrend indicator not available in technicalindicators package' };
-      }
-      
       const period = params.period || 10;
       const multiplier = params.multiplier || 3;
       
-      // Prepare input for SuperTrend
       const highs = candles.map(c => c.high);
       const lows = candles.map(c => c.low);
       const closes = candles.map(c => c.close);
       
-      const input = {
-        high: highs,
-        low: lows,
-        close: closes,
-        period: period,
-        multiplier: multiplier
-      };
-      
-      const superTrend = SuperTrend.calculate(input);
+      const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
       
       if (superTrend.length < 2) {
         return { met: false, error: 'Insufficient data for SuperTrend calculation' };
@@ -226,6 +211,94 @@ class IndicatorService {
       logger.error('Error checking EMA:', error);
       return { met: false, error: error.message };
     }
+  }
+
+  static calculateATR(highs, lows, closes, period) {
+    if (closes.length <= period) {
+      return [];
+    }
+
+    const trueRanges = [];
+    for (let i = 1; i < closes.length; i++) {
+      const currentHigh = highs[i];
+      const currentLow = lows[i];
+      const prevClose = closes[i - 1];
+      const trueRange = Math.max(
+        currentHigh - currentLow,
+        Math.abs(currentHigh - prevClose),
+        Math.abs(currentLow - prevClose)
+      );
+      trueRanges.push(trueRange);
+    }
+
+    if (trueRanges.length < period) {
+      return [];
+    }
+
+    const atr = [];
+    let sum = 0;
+
+    for (let i = 0; i < period; i++) {
+      sum += trueRanges[i];
+    }
+
+    let prevAtr = sum / period;
+    atr.push(prevAtr);
+
+    for (let i = period; i < trueRanges.length; i++) {
+      prevAtr = ((prevAtr * (period - 1)) + trueRanges[i]) / period;
+      atr.push(prevAtr);
+    }
+
+    return atr;
+  }
+
+  static calculateSuperTrend(highs, lows, closes, period, multiplier) {
+    const atr = this.calculateATR(highs, lows, closes, period);
+    if (atr.length === 0) {
+      return [];
+    }
+
+    const finalUpper = [];
+    const finalLower = [];
+    const superTrend = [];
+
+    for (let i = period; i < closes.length; i++) {
+      const hl2 = (highs[i] + lows[i]) / 2;
+      const atrValue = atr[i - period];
+      const basicUpper = hl2 + multiplier * atrValue;
+      const basicLower = hl2 - multiplier * atrValue;
+
+      if (i === period) {
+        finalUpper.push(basicUpper);
+        finalLower.push(basicLower);
+        superTrend.push(closes[i] <= basicUpper ? basicUpper : basicLower);
+        continue;
+      }
+
+      const prevFinalUpper = finalUpper[finalUpper.length - 1];
+      const prevFinalLower = finalLower[finalLower.length - 1];
+      const prevSuperTrend = superTrend[superTrend.length - 1];
+      const prevClose = closes[i - 1];
+
+      const currentUpper = (basicUpper < prevFinalUpper || prevClose > prevFinalUpper)
+        ? basicUpper
+        : prevFinalUpper;
+      const currentLower = (basicLower > prevFinalLower || prevClose < prevFinalLower)
+        ? basicLower
+        : prevFinalLower;
+
+      finalUpper.push(currentUpper);
+      finalLower.push(currentLower);
+
+      const currentSuperTrend = prevSuperTrend === prevFinalUpper
+        ? (closes[i] <= currentUpper ? currentUpper : currentLower)
+        : (closes[i] >= currentLower ? currentLower : currentUpper);
+
+      superTrend.push(currentSuperTrend);
+    }
+
+    return superTrend;
   }
 
   static checkCandlestickPattern(candles, patternType) {
@@ -435,11 +508,6 @@ class IndicatorService {
 
   static getSuperTrendSwingPrice(candles, side, params = {}) {
     try {
-      // Check if SuperTrend is available
-      if (typeof SuperTrend === 'undefined') {
-        return { price: null, error: 'SuperTrend indicator not available in technicalindicators package' };
-      }
-      
       const period = params.period || 10;
       const multiplier = params.multiplier || 3;
       
@@ -447,15 +515,7 @@ class IndicatorService {
       const lows = candles.map(c => c.low);
       const closes = candles.map(c => c.close);
       
-      const input = {
-        high: highs,
-        low: lows,
-        close: closes,
-        period: period,
-        multiplier: multiplier
-      };
-      
-      const superTrend = SuperTrend.calculate(input);
+      const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
       
       if (superTrend.length < 50) {
         return { price: null, error: 'Insufficient SuperTrend data for swing detection' };
