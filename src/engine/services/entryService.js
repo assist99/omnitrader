@@ -58,8 +58,8 @@ class EntryService {
       if (!slPrice) {
         slPrice = PriceUtils.calculateSLPrice(
           entryPrice,
-          setup.ignore_box_lower,
-          setup.ignore_box_upper,
+          0,
+          0,
           setup.side,
           setup.entry_indicator_type,
           candles,
