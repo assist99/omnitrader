@@ -66,7 +66,7 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
       <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
           <span>{setup.entry_indicator_type} ({setup.entry_indicator_tf})</span>
-          {setup.exit_indicator_type && <span>\u2192 Exit: {setup.exit_indicator_type} ({setup.exit_indicator_tf})</span>}
+          {setup.exit_indicator_type && <span>→ Exit: {setup.exit_indicator_type} ({setup.exit_indicator_tf})</span>}
         </div>
         <div className="flex gap-2">
           {(setup.status === 'pending' || setup.status === 'triggered') && (

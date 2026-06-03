@@ -1,0 +1,1 @@
+Algorithmic trading automation for Bybit. Monitors price data, validates entry via technical indicators (SuperTrend, MACD, EMA), and places orders with native TP/SL. Features a Next.js dashboard for setup CRUD, a Node.js scheduler polling every 15 minutes, SQLite storage, and Telegram alerts. Lightweight MVP, zero-config, single-file DB.
