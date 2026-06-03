@@ -37,11 +37,11 @@ export const setupSchema = z.object({
   exit_indicator_tf: timeframeEnum.optional(),
 }).refine(
   (data) => {
-    if (data.ignore_box_upper === 0 && data.ignore_box_lower === 0) return true;
+    if (data.ignore_box_upper === 0 || data.ignore_box_lower === 0) return true;
     if (data.ignore_box_lower >= data.ignore_box_upper) return false;
     return true;
   },
-  { message: 'Ignore box lower must be less than upper', path: ['ignore_box_lower'] }
+  { message: 'Ignore box lower must be less than upper unless either side is disabled', path: ['ignore_box_lower'] }
 ).refine(
   (data) => {
     if (data.be_enabled && (data.be_trigger_price === undefined || data.be_trigger_price < 0)) {
