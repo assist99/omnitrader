@@ -225,3 +225,16 @@ The UI and Engine share a single SQLite database at `db/trading.db`. The path is
 |---------|------|-------------|
 | UI      | 3000 | Web dashboard |
 | Engine  | 3001 | Trading engine + health server |
+
+## Environment Files
+
+Each service has its own environment file:
+
+| Service | File | Key Variables |
+|---------|------|---------------|
+| **UI** | `src/ui/.env` | `JWT_SECRET`, `ENCRYPTION_KEY`, `DATABASE_PATH` |
+| **Engine** | `src/engine/.env` | `ENCRYPTION_KEY`, `DATABASE_PATH`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `BYBIT_API_*`, `SCHEDULE_PATTERN`, `LOG_*` |
+
+Reference copies with all available variables are at `src/ui/.env.example` and `src/engine/.env.example`.
+
+The `DATABASE_PATH` defaults to `db/trading.db` (relative to the project root) and must match across both services.
