@@ -18,8 +18,6 @@ class ActiveSetupService {
     }
 
 
-    await this.checkBreakEven(ctx, setup, bybitService);
-
     await this.updateOrderStatuses(ctx, setup, bybitService);
 
     if (setup.exit_indicator_type && setup.exit_indicator_tf) {
@@ -28,6 +26,7 @@ class ActiveSetupService {
       }
     }
 
+    await this.checkBreakEven(ctx, setup, bybitService);
   }
 
   static async checkExitCondition(ctx, setup, bybitService) {
