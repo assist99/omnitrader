@@ -23,11 +23,12 @@ class ActiveSetupService {
       }
     }
 
+    await this.updateOrderStatuses(ctx, setup, bybitService);
+
     if (TimeUtils.isTriggerTime(setup.entry_indicator_tf)) {
       await this.checkBreakEven(ctx, setup, bybitService);
     }
 
-    await this.updateOrderStatuses(ctx, setup, bybitService);
   }
 
   static async checkExitCondition(ctx, setup, bybitService) {
