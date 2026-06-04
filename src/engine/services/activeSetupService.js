@@ -17,16 +17,15 @@ class ActiveSetupService {
       return;
     }
 
+
+    await this.checkBreakEven(ctx, setup, bybitService);
+
+    await this.updateOrderStatuses(ctx, setup, bybitService);
+
     if (setup.exit_indicator_type && setup.exit_indicator_tf) {
       if (TimeUtils.isTriggerTime(setup.exit_indicator_tf)) {
         await this.checkExitCondition(ctx, setup, bybitService);
       }
-    }
-
-    await this.updateOrderStatuses(ctx, setup, bybitService);
-
-    if (TimeUtils.isTriggerTime(setup.entry_indicator_tf)) {
-      await this.checkBreakEven(ctx, setup, bybitService);
     }
 
   }
@@ -72,12 +71,12 @@ class ActiveSetupService {
 
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
       const tp1Order = orders.find(o => o.order_type === 'tp1');
-
+      console.log('TP1 Order:', tp1Order);
       if (!tp1Order || tp1Order.status !== 'filled') return;
 
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder.price === setup.entry_price) return;
-
+      console.log('SL Order:', slOrder);
       await bybitService.cancelOrder(slOrder.bybit_order_id, setup.symbol);
 
       const newSlOrder = await bybitService.placeOrder({

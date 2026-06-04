@@ -163,7 +163,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
     setSubmitting(true);
 
     const payload = isBeOnly
-      ? { be_trigger_price: formData.be_trigger_price }
+      ? { be_enabled: formData.be_enabled, be_trigger_price: formData.be_enabled ? formData.be_trigger_price : 0 }
       : {
           ...formData,
           be_enabled: formData.be_enabled,
@@ -466,12 +466,23 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
         {isBeOnly && (
             <div className="rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white">Break-Even Trigger Price</h2>
-              <label className="mb-1 block text-sm text-slate-400">BE Trigger Price</label>
-              <input type="number" step="any" value={numVal('be_trigger_price')}
-                onChange={(e) => handleNum('be_trigger_price', e.target.value)}
-                className="w-full sm:max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
-              {showZeroWarning('be_trigger_price')}
-              <p className="mt-1 text-xs text-slate-500">SL will move to entry price when TP1 is hit</p>
+              <label className="flex items-center gap-2 cursor-pointer mb-4">
+                <input type="checkbox" checked={formData.be_enabled}
+                  onChange={(e) => updateField('be_enabled', e.target.checked)}
+                  className="rounded border-slate-600 text-blue-600" />
+                <span className="text-sm text-slate-300">Enable Break-Even</span>
+                <Info className="h-4 w-4 text-slate-500" />
+              </label>
+              {formData.be_enabled && (
+                <>
+                  <label className="mb-1 block text-sm text-slate-400">BE Trigger Price</label>
+                  <input type="number" step="any" value={numVal('be_trigger_price')}
+                    onChange={(e) => handleNum('be_trigger_price', e.target.value)}
+                    className="w-full sm:max-w-xs rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required />
+                  {showZeroWarning('be_trigger_price')}
+                  <p className="mt-1 text-xs text-slate-500">SL will move to entry price when TP1 is hit</p>
+                </>
+              )}
             </div>
           )}
 
