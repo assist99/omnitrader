@@ -12,6 +12,7 @@ export default function SetupFormPage() {
   const mode = searchParams.get('mode');
 
   const [accounts, setAccounts] = useState<BybitAccount[]>([]);
+  const [showNoAccountModal, setShowNoAccountModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -43,6 +44,9 @@ export default function SetupFormPage() {
       const data = await res.json();
       if (data.success) {
         setAccounts(data.data);
+        if (!data.data || data.data.length === 0) {
+          setShowNoAccountModal(true);
+        }
         if (data.data.length > 0 && formData.account_id === 0) {
           updateField('account_id', data.data[0].id);
         }
@@ -143,6 +147,29 @@ export default function SetupFormPage() {
 
   return (
     <div>
+      {showNoAccountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative z-10 w-full max-w-md rounded-lg bg-slate-800 border border-slate-700/50 p-6">
+            <h3 className="text-lg font-semibold text-white mb-2">No Bybit Account Found</h3>
+            <p className="text-sm text-slate-300 mb-4">You must add a Bybit account before creating a trading setup.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowNoAccountModal(false)}
+                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => router.push('/dashboard/settings')}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Go to Bybit Accounts
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <button
         onClick={() => router.back()}
         className="mb-4 flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors"
@@ -485,7 +512,7 @@ type="number"
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || accounts.length === 0}
             className="rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
           >
             {submitting ? 'Creating...' : 'Create Setup'}

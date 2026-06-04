@@ -1,15 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, Menu, X } from 'lucide-react';
+import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, Menu, X, ChevronDown } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (accountOpen && accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setAccountOpen(false);
+      }
+    }
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') setAccountOpen(false);
+    }
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEsc);
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    };
+  }, [accountOpen]);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -54,19 +78,59 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <Link href="/dashboard/settings"
-            className={`flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-sm transition-colors ${
-              pathname === '/dashboard/settings' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
-            }`}>
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </Link>
-          <button onClick={handleLogout}
-            className="flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-sm text-slate-400 transition-colors hover:text-white">
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
-          <span className="hidden sm:block text-sm text-slate-500">{user.email}</span>
+          <div
+            className="relative"
+            ref={accountRef}
+            onMouseEnter={() => {
+              if (closeTimerRef.current) {
+                clearTimeout(closeTimerRef.current);
+                closeTimerRef.current = null;
+              }
+              setAccountOpen(true);
+            }}
+            onMouseLeave={() => {
+              if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+              closeTimerRef.current = window.setTimeout(() => setAccountOpen(false), 150);
+            }}
+          >
+            <button
+              onClick={() => setAccountOpen(!accountOpen)}
+              className="flex items-center gap-2 rounded-lg px-2 sm:px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-slate-700/20 cursor-pointer"
+              aria-haspopup="menu"
+              aria-expanded={accountOpen}
+            >
+              <span className="text-sm text-slate-500 truncate max-w-[12rem] text-left">{user.email}</span>
+              <ChevronDown className="h-4 w-4 text-slate-400" />
+            </button>
+
+            {accountOpen && (
+              <div className="absolute right-0 mt-2 w-44 rounded bg-slate-800 border border-slate-700/50 shadow-lg py-1 z-50"
+                onMouseEnter={() => {
+                  if (closeTimerRef.current) {
+                    clearTimeout(closeTimerRef.current);
+                    closeTimerRef.current = null;
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+                  closeTimerRef.current = window.setTimeout(() => setAccountOpen(false), 150);
+                }}
+              >
+                <Link href="/dashboard/settings" onClick={() => setAccountOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm ${
+                    pathname === '/dashboard/settings' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+                  }`}>
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Link>
+                <button onClick={() => { setAccountOpen(false); handleLogout(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white">
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -110,6 +174,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <PlusCircle className="h-4 w-4" />
             New Setup
           </Link>
+          <Link href="/dashboard/settings"
+            className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              pathname === '/dashboard/settings' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            <Settings className="h-4 w-4" />
+            Settings
+          </Link>
+          <button onClick={handleLogout}
+            className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
           <div className="mt-auto pt-4 border-t border-slate-700/50">
             <p className="text-xs text-slate-600">OmniTrader v1.0</p>
           </div>
