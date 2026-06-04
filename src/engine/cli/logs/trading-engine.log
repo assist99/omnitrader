@@ -154,3 +154,24 @@
 {"level":"info","message":"Telegram notification sent: order_placed","service":"trading-engine","timestamp":"2026-06-04 03:41:05"}
 {"level":"info","message":"Order placed: #8 entry XAGUSDT @ $73.38 x 3.16455696202532","service":"trading-engine","timestamp":"2026-06-04 03:41:05"}
 {"level":"info","message":"Disconnected from database","service":"trading-engine","timestamp":"2026-06-04 03:41:05"}
+{"level":"info","message":"Telegram bot initialized","service":"trading-engine","timestamp":"2026-06-04 03:42:53"}
+{"level":"info","message":"Connected to database: D:\\project_upwork\\omnitrader\\db\\trading.db","service":"trading-engine","timestamp":"2026-06-04 03:42:53"}
+{"level":"info","message":"Trading engine initialized","service":"trading-engine","timestamp":"2026-06-04 03:42:53"}
+{"level":"info","message":"Fetched 100 candles for XAGUSDT h1","service":"trading-engine","timestamp":"2026-06-04 03:42:55"}
+{"level":"info","message":"Position size calc: risk=5$, balance=$148.53270192, entry=$73.38, sl=$71.8, size=3.16455696202532","service":"trading-engine","timestamp":"2026-06-04 03:42:56"}
+{"level":"info","message":"TP prices calc: entry=$73.38, sl=$71.8, TPs=$74.96, $76.54, $78.12, $79.70","service":"trading-engine","timestamp":"2026-06-04 03:42:56"}
+{"level":"info","message":"Placing order: {\"category\":\"linear\",\"symbol\":\"XAGUSDT\",\"side\":\"Buy\",\"orderType\":\"Market\",\"qty\":\"3.164\",\"timeInForce\":\"GTC\"}","service":"trading-engine","timestamp":"2026-06-04 03:42:56"}
+{"level":"info","message":"Order placed: 5465d291-41d8-4d46-a9fb-f5df1539aee1 for XAGUSDT","service":"trading-engine","timestamp":"2026-06-04 03:42:56"}
+{"level":"info","message":"Placing order: {\"category\":\"linear\",\"symbol\":\"XAGUSDT\",\"side\":\"Sell\",\"orderType\":\"Market\",\"qty\":\"3.164\",\"timeInForce\":\"GTC\",\"triggerPrice\":\"71.8\",\"triggerDirection\":2,\"triggerBy\":\"MarkPrice\",\"reduceOnly\":true}","service":"trading-engine","timestamp":"2026-06-04 03:42:57"}
+{"level":"info","message":"Order placed: 442db851-82b6-442a-a2a5-4f4e7297df13 for XAGUSDT","service":"trading-engine","timestamp":"2026-06-04 03:42:57"}
+{"level":"info","message":"Placing order: {\"category\":\"linear\",\"symbol\":\"XAGUSDT\",\"side\":\"Sell\",\"orderType\":\"Limit\",\"qty\":\"0.791\",\"timeInForce\":\"GTC\",\"price\":\"74.96\",\"reduceOnly\":true}","service":"trading-engine","timestamp":"2026-06-04 03:42:57"}
+{"level":"info","message":"Order placed: e4af1a7f-e2ed-47b5-9536-24659f717ada for XAGUSDT","service":"trading-engine","timestamp":"2026-06-04 03:42:57"}
+{"level":"info","message":"Placing order: {\"category\":\"linear\",\"symbol\":\"XAGUSDT\",\"side\":\"Sell\",\"orderType\":\"Limit\",\"qty\":\"0.791\",\"timeInForce\":\"GTC\",\"price\":\"76.54\",\"reduceOnly\":true}","service":"trading-engine","timestamp":"2026-06-04 03:42:57"}
+{"level":"info","message":"Order placed: 982c8752-7cef-469e-bb51-fdad88be12d0 for XAGUSDT","service":"trading-engine","timestamp":"2026-06-04 03:42:58"}
+{"level":"info","message":"Placing order: {\"category\":\"linear\",\"symbol\":\"XAGUSDT\",\"side\":\"Sell\",\"orderType\":\"Limit\",\"qty\":\"0.791\",\"timeInForce\":\"GTC\",\"price\":\"78.12\",\"reduceOnly\":true}","service":"trading-engine","timestamp":"2026-06-04 03:42:58"}
+{"level":"info","message":"Order placed: e52a8583-a3d7-4e89-b057-97d7d9a2fe68 for XAGUSDT","service":"trading-engine","timestamp":"2026-06-04 03:42:59"}
+{"level":"info","message":"Placing order: {\"category\":\"linear\",\"symbol\":\"XAGUSDT\",\"side\":\"Sell\",\"orderType\":\"Limit\",\"qty\":\"0.791\",\"timeInForce\":\"GTC\",\"price\":\"79.7\",\"reduceOnly\":true}","service":"trading-engine","timestamp":"2026-06-04 03:42:59"}
+{"level":"info","message":"Order placed: 531fe474-f187-4d81-a0b3-4a1481fd34c1 for XAGUSDT","service":"trading-engine","timestamp":"2026-06-04 03:43:00"}
+{"level":"info","message":"Telegram notification sent: order_placed","service":"trading-engine","timestamp":"2026-06-04 03:43:00"}
+{"level":"info","message":"Order placed: #8 entry XAGUSDT @ $73.38 x 3.16455696202532","service":"trading-engine","timestamp":"2026-06-04 03:43:00"}
+{"level":"info","message":"Disconnected from database","service":"trading-engine","timestamp":"2026-06-04 03:43:01"}

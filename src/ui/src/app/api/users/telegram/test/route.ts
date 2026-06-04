@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const engineUrl = process.env.ENGINE_URL || 'http://localhost:3001';
+    const engineUrl = process.env.ENGINE_URL || 'http://engine:3001';
 
     const engineRes = await fetch(`${engineUrl}/telegram/test`, {
       method: 'POST',
