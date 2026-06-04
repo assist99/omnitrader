@@ -5,21 +5,21 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, Info } from 'lucide-react';
 import engineFetch from '@/lib/api';
 import { TIMEFRAMES, INDICATORS, DEFAULT_TP_RATIOS } from '@/lib/constants';
-import type { BybitAccount, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
+import type { ExchangeAccount, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
 
 export default function SetupFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode');
 
-  const [accounts, setAccounts] = useState<BybitAccount[]>([]);
+  const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState<SetupFormData>({
-    account_id: 0,
+    exchange_account_id: 0,
     symbol: '',
     side: 'long',
     memo: '',
@@ -47,8 +47,8 @@ export default function SetupFormPage() {
         if (!data.data || data.data.length === 0) {
           setShowNoAccountModal(true);
         }
-        if (data.data.length > 0 && formData.account_id === 0) {
-          updateField('account_id', data.data[0].id);
+        if (data.data.length > 0 && formData.exchange_account_id === 0) {
+          updateField('exchange_account_id', data.data[0].id);
         }
       }
     } catch {
@@ -186,8 +186,8 @@ export default function SetupFormPage() {
             <div>
               <label className="mb-1 block text-sm text-slate-400">Account</label>
               <select
-                value={formData.account_id}
-                onChange={(e) => updateField('account_id', Number(e.target.value))}
+                value={formData.exchange_account_id}
+                onChange={(e) => updateField('exchange_account_id', Number(e.target.value))}
                 className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500"
                 required
               >

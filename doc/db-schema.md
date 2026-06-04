@@ -58,7 +58,7 @@ Trading strategy configurations created by users.
 | account_id | INTEGER (FK → bybit_accounts.id, NOT NULL) | Linked Bybit account |
 | symbol | TEXT (NOT NULL) | Trading pair (e.g., "BTCUSDT") |
 | side | TEXT (CHECK: 'long', 'short', NOT NULL) | Trade direction |
-| status | TEXT (CHECK: 'pending', 'triggered', 'active', 'closed', 'canceled', DEFAULT 'pending', NOT NULL) | Current lifecycle status |
+| status | TEXT (CHECK: 'pending', 'triggered', 'active', 'closed', 'cancelled', DEFAULT 'pending', NOT NULL) | Current lifecycle status |
 | memo | TEXT | Optional notes/description |
 | activation_price | REAL (CHECK ≥ 0, NOT NULL) | Price at which setup becomes triggered |
 | ignore_box_upper | REAL (CHECK ≥ 0, NOT NULL) | Upper bound of price range to ignore |
@@ -77,7 +77,7 @@ Trading strategy configurations created by users.
 | activated_at | TEXT | When setup was triggered |
 | exit_indicator_type | TEXT (CHECK: 'superTrend', 'macd', 'ema') | Indicator for exit signal |
 | exit_indicator_tf | TEXT (CHECK: 'm1','m5','m15','m30','h1','h2','h4','d1') | Timeframe for exit indicator |
-| closed_at | TEXT | When setup was closed/canceled |
+| closed_at | TEXT | When setup was closed/cancelled |
 | created_at | TEXT (DEFAULT datetime('now')) | Setup creation timestamp |
 | updated_at | TEXT (DEFAULT datetime('now')) | Last update timestamp |
 
@@ -93,7 +93,7 @@ Orders placed on Bybit for active setups.
 | side | TEXT (CHECK: 'buy', 'sell', NOT NULL) | Order direction |
 | price | REAL (NOT NULL) | Order price |
 | qty | REAL (NOT NULL) | Order quantity |
-| status | TEXT (CHECK: 'pending','filled','canceled','rejected', DEFAULT 'pending', NOT NULL) | Order status |
+| status | TEXT (CHECK: 'pending','filled','cancelled','rejected', DEFAULT 'pending', NOT NULL) | Order status |
 | bybit_order_id | TEXT (UNIQUE) | Bybit's order ID |
 | created_at | TEXT (DEFAULT datetime('now')) | Order creation timestamp |
 | updated_at | TEXT (DEFAULT datetime('now')) | Last update timestamp |

@@ -14,10 +14,11 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Bybit exchange accounts linked to users
-CREATE TABLE IF NOT EXISTS bybit_accounts (
+-- Exchange accounts table (supports multiple exchanges via CCXT)
+CREATE TABLE IF NOT EXISTS exchange_accounts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  exchange TEXT NOT NULL,  -- bybit, hyperliquid, etc.
   label TEXT NOT NULL,
   api_key_enc TEXT NOT NULL,
   api_secret_enc TEXT NOT NULL,
@@ -30,7 +31,7 @@ CREATE TABLE IF NOT EXISTS bybit_accounts (
 CREATE TABLE IF NOT EXISTS trading_setups (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  account_id INTEGER NOT NULL REFERENCES bybit_accounts(id) ON DELETE CASCADE,
+  exchange_account_id INTEGER NOT NULL REFERENCES exchange_accounts(id) ON DELETE CASCADE,
   symbol TEXT NOT NULL,
   side TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS orders (
   price REAL NOT NULL,
   qty REAL NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
-  bybit_order_id TEXT,
+  exchange_order_id TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -80,7 +81,8 @@ CREATE TABLE IF NOT EXISTS _migrations (
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_accounts_user ON bybit_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_exchange_accounts_user ON exchange_accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_setups_user_created ON trading_setups(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_setups_status ON trading_setups(status);
+CREATE INDEX IF NOT EXISTS idx_setups_account ON trading_setups(exchange_account_id);
 CREATE INDEX IF NOT EXISTS idx_orders_setup ON orders(setup_id);

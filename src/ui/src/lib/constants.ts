@@ -22,7 +22,7 @@ export const STATUS_STYLES: Record<string, string> = {
   triggered: 'text-orange-400 bg-orange-900/20 border-orange-700/30',
   active: 'text-green-400 bg-green-900/20 border-green-700/30',
   closed: 'text-blue-400 bg-blue-900/20 border-blue-700/30',
-  canceled: 'text-red-400 bg-red-900/20 border-red-700/30',
+  cancelled: 'text-red-400 bg-red-900/20 border-red-700/30',
 };
 
 export function parseTpPrices(tpPrices: string): number[] {

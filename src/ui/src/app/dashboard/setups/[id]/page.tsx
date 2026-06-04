@@ -95,10 +95,10 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 mt-1">
-            <span>{setup.account_label || `Account #${setup.account_id}`}</span>
+            <span>{setup.account_label || `Account #${setup.exchange_account_id}`}</span>
             <span>&bull;</span>
             <span>Created {new Date(setup.created_at).toLocaleString()}</span>
-            {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'canceled') && (
+            {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'cancelled') && (
               <span className={`rounded-full px-2 py-1 text-xs font-medium ${setup.profit >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
                 Profit {setup.profit >= 0 ? `+${setup.profit.toFixed(2)}` : setup.profit.toFixed(2)}
               </span>
@@ -120,7 +120,7 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
               </button>
             </>
           )}
-          {(setup.status === 'closed' || setup.status === 'canceled') && (
+          {(setup.status === 'closed' || setup.status === 'cancelled') && (
             <button onClick={handleDelete}
               className="flex items-center gap-1.5 rounded-lg bg-red-900/30 px-3 py-2 text-sm text-red-400 hover:bg-red-900/50">
               <Trash2 className="h-4 w-4" />

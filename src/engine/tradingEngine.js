@@ -1,5 +1,5 @@
 const Database = require('./db/database');
-const BybitService = require('./services/bybitService');
+const ExchangeService = require('./services/ExchangeService');
 const TelegramService = require('./services/telegramService');
 const PendingSetupService = require('./services/pendingSetupService');
 const EntryService = require('./services/entryService');
@@ -10,7 +10,7 @@ class TradingEngine {
   constructor() {
     this.db = new Database();
     this.telegramService = new TelegramService(this.db);
-    this.bybitServices = new Map();
+    this.exchangeServices = new Map();
     this.isInitialized = false;
     this.stats = {
       totalSetupsProcessed: 0,
@@ -93,15 +93,15 @@ class TradingEngine {
     }
   }
 
-  async getBybitService(accountId, apiKeyEnc, apiSecretEnc, isTestnet) {
-    const cacheKey = `${accountId}_${isTestnet ? 'test' : 'main'}`;
+  async getExchangeService(accountId, exchange, apiKeyEnc, apiSecretEnc, isTestnet) {
+    const cacheKey = `${accountId}_${exchange}_${isTestnet ? 'test' : 'main'}`;
 
-    if (!this.bybitServices.has(cacheKey)) {
-      const service = new BybitService(apiKeyEnc, apiSecretEnc, isTestnet);
-      this.bybitServices.set(cacheKey, service);
+    if (!this.exchangeServices.has(cacheKey)) {
+      const service = new ExchangeService(exchange, apiKeyEnc, apiSecretEnc, isTestnet);
+      this.exchangeServices.set(cacheKey, service);
     }
 
-    return this.bybitServices.get(cacheKey);
+    return this.exchangeServices.get(cacheKey);
   }
 
   async sendErrorNotification(userId, errorData) {
@@ -116,7 +116,7 @@ class TradingEngine {
     return {
       isInitialized: this.isInitialized,
       stats: this.stats,
-      bybitServicesCount: this.bybitServices.size,
+      exchangeServicesCount: this.exchangeServices.size,
       telegramAvailable: this.telegramService.isAvailable()
     };
   }
@@ -124,7 +124,7 @@ class TradingEngine {
   async cleanup() {
     try {
       await this.db.disconnect();
-      this.bybitServices.clear();
+      this.exchangeServices.clear();
       this.isInitialized = false;
       logger.info('Trading engine cleaned up');
     } catch (error) {

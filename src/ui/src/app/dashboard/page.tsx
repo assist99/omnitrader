@@ -14,7 +14,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   triggered:  { label: 'Triggered',  color: 'text-orange-400', bg: 'bg-orange-900/20 border-orange-700/30' },
   active:     { label: 'Active',     color: 'text-green-400',  bg: 'bg-green-900/20 border-green-700/30' },
   closed:     { label: 'Closed',     color: 'text-blue-400',   bg: 'bg-blue-900/20 border-blue-700/30' },
-  canceled:   { label: 'Canceled',   color: 'text-red-400',    bg: 'bg-red-900/20 border-red-700/30' },
+  cancelled:   { label: 'cancelled',   color: 'text-red-400',    bg: 'bg-red-900/20 border-red-700/30' },
 };
 
 function SetupCardRaw({ setup, onCancel, onDelete }: {
@@ -31,7 +31,7 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-white">{setup.symbol}</h3>
-            <span className="text-xs text-slate-500">{setup.account_label || `Account #${setup.account_id}`}</span>
+            <span className="text-xs text-slate-500">{setup.account_label || `Account #${setup.exchange_account_id}`}</span>
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusCfg.color} bg-slate-800/80`}>
@@ -58,7 +58,7 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
           <p className="text-xs text-slate-500">Ignore Box</p>
           <p className="font-mono text-white text-xs sm:text-sm">{setup.ignore_box_lower} - {setup.ignore_box_upper}</p>
         </div>
-        {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'canceled') && (
+        {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'cancelled') && (
           <div>
             <p className="text-xs text-slate-500">Profit</p>
             <p className={`font-mono text-xs sm:text-sm ${setup.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -66,7 +66,7 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
             </p>
           </div>
         )}
-        <div className={`col-span-2 sm:col-span-1 ${(setup.status === 'active' || setup.status === 'closed' || setup.status === 'canceled') ? '' : 'sm:col-span-1'}`}>
+        <div className={`col-span-2 sm:col-span-1 ${(setup.status === 'active' || setup.status === 'closed' || setup.status === 'cancelled') ? '' : 'sm:col-span-1'}`}>
           <p className="text-xs text-slate-500">TP Levels</p>
           <p className="text-white text-xs sm:text-sm">{tpArr.length > 0 ? `${tpArr.length}x RR: ${tpArr.join(':')}` : '\u2014'}</p>
         </div>
@@ -85,7 +85,7 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
               Cancel
             </button>
           )}
-          {(setup.status === 'closed' || setup.status === 'canceled') && (
+          {(setup.status === 'closed' || setup.status === 'cancelled') && (
             <button onClick={() => onDelete(setup.id)}
               className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-900/30">
               <Trash2 className="h-3.5 w-3.5" />
@@ -94,11 +94,11 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
           )}
           <Link href={setup.status === 'active' ? `/dashboard/setups/${setup.id}/edit?mode=be` : `/dashboard/setups/${setup.id}/edit`}
             className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
-              setup.status === 'closed' || setup.status === 'canceled'
+              setup.status === 'closed' || setup.status === 'cancelled'
                 ? 'text-slate-600 cursor-not-allowed'
                 : 'text-blue-400 hover:bg-blue-900/30'
             }`}>
-            {setup.status === 'active' ? 'Adjust BE' : setup.status === 'closed' || setup.status === 'canceled' ? 'Read-only' : 'Edit'}
+            {setup.status === 'active' ? 'Adjust BE' : setup.status === 'closed' || setup.status === 'cancelled' ? 'Read-only' : 'Edit'}
           </Link>
         </div>
       </div>
@@ -124,7 +124,7 @@ export default function DashboardPage() {
   async function fetchSetups() {
     setLoading(true);
     try {
-      const statusMap: Record<string, string> = { pending: 'pending', triggered: 'triggered', active: 'active', closed: 'closed,canceled' };
+      const statusMap: Record<string, string> = { pending: 'pending', triggered: 'triggered', active: 'active', closed: 'closed,cancelled' };
       const params = new URLSearchParams({ status: statusMap[tab] || tab, page: String(closedPage), limit: String(PER_PAGE) });
       if (search) params.set('search', search);
       const data = await engineFetch(`/api/setups?${params}`);
@@ -176,7 +176,7 @@ export default function DashboardPage() {
             className={`whitespace-nowrap px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 ${
               tab === t ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'
             }`}>
-            {t === 'pending' ? 'Pending' : t === 'triggered' ? 'Triggered' : t === 'active' ? 'Active' : 'Closed / Canceled'}
+            {t === 'pending' ? 'Pending' : t === 'triggered' ? 'Triggered' : t === 'active' ? 'Active' : 'Closed / cancelled'}
           </button>
         ))}
       </div>

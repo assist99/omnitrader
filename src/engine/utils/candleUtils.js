@@ -35,13 +35,13 @@ class CandleUtils {
     return closedBars[closedBars.length - 1];
   }
 
-  static parseBybitCandles(bybitCandles) {
+  static parseExchangeCandles(exchangeCandles) {
     try {
-      if (!Array.isArray(bybitCandles) || bybitCandles.length === 0) {
+      if (!Array.isArray(exchangeCandles) || exchangeCandles.length === 0) {
         return [];
       }
       
-      return bybitCandles.map(candle => ({
+      return exchangeCandles.map(candle => ({
         timestamp: parseInt(candle[0]),
         open: parseFloat(candle[1]),
         high: parseFloat(candle[2]),
@@ -50,9 +50,14 @@ class CandleUtils {
         volume: parseFloat(candle[5])
       }));
     } catch (error) {
-      logger.error('Error parsing Bybit candles:', error);
+      logger.error('Error parsing exchange candles:', error);
       return [];
     }
+  }
+
+  // Backward compatibility alias
+  static parseBybitCandles(bybitCandles) {
+    return this.parseExchangeCandles(bybitCandles);
   }
 
 static timeframeToBybitInterval(timeframe) {

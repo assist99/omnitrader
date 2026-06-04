@@ -2,27 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Key, Pencil, Trash2, Check, X, Send, Save, Shield } from 'lucide-react';
-import type { BybitAccount, User } from '@/lib/types';
+import type { ExchangeAccount, User } from '@/lib/types';
 import engineFetch from '@/lib/api';
 
 interface AccountFormData {
+  exchange: string;
   label: string;
   api_key: string;
   api_secret: string;
   is_testnet: boolean;
 }
 
-const emptyForm: AccountFormData = { label: '', api_key: '', api_secret: '', is_testnet: true };
+const emptyForm: AccountFormData = { exchange: 'bybit', label: '', api_key: '', api_secret: '', is_testnet: true };
 
 export default function SettingsPage() {
-  const [accounts, setAccounts] = useState<BybitAccount[]>([]);
+  const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   // Account form state
   const [showAccountForm, setShowAccountForm] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<BybitAccount | null>(null);
+  const [editingAccount, setEditingAccount] = useState<ExchangeAccount | null>(null);
   const [accountForm, setAccountForm] = useState<AccountFormData>(emptyForm);
   const [deletingAccountId, setDeletingAccountId] = useState<number | null>(null);
 
@@ -77,9 +78,9 @@ export default function SettingsPage() {
     setShowAccountForm(false);
   }
 
-  function startEditAccount(acc: BybitAccount) {
+  function startEditAccount(acc: ExchangeAccount) {
     setEditingAccount(acc);
-    setAccountForm({ label: acc.label, api_key: '', api_secret: '', is_testnet: !!acc.is_testnet });
+    setAccountForm({ exchange: acc.exchange, label: acc.label, api_key: '', api_secret: '', is_testnet: !!acc.is_testnet });
     setShowAccountForm(true);
     clearMessages();
   }
@@ -181,7 +182,7 @@ export default function SettingsPage() {
       {/* Section Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
         <button onClick={() => { setActiveSection('bybit'); clearMessages(); }} className={sectionClass('bybit')}>
-          ByBit Accounts
+          Exchange Accounts
         </button>
         <button onClick={() => { setActiveSection('telegram'); clearMessages(); }} className={sectionClass('telegram')}>
           Telegram
@@ -206,7 +207,7 @@ export default function SettingsPage() {
       {activeSection === 'bybit' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">ByBit Accounts</h2>
+            <h2 className="text-lg font-semibold text-white">Exchange Accounts</h2>
             <button
               onClick={() => { resetAccountForm(); setShowAccountForm(!showAccountForm); clearMessages(); }}
               className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -220,9 +221,22 @@ export default function SettingsPage() {
           {showAccountForm && (
             <div className="mb-6 rounded-xl border border-slate-700/50 bg-slate-800 p-4 sm:p-6">
               <h2 className="mb-4 font-semibold text-white">
-                {editingAccount ? 'Edit ByBit Account' : 'Link ByBit Account'}
+                {editingAccount ? 'Edit Exchange Account' : 'Link Exchange Account'}
               </h2>
               <form onSubmit={handleAccountSubmit} className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm text-slate-400">Exchange</label>
+                  <select
+                    value={accountForm.exchange}
+                    onChange={(e) => setAccountForm({ ...accountForm, exchange: e.target.value })}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2 text-white outline-none focus:border-blue-500"
+                    required
+                    disabled={!!editingAccount}
+                  >
+                    <option value="bybit">Bybit</option>
+                    <option value="hyperliquid">Hyperliquid</option>
+                  </select>
+                </div>
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Label</label>
                   <input
@@ -286,7 +300,7 @@ export default function SettingsPage() {
             <div className="flex flex-col items-center justify-center py-16 text-slate-500">
               <Key className="mb-2 h-10 w-10" />
               <p>No accounts linked</p>
-              <p className="text-sm">Click "Link Account" to add a Bybit account</p>
+              <p className="text-sm">Click "Link Account" to add an exchange account</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -296,7 +310,7 @@ export default function SettingsPage() {
                     <div>
                       <h3 className="font-semibold text-white">{acc.label}</h3>
                       <p className="text-xs text-slate-500 mt-1">
-                        {acc.is_testnet ? 'Testnet' : 'Mainnet'} &bull; Created {new Date(acc.created_at).toLocaleDateString()}
+                        {acc.exchange.toUpperCase()} &bull; {acc.is_testnet ? 'Testnet' : 'Mainnet'} &bull; Created {new Date(acc.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

@@ -8,9 +8,9 @@ class ActiveSetupService {
   static async processActiveSetup(ctx, setup) {
     logger.info(`Processing active setup #${setup.id}`);
 
-    const bybitService = await ctx.getBybitService(setup.account_id, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
+    const exchangeService = await ctx.getExchangeService(setup.exchange_account_id, setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
 
-    const positions = await bybitService.getPositions(setup.symbol);
+    const positions = await exchangeService.getPositions(setup.symbol);
     if (positions.length === 0 || positions.every(p => parseFloat(p.size) === 0)) {
       logger.info(`Position not found for setup #${setup.id}. Marking as closed.`);
       await this.closeSetup(ctx, setup, 'Position not found');
@@ -18,26 +18,26 @@ class ActiveSetupService {
     }
 
 
-    await this.updateOrderStatuses(ctx, setup, bybitService);
+    await this.updateOrderStatuses(ctx, setup, exchangeService);
 
-    if (setup.exit_indicator_type && setup.exit_indicator_tf) {
-      if (TimeUtils.isTriggerTime(setup.exit_indicator_tf)) {
-        await this.checkExitCondition(ctx, setup, bybitService);
+if (setup.exit_indicator_type && setup.exit_indicator_tf) {
+        if (TimeUtils.isTriggerTime(setup.exit_indicator_tf)) {
+          await this.checkExitCondition(ctx, setup, exchangeService);
+        }
       }
-    }
 
-    await this.checkBreakEven(ctx, setup, bybitService);
+      await this.checkBreakEven(ctx, setup, exchangeService);
   }
 
-  static async checkExitCondition(ctx, setup, bybitService) {
+  static async checkExitCondition(ctx, setup, exchangeService) {
     try {
-      const candles = await bybitService.getCandles(setup.symbol, setup.exit_indicator_tf, 100);
-      const parsedCandles = CandleUtils.parseBybitCandles(candles);
+      const candles = await exchangeService.getCandles(setup.symbol, setup.exit_indicator_tf, 100);
+      const parsedCandles = CandleUtils.parseExchangeCandles(candles);
       const closedBars = CandleUtils.filterClosedBars(parsedCandles, setup.exit_indicator_tf);
 
       if (closedBars.length === 0) return;
 
-      const ticker = await bybitService.getTicker(setup.symbol);
+      const ticker = await exchangeService.getTicker(setup.symbol);
       const currentPrice = parseFloat(ticker.lastPrice);
 
       const isInProfit = setup.side === 'long'
@@ -57,14 +57,14 @@ class ActiveSetupService {
 
       if (exitResult.met) {
         logger.info(`Exit condition met for setup #${setup.id}`);
-        await this.closePosition(ctx, setup, bybitService, 'exit_condition');
+        await this.closePosition(ctx, setup, exchangeService, 'exit_condition');
       }
     } catch (error) {
       logger.error(`Error checking exit condition for setup #${setup.id}:`, error);
     }
   }
 
-  static async checkBreakEven(ctx, setup, bybitService) {
+  static async checkBreakEven(ctx, setup, exchangeService) {
     try {
       if (!setup.be_enabled) return;
 
@@ -76,9 +76,9 @@ class ActiveSetupService {
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder.price === setup.entry_price) return;
       console.log('SL Order:', slOrder);
-      await bybitService.cancelOrder(slOrder.bybit_order_id, setup.symbol);
+      await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol);
 
-      const newSlOrder = await bybitService.placeOrder({
+      const newSlOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
         side: setup.side === 'long' ? 'Sell' : 'Buy',
         orderType: 'Market',
@@ -89,14 +89,14 @@ class ActiveSetupService {
         reduceOnly: true
       });
 
-      await ctx.db.updateOrderStatus(slOrder.id, 'canceled');
+      await ctx.db.updateOrderStatus(slOrder.id, 'cancelled');
       await ctx.db.createOrder({
         setup_id: setup.id,
         order_type: 'sl',
         side: setup.side === 'long' ? 'sell' : 'buy',
         price: setup.entry_price,
         qty: setup.entry_qty,
-        bybit_order_id: newSlOrder.orderId,
+        exchange_order_id: newSlOrder.orderId,
         status: 'pending'
       });
 
@@ -113,15 +113,15 @@ class ActiveSetupService {
     }
   }
 
-  static async updateOrderStatuses(ctx, setup, bybitService) {
+  static async updateOrderStatuses(ctx, setup, exchangeService) {
     try {
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
 
       for (const order of orders) {
-        if (order.status === 'pending' && order.bybit_order_id) {
-          const status = await bybitService.getOrderStatus(order.bybit_order_id, setup.symbol);
+        if (order.status === 'pending' && order.exchange_order_id) {
+          const status = await exchangeService.getOrderStatus(order.exchange_order_id, setup.symbol);
           if (!status) {
-            logger.warn(`Order status not found for order ${order.id} (Bybit ID: ${order.bybit_order_id})`);
+            logger.warn(`Order status not found for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
             continue;
           }
           if (status.orderStatus === 'Filled') {
@@ -179,20 +179,20 @@ class ActiveSetupService {
 
       const updatedSetup = await ctx.db.getSetupById(setup.id);
       if (updatedSetup?.status === 'active') {
-        await this.updateSetupProfit(ctx, updatedSetup, bybitService);
+        await this.updateSetupProfit(ctx, updatedSetup, exchangeService);
       }
     } catch (error) {
       logger.error(`Error updating order statuses for setup #${setup.id}:`, error);
     }
   }
 
-  static async updateSetupProfit(ctx, setup, bybitService, currentPrice = null) {
+  static async updateSetupProfit(ctx, setup, exchangeService, currentPrice = null) {
     if (!setup.entry_price || !setup.entry_qty) {
       return;
     }
 
     try {
-      const price = currentPrice !== null ? currentPrice : parseFloat((await bybitService.getTicker(setup.symbol)).lastPrice);
+      const price = currentPrice !== null ? currentPrice : parseFloat((await exchangeService.getTicker(setup.symbol)).lastPrice);
       const pnl = PriceUtils.calculatePnl(setup.entry_price, price, setup.entry_qty, setup.side);
       await ctx.db.updateSetupStatus(setup.id, setup.status, { profit: pnl.netPnl });
     } catch (error) {
@@ -200,16 +200,16 @@ class ActiveSetupService {
     }
   }
 
-  static async closePosition(ctx, setup, bybitService, reason) {
+  static async closePosition(ctx, setup, exchangeService, reason) {
     try {
-      await bybitService.closePosition(setup.symbol, setup.side);
+      await exchangeService.closePosition(setup.symbol, setup.side);
 
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
       for (const order of orders) {
-        if (order.status === 'pending' && order.bybit_order_id) {
+        if (order.status === 'pending' && order.exchange_order_id) {
           try {
-            await bybitService.cancelOrder(order.bybit_order_id, setup.symbol);
-            await ctx.db.updateOrderStatus(order.id, 'canceled');
+            await exchangeService.cancelOrder(order.exchange_order_id, setup.symbol);
+            await ctx.db.updateOrderStatus(order.id, 'cancelled');
           } catch (error) {
             logger.error(`Error cancelling order ${order.id}:`, error);
           }
@@ -230,13 +230,13 @@ class ActiveSetupService {
         closed_at: new Date().toISOString()
       };
 
-      let bybitService;
+      let exchangeService;
       let pnl;
       let currentPrice;
 
       if (setup.entry_price && setup.entry_qty) {
-        bybitService = await ctx.getBybitService(setup.account_id, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
-        const ticker = await bybitService.getTicker(setup.symbol);
+        exchangeService = await ctx.getExchangeService(setup.exchange_account_id, setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
+        const ticker = await exchangeService.getTicker(setup.symbol);
         currentPrice = parseFloat(ticker.lastPrice);
         pnl = PriceUtils.calculatePnl(setup.entry_price, currentPrice, setup.entry_qty, setup.side);
         closePayload.profit = pnl.netPnl;

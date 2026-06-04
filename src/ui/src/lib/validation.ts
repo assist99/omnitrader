@@ -18,7 +18,7 @@ export const registerSchema = z.object({
 });
 
 export const setupSchema = z.object({
-  account_id: z.number().positive('Please select an account'),
+  exchange_account_id: z.number().positive('Please select an account'),
   symbol: z.string().min(1, 'Symbol is required').toUpperCase(),
   side: z.enum(['long', 'short']),
   memo: z.string().optional().default(''),

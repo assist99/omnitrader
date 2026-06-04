@@ -50,14 +50,14 @@ router.post('/', auth, async (req, res) => {
     const payload = req.body || {};
 
     const sql = `INSERT INTO trading_setups (
-      user_id, account_id, symbol, side, memo, activation_price, ignore_box_upper, ignore_box_lower,
+      user_id, exchange_account_id, symbol, side, memo, activation_price, ignore_box_upper, ignore_box_lower,
       entry_indicator_type, entry_indicator_tf, risk_type, risk_value, sl_price, tp_prices,
       be_enabled, be_trigger_price, exit_indicator_type, exit_indicator_tf, status, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`;
 
     const params = [
       userId,
-      payload.account_id || null,
+      payload.exchange_account_id || null,
       payload.symbol || null,
       payload.side || 'long',
       payload.memo || null,
@@ -110,7 +110,7 @@ router.put('/:id', auth, async (req, res) => {
     const updates = [];
     const params = [];
     Object.entries(req.body || {}).forEach(([k, v]) => {
-      if (['account_id','symbol','side','memo','activation_price','ignore_box_upper','ignore_box_lower','entry_indicator_type','entry_indicator_tf','risk_type','risk_value','sl_price','tp_prices','be_enabled','be_trigger_price','exit_indicator_type','exit_indicator_tf','status'].includes(k)) {
+      if (['exchange_account_id','symbol','side','memo','activation_price','ignore_box_upper','ignore_box_lower','entry_indicator_type','entry_indicator_tf','risk_type','risk_value','sl_price','tp_prices','be_enabled','be_trigger_price','exit_indicator_type','exit_indicator_tf','status'].includes(k)) {
         updates.push(`${k} = ?`);
         params.push(k === 'tp_prices' ? JSON.stringify(v) : v);
       }
@@ -143,8 +143,8 @@ router.delete('/:id', auth, async (req, res) => {
       return res.json({ success: true });
     }
 
-    // Soft cancel: update status to canceled
-    await db.updateSetupStatus(id, 'canceled', { reason: 'Cancelled by user' });
+    // Soft cancel: update status to cancelled
+    await db.updateSetupStatus(id, 'cancelled', { reason: 'Cancelled by user' });
     const updated = await db.getSetupById(id);
     res.json({ success: true, data: updated });
   } catch (err) {

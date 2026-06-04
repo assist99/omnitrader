@@ -126,8 +126,23 @@ class Database {
         throw new Error(`Failed to read database schema file: ${err.message}`);
       }
 
+    } else {
+      // Run migration to exchange_accounts if needed
+      await this.runExchangeAccountsMigration();
     }
 
+  }
+
+  async runExchangeAccountsMigration() {
+    try {
+      const DatabaseMigration = require('./migrate_to_exchange_accounts');
+      const migration = new DatabaseMigration(this);
+      await migration.runMigration();
+    } catch (error) {
+      logger.error('Exchange accounts migration failed:', error);
+      // Don't throw - allow app to continue with old schema
+      logger.warn('Continuing with existing schema (bybit_accounts)');
+    }
   }
 
   async beginTransaction() {
@@ -149,10 +164,10 @@ class Database {
     
     const placeholders = statuses.map(() => '?').join(',');
     const sql = `
-      SELECT ts.*, ba.api_key_enc, ba.api_secret_enc, ba.is_testnet, ba.label as account_label,
+      SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet, ea.label as account_label,
              u.email as user_email
       FROM trading_setups ts
-      JOIN bybit_accounts ba ON ts.account_id = ba.id
+      JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
       JOIN users u ON ts.user_id = u.id
       WHERE ts.status IN (${placeholders})
       ORDER BY ts.created_at ASC
@@ -187,7 +202,7 @@ class Database {
   async createOrder(orderData) {
     const sql = `
       INSERT INTO orders (
-        setup_id, order_type, side, price, qty, status, bybit_order_id, created_at, updated_at
+        setup_id, order_type, side, price, qty, status, exchange_order_id, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `;
     
@@ -198,20 +213,20 @@ class Database {
       orderData.price,
       orderData.qty,
       orderData.status || 'pending',
-      orderData.bybit_order_id || null
+      orderData.exchange_order_id || null
     ];
     
     const result = await this.run(sql, params);
     return { ...orderData, id: result.lastID };
   }
 
-  async updateOrderStatus(orderId, status, bybitOrderId = null) {
+  async updateOrderStatus(orderId, status, exchangeOrderId = null) {
     const updates = ['status = ?', 'updated_at = datetime("now")'];
     const params = [status];
     
-    if (bybitOrderId) {
-      updates.push('bybit_order_id = ?');
-      params.push(bybitOrderId);
+    if (exchangeOrderId) {
+      updates.push('exchange_order_id = ?');
+      params.push(exchangeOrderId);
     }
     
     params.push(orderId);
@@ -302,10 +317,10 @@ class Database {
 
   async getSetupById(setupId) {
     const sql = `
-      SELECT ts.*, ba.api_key_enc, ba.api_secret_enc, ba.is_testnet, ba.label as account_label,
+      SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet, ea.label as account_label,
              u.email as user_email
       FROM trading_setups ts
-      JOIN bybit_accounts ba ON ts.account_id = ba.id
+      JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
       JOIN users u ON ts.user_id = u.id
       WHERE ts.id = ?
     `;

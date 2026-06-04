@@ -14,10 +14,10 @@ class EntryService {
       return;
     }
 
-    const bybitService = await ctx.getBybitService(setup.account_id, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
+    const exchangeService = await ctx.getExchangeService(setup.exchange_account_id, setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
 
-    const candles = await bybitService.getCandles(setup.symbol, setup.entry_indicator_tf, 100);
-    const parsedCandles = CandleUtils.parseBybitCandles(candles);
+    const candles = await exchangeService.getCandles(setup.symbol, setup.entry_indicator_tf, 100);
+    const parsedCandles = CandleUtils.parseExchangeCandles(candles);
     const closedBars = CandleUtils.filterClosedBars(parsedCandles, setup.entry_indicator_tf);
 
     if (closedBars.length === 0) {
@@ -41,13 +41,13 @@ class EntryService {
 
     if (indicatorResult.met) {
       logger.info(`Entry condition met for setup #${setup.id}: ${indicatorResult.signal}`);
-      await this.placeEntryOrder(ctx, setup, bybitService, closedBars);
+      await this.placeEntryOrder(ctx, setup, exchangeService, closedBars);
     } else {
       logger.info(`Entry condition not met for setup #${setup.id}: ${indicatorResult.error || 'No signal'}`);
     }
   }
 
-  static async placeEntryOrder(ctx, setup, bybitService, candles) {
+  static async placeEntryOrder(ctx, setup, exchangeService, candles) {
     try {
       const lastCandle = candles[candles.length - 1];
       const entryPrice = lastCandle.close;
@@ -66,14 +66,14 @@ class EntryService {
           indicatorParams
         );
       }
-      const symbolInfo = await bybitService.getSymbolInfo(setup.symbol);
+      const symbolInfo = await exchangeService.getSymbolInfo(setup.symbol);
       const tickSize = parseFloat(symbolInfo.priceFilter?.tickSize) || 0.01;
       const qtyStepSize = parseFloat(symbolInfo.lotSizeFilter?.qtyStep) || 0.001;
 
       slPrice = PriceUtils.roundToTickSize(slPrice, tickSize);
       console.log(`Calculated and rounded SL price for setup #${setup.id}: ${slPrice}`);
 
-      const accountBalance = await bybitService.getAccountBalance();
+      const accountBalance = await exchangeService.getAccountBalance();
       console.log(`Account balance for setup #${setup.id}: ${accountBalance}`);
       const riskType = setup.risk_type || 'percent';
       const positionSize = PriceUtils.calculatePositionSize(
@@ -108,7 +108,7 @@ class EntryService {
         qtyStepSize
       });
 
-      const entryOrder = await bybitService.placeOrder({
+      const entryOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
         side: setup.side === 'long' ? 'Buy' : 'Sell',
         orderType: 'Market',
@@ -122,14 +122,14 @@ class EntryService {
         side: setup.side === 'long' ? 'buy' : 'sell',
         price: entryPrice,
         qty: roundedPositionSize,
-        bybit_order_id: entryOrder.orderId,
+        exchange_order_id: entryOrder.orderId,
         status: 'pending'
       });
 
       // Wait a moment for entry order to be confirmed on exchange before placing SL
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const slOrder = await bybitService.placeOrder({
+      const slOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
         side: setup.side === 'long' ? 'Sell' : 'Buy',
         orderType: 'Market',
@@ -146,13 +146,13 @@ class EntryService {
         side: setup.side === 'long' ? 'sell' : 'buy',
         price: slPrice,
         qty: roundedPositionSize,
-        bybit_order_id: slOrder.orderId,
+        exchange_order_id: slOrder.orderId,
         status: 'pending'
       });
 
 
       for (let i = 0; i < tpPrices.length; i++) {
-        const tpOrder = await bybitService.placeOrder({
+        const tpOrder = await exchangeService.placeOrder({
           symbol: setup.symbol,
           side: setup.side === 'long' ? 'Sell' : 'Buy',
           orderType: 'Limit',
@@ -168,7 +168,7 @@ class EntryService {
           side: setup.side === 'long' ? 'sell' : 'buy',
           price: tpPrices[i],
           qty: tpQtys[i],
-          bybit_order_id: tpOrder.orderId,
+          exchange_order_id: tpOrder.orderId,
           status: 'pending'
         });
       }

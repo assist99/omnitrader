@@ -94,7 +94,7 @@ sequenceDiagram
             Bybit-->>Engine: candle data
             Engine->>Engine: check ignore box & activation price
             alt Price in ignore box
-                Engine->>DB: updateStatus(canceled)
+                Engine->>DB: updateStatus(cancelled)
                 Engine->>Tel: sendNotification(setup_cancelled)
             else Activation price hit
                 Engine->>DB: updateStatus(triggered)

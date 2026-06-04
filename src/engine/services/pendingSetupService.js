@@ -5,7 +5,7 @@ const logger = require('../logger');
 class PendingSetupService {
   static async cancelSetup(ctx, setup, reason) {
     try {
-      await ctx.db.updateSetupStatus(setup.id, 'canceled', {
+      await ctx.db.updateSetupStatus(setup.id, 'cancelled', {
         closed_at: new Date().toISOString()
       });
 
@@ -55,10 +55,10 @@ class PendingSetupService {
       return false;
     }
 
-    const bybitService = await ctx.getBybitService(setup.account_id, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
+    const exchangeService = await ctx.getExchangeService(setup.exchange_account_id, setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
 
-    const candles = await bybitService.getCandles(setup.symbol, setup.entry_indicator_tf, 100);
-    const parsedCandles = CandleUtils.parseBybitCandles(candles);
+    const candles = await exchangeService.getCandles(setup.symbol, setup.entry_indicator_tf, 100);
+    const parsedCandles = CandleUtils.parseExchangeCandles(candles);
     const closedBars = CandleUtils.filterClosedBars(parsedCandles, setup.entry_indicator_tf);
 
     if (closedBars.length === 0) {

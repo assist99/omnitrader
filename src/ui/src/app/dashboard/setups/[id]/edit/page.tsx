@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, Info, Lock } from 'lucide-react';
 import engineFetch from '@/lib/api';
 import { TIMEFRAMES, INDICATORS, DEFAULT_TP_RATIOS } from '@/lib/constants';
-import type { BybitAccount, TradingSetup, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
+import type { ExchangeAccount, TradingSetup, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
   triggered: 'Triggered',
   active: 'Active',
   closed: 'Closed',
-  canceled: 'Canceled',
+  cancelled: 'cancelled',
 };
 
 export default function EditSetupPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,11 +25,11 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [accounts, setAccounts] = useState<BybitAccount[]>([]);
+  const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
   const [originalSetup, setOriginalSetup] = useState<TradingSetup | null>(null);
 
   const [formData, setFormData] = useState<SetupFormData>({
-    account_id: 0,
+    exchange_account_id: 0,
     symbol: '',
     side: 'long',
     memo: '',
@@ -62,7 +62,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
           const s = setupData.data;
           setOriginalSetup(s);
           setFormData({
-            account_id: s.account_id,
+            exchange_account_id: s.exchange_account_id,
             symbol: s.symbol,
             side: s.side,
             memo: s.memo || '',
@@ -89,7 +89,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
   }, [id]);
 
   const status = originalSetup?.status || 'pending';
-  const isReadOnly = status === 'closed' || status === 'canceled';
+  const isReadOnly = status === 'closed' || status === 'cancelled';
   const isBeOnly = mode === 'be' && !isReadOnly;
   const isActive = status === 'active' && !isBeOnly && !isReadOnly;
   const isTriggered = status === 'triggered' && !isBeOnly && !isActive && !isReadOnly;
@@ -250,7 +250,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Account</label>
-                  <select value={formData.account_id} onChange={(e) => updateField('account_id', Number(e.target.value))}
+                  <select value={formData.exchange_account_id} onChange={(e) => updateField('exchange_account_id', Number(e.target.value))}
                     className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500" required>
                     <option value={0} disabled>Select account</option>
                     {accounts.map((acc) => (

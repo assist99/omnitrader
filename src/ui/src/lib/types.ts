@@ -1,11 +1,11 @@
 export type Side = 'long' | 'short';
-export type SetupStatus = 'pending' | 'triggered' | 'active' | 'closed' | 'canceled';
+export type SetupStatus = 'pending' | 'triggered' | 'active' | 'closed' | 'cancelled';
 export type EntryIndicatorType = 'superTrend' | 'macd' | 'ema';
 export type Timeframe = 'm1' | 'm5' | 'm15' | 'm30' | 'h1' | 'h2' | 'h4' | 'd1';
 export type RiskType = 'percent' | 'fixed';
 export type OrderType = 'entry' | 'tp1' | 'tp2' | 'tp3' | 'tp4' | 'sl';
 export type OrderSide = 'buy' | 'sell';
-export type OrderStatus = 'pending' | 'filled' | 'canceled' | 'rejected';
+export type OrderStatus = 'pending' | 'filled' | 'cancelled' | 'rejected';
 
 export interface User {
   id: number;
@@ -15,9 +15,10 @@ export interface User {
   created_at: string;
 }
 
-export interface BybitAccount {
+export interface ExchangeAccount {
   id: number;
   user_id: number;
+  exchange: string;  // bybit, hyperliquid, etc.
   label: string;
   api_key_enc: string;
   api_secret_enc: string;
@@ -28,7 +29,7 @@ export interface BybitAccount {
 export interface TradingSetup {
   id: number;
   user_id: number;
-  account_id: number;
+  exchange_account_id: number;
   symbol: string;
   side: Side;
   status: SetupStatus;
@@ -63,13 +64,13 @@ export interface Order {
   price: number;
   qty: number;
   status: OrderStatus;
-  bybit_order_id: string | null;
+  exchange_order_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface SetupFormData {
-  account_id: number;
+  exchange_account_id: number;
   symbol: string;
   side: Side;
   memo?: string;
