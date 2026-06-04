@@ -11,7 +11,7 @@ class ExchangeService {
     this.isTestnet = isTestnet;
     
     // Log for debugging
-    logger.debug(`ExchangeService initialized for ${this.exchangeName} - key_len=${this.apiKey?.length || 0}, secret_len=${this.apiSecret?.length || 0}, testnet=${isTestnet}`);
+    logger.info(`ExchangeService initialized for ${this.exchangeName} - key_len=${this.apiKey?.length || 0}, secret_len=${this.apiSecret?.length || 0}, testnet=${isTestnet}`);
     
     // Validate credentials are available
     if (!this.apiKey || !this.apiSecret) {
@@ -76,8 +76,7 @@ async getSymbolInfo(symbol) {
   // Get candles/OHLCV data
   async getCandles(symbol, timeframe, limit = 100) {
     try {
-      const candles = await this.exchange.fetchOHLCV(symbol, timeframe, undefined, limit);
-      console.log(symbol, timeframe,  limit,JSON.stringify(candles,null,2));
+      const candles = await this.exchange.fetchOHLCV(symbol, this.timeframeToInterval(timeframe), undefined, limit);
       // Convert to format expected by existing code
       const formattedCandles = candles.map(candle => [
         candle[0].toString(), // timestamp
