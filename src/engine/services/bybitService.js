@@ -276,7 +276,8 @@ class BybitService {
       const params = {
         category: 'linear',
         orderId: orderId,
-        symbol: symbol
+        symbol: symbol,
+        orderFilter: 'tpslOrder'
       };
       
       const response = await this.axiosInstance.get('/v5/order/history', { params });
@@ -284,8 +285,7 @@ class BybitService {
       if (response.data && response.data.result && response.data.result.list && response.data.result.list.length > 0) {
         return response.data.result.list[0];
       }
-      
-      throw new Error(`Order ${orderId} not found`);
+      return null; // Order not found
     } catch (error) {
       logger.apiError('getOrderStatus', error);
       throw error;

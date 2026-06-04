@@ -8,3 +8,4 @@
 /logs
 /db
 /.env
+/src/engine/cli/logs

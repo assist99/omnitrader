@@ -119,7 +119,10 @@ class ActiveSetupService {
       for (const order of orders) {
         if (order.status === 'pending' && order.bybit_order_id) {
           const status = await bybitService.getOrderStatus(order.bybit_order_id, setup.symbol);
-
+          if (!status) {
+            logger.warn(`Order status not found for order ${order.id} (Bybit ID: ${order.bybit_order_id})`);
+            continue;
+          }
           if (status.orderStatus === 'Filled') {
             await ctx.db.updateOrderStatus(order.id, 'filled');
 
