@@ -12,7 +12,7 @@ A Node.js trading engine that runs on a 15-minute schedule to monitor and execut
 - **Telegram notifications** - Real-time alerts for all trading events
 - **Health monitoring** - Built-in health server with metrics endpoint
 - **Error resilience** - Graceful error handling and recovery
-
+ 
 ## Prerequisites
 
 - Node.js 18+ 
