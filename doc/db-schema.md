@@ -30,6 +30,7 @@ User accounts for the dashboard.
 **Migration History:**
 - v1: Initial schema (id, email, password_hash, created_at)
 - v4: Added telegram_chat_id column
+- v5: Added profit column to trading_setups
 
 ### `bybit_accounts`
 
@@ -71,6 +72,7 @@ Trading strategy configurations created by users.
 | be_trigger_price | REAL (DEFAULT 0) | Price to trigger break-even |
 | entry_price | REAL | Actual entry price once filled |
 | entry_qty | REAL | Actual entry quantity once filled |
+| profit | REAL | Current or latest profit for the setup |
 | activated_at | TEXT | When setup was triggered |
 | exit_indicator_type | TEXT (CHECK: 'superTrend', 'macd', 'ema') | Indicator for exit signal |
 | exit_indicator_tf | TEXT (CHECK: 'm1','m5','m15','m30','h1','h2','h4','d1') | Timeframe for exit indicator |

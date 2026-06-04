@@ -46,6 +46,7 @@ export interface TradingSetup {
   be_trigger_price: number;
   entry_price: number | null;
   entry_qty: number | null;
+  profit: number;
   activated_at: string | null;
   exit_indicator_type: EntryIndicatorType | null;
   exit_indicator_tf: Timeframe | null;

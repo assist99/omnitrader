@@ -57,7 +57,15 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
           <p className="text-xs text-slate-500">Ignore Box</p>
           <p className="font-mono text-white text-xs sm:text-sm">{setup.ignore_box_lower} - {setup.ignore_box_upper}</p>
         </div>
-        <div className="col-span-2 sm:col-span-1">
+        {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'canceled') && (
+          <div>
+            <p className="text-xs text-slate-500">Profit</p>
+            <p className={`font-mono text-xs sm:text-sm ${setup.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {setup.profit >= 0 ? `+${setup.profit.toFixed(2)}` : setup.profit.toFixed(2)}
+            </p>
+          </div>
+        )}
+        <div className={`col-span-2 sm:col-span-1 ${(setup.status === 'active' || setup.status === 'closed' || setup.status === 'canceled') ? '' : 'sm:col-span-1'}`}>
           <p className="text-xs text-slate-500">TP Levels</p>
           <p className="text-white text-xs sm:text-sm">{tpArr.length > 0 ? `${tpArr.length}x RR: ${tpArr.join(':')}` : '\u2014'}</p>
         </div>

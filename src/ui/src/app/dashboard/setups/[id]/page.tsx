@@ -95,9 +95,16 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
               {setup.side.toUpperCase()}
             </span>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
-            {setup.account_label || `Account #${setup.account_id}`} &bull; Created {new Date(setup.created_at).toLocaleString()}
-          </p>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 mt-1">
+            <span>{setup.account_label || `Account #${setup.account_id}`}</span>
+            <span>&bull;</span>
+            <span>Created {new Date(setup.created_at).toLocaleString()}</span>
+            {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'canceled') && (
+              <span className={`rounded-full px-2 py-1 text-xs font-medium ${setup.profit >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
+                Profit {setup.profit >= 0 ? `+${setup.profit.toFixed(2)}` : setup.profit.toFixed(2)}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           {(setup.status === 'pending' || setup.status === 'triggered' || setup.status === 'active') && (

@@ -168,14 +168,34 @@ class ActiveSetupService {
               logger.slHit(setup.id, order.price, pnl.netPnl);
 
               await this.closeSetup(ctx, setup, 'stop_loss_hit');
+              return;
             }
           } else if (status.orderStatus === 'Cancelled' || status.orderStatus === 'Rejected') {
             await ctx.db.updateOrderStatus(order.id, status.orderStatus.toLowerCase());
           }
         }
       }
+
+      const updatedSetup = await ctx.db.getSetupById(setup.id);
+      if (updatedSetup?.status === 'active') {
+        await this.updateSetupProfit(ctx, updatedSetup, bybitService);
+      }
     } catch (error) {
       logger.error(`Error updating order statuses for setup #${setup.id}:`, error);
+    }
+  }
+
+  static async updateSetupProfit(ctx, setup, bybitService, currentPrice = null) {
+    if (!setup.entry_price || !setup.entry_qty) {
+      return;
+    }
+
+    try {
+      const price = currentPrice !== null ? currentPrice : parseFloat((await bybitService.getTicker(setup.symbol)).lastPrice);
+      const pnl = PriceUtils.calculatePnl(setup.entry_price, price, setup.entry_qty, setup.side);
+      await ctx.db.updateSetupStatus(setup.id, setup.status, { profit: pnl.netPnl });
+    } catch (error) {
+      logger.error(`Error updating profit for setup #${setup.id}:`, error);
     }
   }
 
@@ -205,16 +225,25 @@ class ActiveSetupService {
 
   static async closeSetup(ctx, setup, reason) {
     try {
-      await ctx.db.updateSetupStatus(setup.id, 'closed', {
+      const closePayload = {
         closed_at: new Date().toISOString()
-      });
+      };
 
-      if (reason === 'exit_condition') {
-        const bybitService = await ctx.getBybitService(setup.account_id, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
+      let bybitService;
+      let pnl;
+      let currentPrice;
+
+      if (setup.entry_price && setup.entry_qty) {
+        bybitService = await ctx.getBybitService(setup.account_id, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
         const ticker = await bybitService.getTicker(setup.symbol);
-        const currentPrice = parseFloat(ticker.lastPrice);
-        const pnl = PriceUtils.calculatePnl(setup.entry_price, currentPrice, setup.entry_qty, setup.side);
+        currentPrice = parseFloat(ticker.lastPrice);
+        pnl = PriceUtils.calculatePnl(setup.entry_price, currentPrice, setup.entry_qty, setup.side);
+        closePayload.profit = pnl.netPnl;
+      }
 
+      await ctx.db.updateSetupStatus(setup.id, 'closed', closePayload);
+
+      if (reason === 'exit_condition' && pnl) {
         await ctx.telegramService.sendNotification(setup.user_id, 'exit_triggered', {
           setupId: setup.id,
           symbol: setup.symbol,

@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS trading_setups (
   be_trigger_price REAL DEFAULT 0,
   entry_price REAL,
   entry_qty REAL,
+  profit REAL DEFAULT 0,
   activated_at TEXT,
   exit_indicator_type TEXT CHECK(exit_indicator_type IN ('superTrend','macd','ema')),
   exit_indicator_tf TEXT CHECK(exit_indicator_tf IN ('m1','m5','m15','m30','h1','h2','h4','d1')),
@@ -155,4 +156,8 @@ ALTER TABLE trading_setups_v3 RENAME TO trading_setups;
 
 export const MIGRATION_4_SQL = `
 ALTER TABLE users ADD COLUMN telegram_chat_id TEXT;
+`;
+
+export const MIGRATION_5_SQL = `
+ALTER TABLE trading_setups ADD COLUMN profit REAL DEFAULT 0;
 `;

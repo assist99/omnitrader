@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { CREATE_TABLES_SQL, MIGRATIONS_SQL, MIGRATION_2_SQL, MIGRATION_3_SQL, MIGRATION_4_SQL } from './schema';
+import { CREATE_TABLES_SQL, MIGRATIONS_SQL, MIGRATION_2_SQL, MIGRATION_3_SQL, MIGRATION_4_SQL, MIGRATION_5_SQL } from './schema';
 
 const projectRoot = path.resolve(process.cwd(), '..', '..');
 const DB_PATH = process.env.DATABASE_PATH
@@ -71,6 +71,21 @@ function runMigration4(instance: sqlite3.Database, resolve: (db: sqlite3.Databas
       instance.exec(MIGRATION_4_SQL, (mig4Err) => {
         if (mig4Err) { reject(mig4Err); return; }
         instance.run('INSERT INTO _migrations (version) VALUES (4)', () => {});
+        runMigration5(instance, resolve, reject);
+      });
+    } else {
+      runMigration5(instance, resolve, reject);
+    }
+  });
+}
+
+function runMigration5(instance: sqlite3.Database, resolve: (db: sqlite3.Database) => void, reject: (err: Error) => void) {
+  instance.get('SELECT version FROM _migrations WHERE version = 5', (checkErr, row) => {
+    if (checkErr) { reject(checkErr); return; }
+    if (!row) {
+      instance.exec(MIGRATION_5_SQL, (mig5Err) => {
+        if (mig5Err) { reject(mig5Err); return; }
+        instance.run('INSERT INTO _migrations (version) VALUES (5)', () => {});
         db = instance;
         initializing = null;
         resolve(instance);
