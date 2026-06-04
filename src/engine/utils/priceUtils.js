@@ -198,9 +198,6 @@ class PriceUtils {
   }
 
   static roundQuantity(quantity, stepSize = 0.001) {
-    if (!this.isValidPrice(quantity) || !this.isValidPrice(stepSize)) {
-      throw new Error('Invalid quantity or step size for rounding');
-    }
 
     const precision = this.getDecimalPlaces(stepSize);
     const multiplier = 1 / stepSize;
@@ -209,21 +206,26 @@ class PriceUtils {
   }
 
   static splitQuantity(quantity, parts, stepSize = 0.001) {
-    if (parts <= 0) {
-      return [];
+    try{
+      if (parts <= 0) {
+        return [];
+      }
+
+      const roundedQuantity = this.roundQuantity(quantity, stepSize);
+      const baseQty = this.roundQuantity(roundedQuantity / parts, stepSize);
+      const quantities = Array(parts).fill(baseQty);
+      let remaining = this.roundQuantity(roundedQuantity - baseQty * parts, stepSize);
+      for (let i = 0; i < parts && remaining >= stepSize; i++) {
+        quantities[i] = this.roundQuantity(quantities[i] + stepSize, stepSize);
+        remaining = this.roundQuantity(remaining - stepSize, stepSize);
+      }
+
+      return quantities;
+    }catch(e){
+      console.error('Error splitting quantity:', e);  
+      throw e;
     }
 
-    const roundedQuantity = this.roundQuantity(quantity, stepSize);
-    const baseQty = this.roundQuantity(roundedQuantity / parts, stepSize);
-    const quantities = Array(parts).fill(baseQty);
-    let remaining = this.roundQuantity(roundedQuantity - baseQty * parts, stepSize);
-
-    for (let i = 0; i < parts && remaining >= stepSize; i++) {
-      quantities[i] = this.roundQuantity(quantities[i] + stepSize, stepSize);
-      remaining = this.roundQuantity(remaining - stepSize, stepSize);
-    }
-
-    return quantities;
   }
 
   static isValidPrice(price) {

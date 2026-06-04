@@ -8,7 +8,6 @@ class BybitService {
   constructor(apiKeyEnc, apiSecretEnc, isTestnet = true) {
     this.apiKey = apiKeyEnc ? Encryption.decrypt(apiKeyEnc) : null;
     this.apiSecret = apiSecretEnc ? Encryption.decrypt(apiSecretEnc) : null;
-    
     // Trim any whitespace from decrypted values
     if (this.apiKey) this.apiKey = this.apiKey.trim();
     if (this.apiSecret) this.apiSecret = this.apiSecret.trim();
@@ -202,7 +201,6 @@ class BybitService {
       };
       
       const response = await this.axiosInstance.get('/v5/account/wallet-balance', { params });
-      
       if (response.data && response.data.result && response.data.result.list && response.data.result.list.length > 0) {
         const account = response.data.result.list[0];
         const usdtBalance = account.coin?.find(c => c.coin === 'USDT');
@@ -232,7 +230,23 @@ class BybitService {
         params.price = orderParams.price.toString();
       }
       
-      logger.debug(`Placing order: ${JSON.stringify(params)}`);
+      // For conditional stop orders, use triggerPrice and triggerDirection (V5 API)
+      if (orderParams.triggerPrice !== undefined && orderParams.triggerPrice !== null) {
+        params.triggerPrice = orderParams.triggerPrice.toString();
+        // triggerDirection: 1 = price rises to/above, 2 = price falls to/below
+        params.triggerDirection = orderParams.triggerDirection || 1;
+      }
+      
+      if (orderParams.triggerBy) {
+        params.triggerBy = orderParams.triggerBy;
+      }
+      
+      // Include reduce only flag when provided
+      if (orderParams.reduceOnly === true) {
+        params.reduceOnly = true;
+      }
+      
+      logger.info(`Placing order: ${JSON.stringify(params)}`);
       
       const response = await this.axiosInstance.post('/v5/order/create', params);
       
