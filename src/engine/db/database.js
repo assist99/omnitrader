@@ -1,6 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const Config = require('../config');
 const logger = require('../logger');
+const fs = require('fs');
+const path = require('path');
 
 class Database {
   constructor() {
@@ -101,28 +103,31 @@ class Database {
   }
 
   async migrateSchema() {
-    // Ensure bybit_accounts has an updated_at column for account timestamps.
-    const ensureColumn = async (table, column, defaultExpr = null) => {
-      const exists = await new Promise((resolve, reject) => {
-        this.db.all(`PRAGMA table_info('${table}')`, [], (err, rows) => {
-          if (err) return reject(err);
-          resolve(rows.some((row) => row.name === column));
-        });
+    // If this is a fresh database (no `users` table), create full schema.
+    const exists = await new Promise((resolve) => {
+      this.db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'", [], (err, row) => {
+        resolve(Boolean(row));
       });
+    });
 
-      if (!exists) {
-        logger.info(`Migrating schema: adding ${column} to ${table}`);
-        await this.run(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT`);
-        if (defaultExpr) {
-          await this.run(`UPDATE ${table} SET ${column} = ${defaultExpr} WHERE ${column} IS NULL`);
-        }
+    if (!exists) {
+      logger.info('Initializing database schema (fresh DB)');
+      
+      // Read SQL from external schema file
+      const schemaFilePath = path.join(__dirname, 'schema.sql');
+      let initSql;
+      
+      try {
+        initSql = fs.readFileSync(schemaFilePath, 'utf8');
+        logger.info(`Read schema from ${schemaFilePath}`);
+        await this.exec(initSql);
+      } catch (err) {
+        logger.dbError('readSchemaFile', err);
+        throw new Error(`Failed to read database schema file: ${err.message}`);
       }
-    };
 
-    await ensureColumn('bybit_accounts', 'updated_at', 'created_at');
-    await ensureColumn('users', 'updated_at', 'created_at');
-    // Ensure trading_setups has a `reason` column used when setups are cancelled
-    await ensureColumn('trading_setups', 'reason', "''");
+    }
+
   }
 
   async beginTransaction() {
