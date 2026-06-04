@@ -1,3 +1,30 @@
+# Engine (trading engine) - README
+
+This service provides the backend API and core trading engine logic. It owns the database and secrets.
+
+Quick start
+
+```powershell
+cd src/engine
+npm install
+cp .env.example .env
+# Edit .env: set JWT_SECRET, API_PORT, DB file path, TELEGRAM_TOKEN, ENCRYPTION_KEY, etc.
+npm start
+```
+
+Health check
+
+Request `GET /api/system/health` to confirm the service is up.
+
+API overview
+
+See `doc/engine-api.md` for a summary of routes and required auth.
+
+Notes for developers
+
+- The engine uses `src/engine/db/database.js` for DB access — add methods there if you need new endpoints.
+- Authentication uses JWTs signed with `JWT_SECRET`.
+- Sensitive fields (account API keys) are encrypted with `src/engine/utils/encryption.js` before storing in the DB.
 # OmniTrader Trading Engine
 
 A Node.js trading engine that runs on a 15-minute schedule to monitor and execute trading setups according to specified logic.

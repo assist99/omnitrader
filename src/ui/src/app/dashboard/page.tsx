@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { PlusCircle, ExternalLink, XCircle, Trash2 } from 'lucide-react';
+import engineFetch from '@/lib/api';
 import { STATUS_STYLES, parseTpPrices } from '@/lib/constants';
 import type { TradingSetup } from '@/lib/types';
 
@@ -123,12 +124,10 @@ export default function DashboardPage() {
   async function fetchSetups() {
     setLoading(true);
     try {
-      const statusMap: Record<string, string> = { pending: 'pending', triggered: 'triggered', active: 'active', closed: 'closed_canceled' };
+      const statusMap: Record<string, string> = { pending: 'pending', triggered: 'triggered', active: 'active', closed: 'closed,canceled' };
       const params = new URLSearchParams({ status: statusMap[tab] || tab, page: String(closedPage), limit: String(PER_PAGE) });
       if (search) params.set('search', search);
-
-      const res = await fetch(`/api/setups?${params}`);
-      const data = await res.json();
+      const data = await engineFetch(`/api/setups?${params}`);
       if (data.success) {
         setSetups(data.data);
         setTotalClosed(data.total || 0);
@@ -148,15 +147,13 @@ export default function DashboardPage() {
   }, [search]);
 
   const handleCancel = useCallback(async (id: number) => {
-    const res = await fetch(`/api/setups/${id}`, { method: 'DELETE' });
-    const data = await res.json();
+    const data = await engineFetch(`/api/setups/${id}`, { method: 'DELETE' });
     if (data.success) { fetchSetups(); }
   }, []);
 
   const handleDelete = useCallback(async (id: number) => {
     if (!confirm('Permanently delete this setup? This cannot be undone.')) return;
-    const res = await fetch(`/api/setups/${id}?hard=true`, { method: 'DELETE' });
-    const data = await res.json();
+    const data = await engineFetch(`/api/setups/${id}?hard=true`, { method: 'DELETE' });
     if (data.success) { fetchSetups(); }
   }, []);
 

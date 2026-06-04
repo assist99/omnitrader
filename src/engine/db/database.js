@@ -10,13 +10,20 @@ class Database {
 
   async connect() {
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
+      this.db = new sqlite3.Database(this.dbPath, async (err) => {
         if (err) {
           logger.dbError('connect', err);
           reject(err);
-        } else {
-          logger.info(`Connected to database: ${this.dbPath}`);
+          return;
+        }
+
+        logger.info(`Connected to database: ${this.dbPath}`);
+        try {
+          await this.migrateSchema();
           resolve();
+        } catch (migrationErr) {
+          logger.dbError('migrateSchema', migrationErr);
+          reject(migrationErr);
         }
       });
     });
@@ -91,6 +98,22 @@ class Database {
         }
       });
     });
+  }
+
+  async migrateSchema() {
+    // Ensure bybit_accounts has an updated_at column for account timestamps.
+    const columnExists = await new Promise((resolve, reject) => {
+      this.db.all(`PRAGMA table_info('bybit_accounts')`, [], (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows.some((row) => row.name === 'updated_at'));
+      });
+    });
+
+    if (!columnExists) {
+      logger.info('Migrating schema: adding updated_at to bybit_accounts');
+      await this.run(`ALTER TABLE bybit_accounts ADD COLUMN updated_at TEXT`);
+      await this.run(`UPDATE bybit_accounts SET updated_at = created_at WHERE updated_at IS NULL`);
+    }
   }
 
   async beginTransaction() {
@@ -227,6 +250,40 @@ class Database {
       [userId]
     );
     return result?.telegram_chat_id || null;
+  }
+
+  async getUserByEmail(email) {
+    return this.get('SELECT * FROM users WHERE email = ?', [email]);
+  }
+
+  async getUserById(id) {
+    return this.get('SELECT * FROM users WHERE id = ?', [id]);
+  }
+
+  async createUser(email, passwordHash) {
+    const now = new Date().toISOString();
+    const sql = `
+      INSERT INTO users (email, password_hash, created_at, updated_at)
+      VALUES (?, ?, ?, ?)
+    `;
+    const result = await this.run(sql, [email, passwordHash, now, now]);
+    return { id: result.lastID, email, created_at: now, updated_at: now };
+  }
+
+  async updateUserPassword(id, hash) {
+    const sql = `
+      UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?
+    `;
+    const now = new Date().toISOString();
+    return this.run(sql, [hash, now, id]);
+  }
+
+  async updateUserTelegramChatId(id, chatId) {
+    const sql = `
+      UPDATE users SET telegram_chat_id = ?, updated_at = ? WHERE id = ?
+    `;
+    const now = new Date().toISOString();
+    return this.run(sql, [chatId, now, id]);
   }
 
   async getSetupById(setupId) {

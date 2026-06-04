@@ -45,6 +45,7 @@ Linked Bybit exchange accounts.
 | api_secret_enc | TEXT (NOT NULL) | Encrypted Bybit API secret |
 | is_testnet | INTEGER (DEFAULT 1) | 1 = testnet, 0 = mainnet |
 | created_at | TEXT | Account creation timestamp |
+| updated_at | TEXT | Last account update timestamp |
 
 ### `trading_setups`
 

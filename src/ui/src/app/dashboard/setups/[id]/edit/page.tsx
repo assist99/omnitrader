@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, Info, Lock } from 'lucide-react';
+import engineFetch from '@/lib/api';
 import { TIMEFRAMES, INDICATORS, DEFAULT_TP_RATIOS } from '@/lib/constants';
 import type { BybitAccount, TradingSetup, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
 
@@ -52,38 +53,39 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/accounts').then((r) => r.json()),
-      fetch(`/api/setups/${id}`).then((r) => r.json()),
-    ]).then(([accountsData, setupData]) => {
-      if (accountsData.success) {
-        setAccounts(accountsData.data);
-      }
-      if (setupData.success) {
-        const s = setupData.data;
-        setOriginalSetup(s);
-        setFormData({
-          account_id: s.account_id,
-          symbol: s.symbol,
-          side: s.side,
-          memo: s.memo || '',
-          activation_price: s.activation_price,
-          ignore_box_upper: s.ignore_box_upper,
-          ignore_box_lower: s.ignore_box_lower,
-          entry_indicator_type: s.entry_indicator_type,
-          entry_indicator_tf: s.entry_indicator_tf,
-          risk_type: s.risk_type,
-          risk_value: s.risk_value,
-          sl_price: s.sl_price || 0,
-          tp_prices: (() => { try { return JSON.parse(s.tp_prices); } catch { return DEFAULT_TP_RATIOS; } })(),
-          be_enabled: !!s.be_enabled,
-          be_trigger_price: s.be_trigger_price || 0,
-          exit_indicator_type: s.exit_indicator_type || undefined,
-          exit_indicator_tf: s.exit_indicator_tf || undefined,
-        });
+    (async () => {
+      try {
+        const accountsData = await engineFetch('/api/accounts');
+        const setupData = await engineFetch(`/api/setups/${id}`);
+        if (accountsData.success) setAccounts(accountsData.data);
+        if (setupData.success) {
+          const s = setupData.data;
+          setOriginalSetup(s);
+          setFormData({
+            account_id: s.account_id,
+            symbol: s.symbol,
+            side: s.side,
+            memo: s.memo || '',
+            activation_price: s.activation_price,
+            ignore_box_upper: s.ignore_box_upper,
+            ignore_box_lower: s.ignore_box_lower,
+            entry_indicator_type: s.entry_indicator_type,
+            entry_indicator_tf: s.entry_indicator_tf,
+            risk_type: s.risk_type,
+            risk_value: s.risk_value,
+            sl_price: s.sl_price || 0,
+            tp_prices: (() => { try { return JSON.parse(s.tp_prices); } catch { return DEFAULT_TP_RATIOS; } })(),
+            be_enabled: !!s.be_enabled,
+            be_trigger_price: s.be_trigger_price || 0,
+            exit_indicator_type: s.exit_indicator_type || undefined,
+            exit_indicator_tf: s.exit_indicator_tf || undefined,
+          });
+        }
+      } catch {
+        // ignore
       }
       setLoading(false);
-    }).catch(() => setLoading(false));
+    })();
   }, [id]);
 
   const status = originalSetup?.status || 'pending';
@@ -170,12 +172,7 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
           exit_indicator_tf: formData.exit_indicator_tf,
         };
 
-    const res = await fetch(`/api/setups/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
+    const data = await engineFetch(`/api/setups/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
     setSubmitting(false);
 
     if (data.success) {

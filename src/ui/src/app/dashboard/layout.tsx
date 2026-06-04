@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, Menu, X, ChevronDown } from 'lucide-react';
+import engineFetch from '@/lib/api';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -36,20 +37,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [accountOpen]);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then((data) => {
+    (async () => {
+      try {
+        const data = await engineFetch('/api/auth/me');
         if (!data.success) {
           router.push('/');
         } else {
           setUser(data.data);
         }
-      })
-      .catch(() => router.push('/'));
+      } catch {
+        router.push('/');
+      }
+    })();
   }, [router]);
 
   async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    try {
+      await engineFetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    if (typeof window !== 'undefined') sessionStorage.removeItem('token');
     router.push('/');
   }
 

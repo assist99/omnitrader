@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Activity, Eye, EyeOff, ShieldCheck, Sparkles, TrendingUp, Repeat, Shield } from 'lucide-react';
+import engineFetch from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,19 +21,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
+      const data = await engineFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
       if (!data.success) {
         setError(data.error || 'Login failed');
       } else {
+        if (typeof window !== 'undefined') sessionStorage.setItem('token', data.data.token);
         router.push('/dashboard');
       }
-    } catch {
-      setError('Connection error');
+    } catch (err: any) {
+      setError(err?.message || 'Connection error');
     } finally {
       setLoading(false);
     }

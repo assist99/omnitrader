@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const Scheduler = require('./scheduler');
 const Config = require('./config');
 const logger = require('./logger');
@@ -15,6 +16,9 @@ class HealthServer {
 
   setupMiddleware() {
     this.app.use(express.json());
+    // Enable CORS for UI origin or allow all in development
+    const uiOrigin = process.env.NEXT_PUBLIC_ENGINE_URL || '*';
+    this.app.use(cors({ origin: uiOrigin, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
     this.app.use((req, res, next) => {
       logger.info(`${req.method} ${req.url}`);
       next();
@@ -148,6 +152,15 @@ class HealthServer {
         res.status(500).json({ error: error.message });
       }
     });
+
+    // Mount API router if present
+    try {
+      // eslint-disable-next-line global-require
+      const apiRouter = require('./api');
+      this.app.use('/api', apiRouter);
+    } catch (e) {
+      logger.info('No API router found to mount at /api');
+    }
   }
 
   setScheduler(scheduler) {

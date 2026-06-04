@@ -5,10 +5,8 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname.startsWith('/dashboard')) {
-    const token = request.cookies.get('token')?.value
-    if (!token) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
+    // UI authentication is handled by the engine API via Authorization header.
+    // Do not enforce cookie-based auth here.
   }
 
   return NextResponse.next()

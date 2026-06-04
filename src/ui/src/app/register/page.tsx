@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Activity } from 'lucide-react';
+import engineFetch from '@/lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,19 +26,15 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, confirmPassword }),
-      });
-      const data = await res.json();
+      const data = await engineFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password, confirmPassword }) });
       if (!data.success) {
         setError(data.error || 'Registration failed');
       } else {
+        if (typeof window !== 'undefined') sessionStorage.setItem('token', data.data.token);
         router.push('/dashboard');
       }
-    } catch {
-      setError('Connection error');
+    } catch (err: any) {
+      setError(err?.message || 'Connection error');
     } finally {
       setLoading(false);
     }

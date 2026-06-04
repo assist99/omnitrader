@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, Info } from 'lucide-react';
+import engineFetch from '@/lib/api';
 import { TIMEFRAMES, INDICATORS, DEFAULT_TP_RATIOS } from '@/lib/constants';
 import type { BybitAccount, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
 
@@ -40,8 +41,7 @@ export default function SetupFormPage() {
   async function fetchAccounts() {
     setLoading(true);
     try {
-      const res = await fetch('/api/accounts');
-      const data = await res.json();
+      const data = await engineFetch('/api/accounts');
       if (data.success) {
         setAccounts(data.data);
         if (!data.data || data.data.length === 0) {
@@ -130,12 +130,7 @@ export default function SetupFormPage() {
       be_trigger_price: formData.be_enabled ? formData.be_trigger_price : 0,
     };
 
-    const res = await fetch('/api/setups', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
+    const data = await engineFetch('/api/setups', { method: 'POST', body: JSON.stringify(payload) });
     setSubmitting(false);
 
     if (data.success) {

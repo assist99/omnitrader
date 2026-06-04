@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit3, XCircle, Trash2 } from 'lucide-react';
+import engineFetch from '@/lib/api';
 import type { TradingSetup, Order } from '@/lib/types';
 import { TIMEFRAMES, INDICATORS, STATUS_STYLES, parseTpPrices } from '@/lib/constants';
 
@@ -29,23 +30,22 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/setups/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
+    (async () => {
+      try {
+        const data = await engineFetch(`/api/setups/${id}`);
         if (data.success) {
           const { orders: ords, ...rest } = data.data;
           setSetup(rest);
           setOrders(ords || []);
         }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      } catch {}
+      setLoading(false);
+    })();
   }, [id]);
 
   async function handleCancel() {
     if (!confirm('Cancel this trading setup?')) return;
-    const res = await fetch(`/api/setups/${id}`, { method: 'DELETE' });
-    const data = await res.json();
+    const data = await engineFetch(`/api/setups/${id}`, { method: 'DELETE' });
     if (data.success) {
       setSetup(data.data);
     }
@@ -53,8 +53,7 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
 
   async function handleDelete() {
     if (!confirm('Permanently delete this setup? This cannot be undone.')) return;
-    const res = await fetch(`/api/setups/${id}?hard=true`, { method: 'DELETE' });
-    const data = await res.json();
+    const data = await engineFetch(`/api/setups/${id}?hard=true`, { method: 'DELETE' });
     if (data.success) {
       router.push('/dashboard');
     }

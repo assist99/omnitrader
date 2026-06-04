@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Key, Pencil, Trash2, Check, X, Send, Save, Shield } from 'lucide-react';
 import type { BybitAccount, User } from '@/lib/types';
+import engineFetch from '@/lib/api';
 
 interface AccountFormData {
   label: string;
@@ -41,19 +42,23 @@ export default function SettingsPage() {
 
   async function fetchAccounts() {
     setLoading(true);
-    const res = await fetch('/api/accounts');
-    const data = await res.json();
-    if (data.success) setAccounts(data.data);
+    try {
+      const data = await engineFetch('/api/accounts');
+      if (data.success) setAccounts(data.data);
+    } catch (err) {
+      // ignore
+    }
     setLoading(false);
   }
 
   async function fetchTelegramChatId() {
     if (telegramChatId) return;
-    const res = await fetch('/api/auth/me');
-    const data = await res.json();
-    if (data.success && data.data?.telegram_chat_id) {
-      setTelegramChatId(data.data.telegram_chat_id);
-    }
+    try {
+      const data = await engineFetch('/api/auth/me');
+      if (data.success && data.data?.telegram_chat_id) {
+        setTelegramChatId(data.data.telegram_chat_id);
+      }
+    } catch {}
   }
 
   useEffect(() => {
@@ -86,12 +91,7 @@ export default function SettingsPage() {
     const url = editingAccount ? `/api/accounts/${editingAccount.id}` : '/api/accounts';
     const method = editingAccount ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(accountForm),
-    });
-    const data = await res.json();
+    const data = await engineFetch(url, { method, body: JSON.stringify(accountForm) });
     if (data.success) {
       resetAccountForm();
       fetchAccounts();
@@ -103,8 +103,7 @@ export default function SettingsPage() {
 
   async function handleDeleteAccount(accountId: number) {
     clearMessages();
-    const res = await fetch(`/api/accounts/${accountId}`, { method: 'DELETE' });
-    const data = await res.json();
+    const data = await engineFetch(`/api/accounts/${accountId}`, { method: 'DELETE' });
     if (data.success) {
       setDeletingAccountId(null);
       fetchAccounts();
@@ -117,12 +116,7 @@ export default function SettingsPage() {
   async function handleTelegramSave() {
     clearMessages();
     setTelegramSaving(true);
-    const res = await fetch('/api/users/telegram', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_chat_id: telegramChatId || null }),
-    });
-    const data = await res.json();
+    const data = await engineFetch('/api/users/telegram', { method: 'PATCH', body: JSON.stringify({ telegram_chat_id: telegramChatId || null }) });
     setTelegramSaving(false);
     if (data.success) {
       setSuccessMessage('Telegram user ID saved successfully');
@@ -135,12 +129,7 @@ export default function SettingsPage() {
     clearMessages();
     setTelegramTesting(true);
     try {
-      const res = await fetch('/api/users/telegram/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId: telegramChatId }),
-      });
-      const data = await res.json();
+      const data = await engineFetch('/api/users/telegram/test', { method: 'POST', body: JSON.stringify({ chatId: telegramChatId }) });
       if (data.success) {
         setSuccessMessage('Test message sent successfully! Check your Telegram.');
       } else {
@@ -166,12 +155,7 @@ export default function SettingsPage() {
     }
 
     setPasswordSaving(true);
-    const res = await fetch('/api/auth/password', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currentPassword, newPassword }),
-    });
-    const data = await res.json();
+    const data = await engineFetch('/api/auth/password', { method: 'PATCH', body: JSON.stringify({ currentPassword, newPassword }) });
     setPasswordSaving(false);
     if (data.success) {
       setCurrentPassword('');
