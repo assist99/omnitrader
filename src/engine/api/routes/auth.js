@@ -54,7 +54,14 @@ router.get('/me', async (req, res) => {
     const user = await db.getUserById(payload.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    res.json({ success: true, data: { id: user.id, email: user.email } });
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        telegram_chat_id: user.telegram_chat_id || null,
+      },
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

@@ -21,16 +21,16 @@ omnitrader/
 ### Component View
 
 ```mermaid
-graph TB
+graph TB 
     subgraph Frontend["Next.js Frontend"]
         UI[Dashboard / Setup CRUD]
         Auth[Auth Pages]
         SetupForm[Setup Form]
-        REST[Embedded REST API]
-        AuthM[Auth Middleware]
     end
 
     subgraph Backend["Node.js Backend"]
+        REST[REST API]
+        AuthM[Auth Middleware]
         DBQ[DB Query Package]
         Sched[Scheduler<br/>every 15 min]
         Engine[Trading Engine]

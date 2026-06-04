@@ -102,18 +102,27 @@ class Database {
 
   async migrateSchema() {
     // Ensure bybit_accounts has an updated_at column for account timestamps.
-    const columnExists = await new Promise((resolve, reject) => {
-      this.db.all(`PRAGMA table_info('bybit_accounts')`, [], (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows.some((row) => row.name === 'updated_at'));
+    const ensureColumn = async (table, column, defaultExpr = null) => {
+      const exists = await new Promise((resolve, reject) => {
+        this.db.all(`PRAGMA table_info('${table}')`, [], (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows.some((row) => row.name === column));
+        });
       });
-    });
 
-    if (!columnExists) {
-      logger.info('Migrating schema: adding updated_at to bybit_accounts');
-      await this.run(`ALTER TABLE bybit_accounts ADD COLUMN updated_at TEXT`);
-      await this.run(`UPDATE bybit_accounts SET updated_at = created_at WHERE updated_at IS NULL`);
-    }
+      if (!exists) {
+        logger.info(`Migrating schema: adding ${column} to ${table}`);
+        await this.run(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT`);
+        if (defaultExpr) {
+          await this.run(`UPDATE ${table} SET ${column} = ${defaultExpr} WHERE ${column} IS NULL`);
+        }
+      }
+    };
+
+    await ensureColumn('bybit_accounts', 'updated_at', 'created_at');
+    await ensureColumn('users', 'updated_at', 'created_at');
+    // Ensure trading_setups has a `reason` column used when setups are cancelled
+    await ensureColumn('trading_setups', 'reason', "''");
   }
 
   async beginTransaction() {
