@@ -4,4 +4,3 @@ node_modules
 .gitignore
 *.md
 eslint.config.mjs
-.env
