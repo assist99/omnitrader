@@ -82,10 +82,12 @@ class ActiveSetupService {
       const newSlOrder = await bybitService.placeOrder({
         symbol: setup.symbol,
         side: setup.side === 'long' ? 'Sell' : 'Buy',
-        orderType: 'Limit',
+        orderType: 'Market',
         qty: setup.entry_qty,
-        price: setup.entry_price,
-        timeInForce: 'GTC'
+        triggerPrice: setup.entry_price,
+        triggerDirection: setup.side === 'long' ? 2 : 1,
+        triggerBy: 'MarkPrice',
+        reduceOnly: true
       });
 
       await ctx.db.updateOrderStatus(slOrder.id, 'canceled');
