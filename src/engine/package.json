@@ -21,10 +21,7 @@
   "dependencies": {
     "axios": "^1.8.3",
     "bcryptjs": "^2.4.3",
-    "canvas": "^3.2.3",
     "ccxt": "^4.5.56",
-    "chartjs-chart-financial": "^0.2.1",
-    "chartjs-node-canvas": "^5.0.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.7",
