@@ -47,11 +47,11 @@ class IndicatorService {
       if (superTrend.length < 2) {
         return { met: false, error: 'Insufficient data for SuperTrend calculation' };
       }
-      
       // Get last two SuperTrend values
       const lastST = superTrend[superTrend.length - 1];
       const prevST = superTrend[superTrend.length - 2];
       const lastClose = closes[closes.length - 1];
+      console.log(`SuperTrend values: last=${lastST}, previous=${prevST}, close=${lastClose}`);
       
       // Check for trend change
       const wasBullish = prevST > closes[closes.length - 2];

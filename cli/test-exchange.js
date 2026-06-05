@@ -34,6 +34,19 @@ async function main() {
 
   const stResult = IndicatorService.checkCondition('supertrend', candles);
   console.log('SuperTrend result:', JSON.stringify(stResult, null, 2));
+
+  const PriceUtils = require('../src/engine/utils/priceUtils');
+  const h1Candles = CandleUtils.parseExchangeCandles(await exchange.getCandles(symbol, 'h1', 100));
+
+  const entryPrice = 4481.17;
+  const ignoreBoxLower = 0;
+  const ignoreBoxUpper = 0;
+  const side = 'long';
+  const indicatorType = 'supertrend';
+  const indicatorParams = { period: 10, multiplier: 3 };
+
+  const slPrice = PriceUtils.calculateSLPrice(entryPrice, ignoreBoxLower, ignoreBoxUpper, side, indicatorType, h1Candles, indicatorParams);
+  console.log(`\ncalculateSLPrice result: entry=$${entryPrice}, side=${side}, indicator=${indicatorType}, sl=$${slPrice}`);
 }
 
 main().catch(console.error);

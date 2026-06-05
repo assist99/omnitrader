@@ -70,7 +70,7 @@ class PriceUtils {
         }
         
         // Default to 1% below entry if no ignore box or swing detection
-        const defaultSL = entryPrice * 0.99;
+        const defaultSL = entryPrice * 0.95;
         logger.info(`SL using default (1% below): $${defaultSL}`);
         return defaultSL;
       } else if (side === 'short') {
@@ -92,7 +92,7 @@ class PriceUtils {
         }
         
         // Default to 1% above entry if no ignore box or swing detection
-        const defaultSL = entryPrice * 1.01;
+        const defaultSL = entryPrice * 1.05;
         logger.info(`SL using default (1% above): $${defaultSL}`);
         return defaultSL;
       }
