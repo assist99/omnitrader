@@ -88,7 +88,7 @@ async getSymbolInfo(symbol) {
       ]);
       
       logger.info(`Fetched ${formattedCandles.length} candles for ${symbol} (${symbol}) ${timeframe} on ${this.exchangeName}`);
-      return formattedCandles.reverse(); // Oldest to newest
+      return formattedCandles; // Oldest to newest
     } catch (error) {
       logger.apiError('getCandles', error);
       throw error;

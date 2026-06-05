@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const ExchangeService = require('../src/engine/services/ExchangeService');
-
+const IndicatorService = require('../src/engine/services/indicatorService');
+const CandleUtils = require('../src/engine/utils/candleUtils');
 const ALGORITHM = 'aes-256-cbc';
 const IV_LENGTH = 16;
 
@@ -27,31 +28,12 @@ async function main() {
   console.log('=== Testing Bybit ExchangeService (livenet) ===\n');
   const symbol = 'XAU/USDT:USDT';
 
-  const orderParams = {
-          symbol: symbol,
-          side: 'sell',
-          orderType: 'limit',
-          qty: '0.05',
-          price: '5000',
-          timeInForce: 'GTC',
-          reduceOnly: true,
-          positionIdx: 0
-  }
-  // const orderResult = await exchange.exchange.createOrder(
-  //   'XAU/USDT:USDT',
-  //   'limit',
-  //   'sell',
-  //   0.05,
-  //   5000,
-  //   {
-  //       reduceOnly: true,
-  //       positionIdx: 0
-  //   }
-  // );
-  const orderResult = await exchange.placeOrder(orderParams);
-  console.log('Order Result:', orderResult);
-  // console.log(await exchange.getPositions('XAU/USDT:USDT'));  
-  // console.log(await exchange.getOrderStatus('860bd935-c78a-4383-93bc-4eead85163bd','XAU/USDT:USDT'));
+  const candles = CandleUtils.parseExchangeCandles(await exchange.getCandles(symbol,'m5', 100));  
+  console.log('Raw candles (first 5):', JSON.stringify(candles, null, 2));
+
+
+  const stResult = IndicatorService.checkCondition('supertrend', candles);
+  console.log('SuperTrend result:', JSON.stringify(stResult, null, 2));
 }
 
 main().catch(console.error);

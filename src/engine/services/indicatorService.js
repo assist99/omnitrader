@@ -44,7 +44,7 @@ class IndicatorService {
       const closes = candles.map(c => c.close);
       
       const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
-      
+      console.log(JSON.stringify({ superTrend }, null, 2));
       if (superTrend.length < 2) {
         return { met: false, error: 'Insufficient data for SuperTrend calculation' };
       }
