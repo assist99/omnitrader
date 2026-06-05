@@ -152,7 +152,7 @@ class EntryService {
 
 
       for (let i = 0; i < tpPrices.length; i++) {
-        const tpOrder = await exchange.exchange.createOrder(
+        const tpOrder = await exchangeService.exchange.createOrder(
           setup.symbol,
           'limit',
           setup.side === 'long' ? 'sell' : 'buy',

@@ -236,3 +236,35 @@
 {"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:51:38"}
 {"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:51:55"}
 {"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:51:58"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 08:24:25"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 08:24:31"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 08:44:05"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 08:44:13"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 08:55:54"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 08:55:58"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:23:00"}
+{"level":"info","message":"Fetched 500 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"MACD swing price for long: $4442.24, sections: 42, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"MACD swing price for short: $4453.9, sections: 42, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"SuperTrend swing price for long: $4443.8409803519935","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"SuperTrend swing price for short: $4443.8409803519935","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"EMA swing price for long: $4443.12, sections: 4, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"EMA swing price for short: $4453.9, sections: 4, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"MACD swing price for long: $4442.24, sections: 42, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"MACD swing price for short: $4453.9, sections: 42, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"SuperTrend swing price for long: $4443.8409803519935","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"SuperTrend swing price for short: $4443.8409803519935","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"EMA swing price for long: $4443.12, sections: 4, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"EMA swing price for short: $4453.9, sections: 4, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 09:23:06"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:29:38"}
+{"level":"info","message":"Fetched 50 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:29:42"}
+{"level":"info","message":"SuperTrend swing price for long: $4446.1868347287955","service":"trading-engine","timestamp":"2026-06-05 09:29:42"}
+{"level":"info","message":"SuperTrend swing price for short: $4446.1868347287955","service":"trading-engine","timestamp":"2026-06-05 09:29:42"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:30:54"}
+{"level":"info","message":"Fetched 50 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:31:00"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:31:29"}
+{"level":"info","message":"Fetched 52 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:31:35"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:31:46"}
+{"level":"info","message":"Fetched 100 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:31:53"}
+{"level":"info","message":"MACD swing price for long: $4442.24, sections: 6, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:31:53"}
+{"level":"info","message":"MACD swing price for short: $4453.9, sections: 6, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:31:53"}

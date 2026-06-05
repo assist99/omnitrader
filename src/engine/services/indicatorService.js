@@ -512,7 +512,7 @@ class IndicatorService {
       if (sections.length < 2) {
         return { price: null, error: 'Not enough MACD sections for swing detection' };
       }
-      
+      console.log(JSON.stringify(sections, null, 2));
       const lastSection = sections[sections.length - 1];
       const prevSection = sections[sections.length - 2];
       
@@ -566,82 +566,21 @@ class IndicatorService {
       
       const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
       
-      if (superTrend.length < 50) {
+      if (superTrend.length < 1) {
         return { price: null, error: 'Insufficient SuperTrend data for swing detection' };
       }
       
-      let sections = [];
-      let currentSection = { start: 0, type: null };
+
+      let swingPrice = superTrend[superTrend.length - 1];
       
-      for (let i = 1; i < superTrend.length; i++) {
-        const prevST = superTrend[i - 1];
-        const currST = superTrend[i];
-        const prevClose = closes[i - 1];
-        const currClose = closes[i];
-        
-        const wasBullish = prevST > prevClose;
-        const isBullish = currST > currClose;
-        
-        if (currentSection.type === null) {
-          currentSection.type = wasBullish ? 'bearish' : 'bullish';
-          currentSection.start = i - 1;
-        }
-        
-        const sectionChanged = (wasBullish && !isBullish) || (!wasBullish && isBullish);
-        
-        if (sectionChanged) {
-          currentSection.end = i - 1;
-          currentSection.duration = currentSection.end - currentSection.start + 1;
-          sections.push({ ...currentSection });
-          
-          currentSection = { start: i, type: isBullish ? 'bearish' : 'bullish' };
-        }
-        
-        if (i === superTrend.length - 1 && currentSection.type !== null) {
-          currentSection.end = i;
-          currentSection.duration = currentSection.end - currentSection.start + 1;
-          sections.push({ ...currentSection });
-        }
-      }
-      
-      if (sections.length < 2) {
-        return { price: null, error: 'Not enough SuperTrend sections for swing detection' };
-      }
-      
-      const lastSection = sections[sections.length - 1];
-      const prevSection = sections[sections.length - 2];
-      
-      let swingPrice = null;
-      
-      if (side === 'long') {
-        const bearishSection = lastSection.type === 'bearish' ? lastSection : prevSection.type === 'bearish' ? prevSection : null;
-        
-        if (bearishSection) {
-          const sectionLows = lows.slice(bearishSection.start, bearishSection.end + 1);
-          swingPrice = Math.min(...sectionLows);
-        }
-      } else if (side === 'short') {
-        const bullishSection = lastSection.type === 'bullish' ? lastSection : prevSection.type === 'bullish' ? prevSection : null;
-        
-        if (bullishSection) {
-          const sectionHighs = highs.slice(bullishSection.start, bullishSection.end + 1);
-          swingPrice = Math.max(...sectionHighs);
-        }
-      }
-      
-      if (swingPrice === null || swingPrice <= 0) {
-        return { price: null, error: 'Could not determine swing price from SuperTrend sections' };
-      }
-      
-      logger.info(`SuperTrend swing price for ${side}: $${swingPrice}, sections: ${sections.length}, last type: ${lastSection.type}`);
+      logger.info(`SuperTrend swing price for ${side}: $${swingPrice}`);
       
       return {
         price: swingPrice,
-        sections: sections.length,
-        sectionType: lastSection.type,
+        sections: 0, // SuperTrend doesn't have clear sections like MACD/EMA
+        sectionType: 'trend',
         details: {
-          lastSection: lastSection,
-          prevSection: prevSection
+          trend: swingPrice < closes[closes.length - 1] ? 'bullish' : 'bearish'
         }
       };
     } catch (error) {
