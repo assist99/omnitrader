@@ -137,8 +137,8 @@ export default function ScreenerPage() {
                   </Link>
                   <button onClick={() => handleToggle(item.id)}
                     className="p-1 text-slate-400 hover:text-white transition-colors"
-                    title={item.enabled ? 'Disable' : 'Enable'}>
-                    {item.enabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                    title={item.enabled === 1 ? 'Disable' : 'Enable'}>
+                    {item.enabled === 1 ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                   </button>
                   <button onClick={() => handleDelete(item.id)}
                     className="p-1 text-red-400 hover:text-red-300 transition-colors"

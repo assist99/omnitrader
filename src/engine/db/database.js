@@ -329,26 +329,38 @@ class Database {
   }
 
 async getScreenerItems(userId, enabledOnly = true) {
-    let sql = `
-      SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
-      FROM screener_items si
-      JOIN exchange_accounts ea ON si.exchange_account_id = ea.id
-    `;
-    const params = [userId];
-    
-    if (enabledOnly === true) {
-      sql += ` WHERE si.user_id = ? AND si.enabled = 1`;
-    } else if (enabledOnly === false) {
-      sql += ` WHERE si.user_id = ? AND si.enabled = 0`;
-    } else {
-      sql += ` WHERE si.user_id = ?`;
-    }
-    
-    sql += ` ORDER BY si.created_at DESC`;
-    
-    return this.all(sql, params);
+  let sql = `
+    SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+    FROM screener_items si
+    JOIN exchange_accounts ea ON si.exchange_account_id = ea.id
+  `;
+  
+  const params = [];
+  const whereClauses = [];
+
+  // 1. Only filter by user_id if a valid userId is provided
+  if (userId !== null && userId !== undefined) {
+    whereClauses.push(`si.user_id = ?`);
+    params.push(userId);
   }
 
+  // 2. Handle enabledOnly logic (assuming enabled is a boolean/tinyint 1 or 0)
+  if (enabledOnly === true) {
+    whereClauses.push(`si.enabled = 1`);
+  } else if (enabledOnly === false) {
+    whereClauses.push(`si.enabled = 0`);
+  }
+  // If enabledOnly is anything else (like 'all'), we don't push an enabled filter
+
+  // 3. Append WHERE clause if there are any conditions
+  if (whereClauses.length > 0) {
+    sql += ` WHERE ${whereClauses.join(' AND ')}`;
+  }
+
+  sql += ` ORDER BY si.created_at DESC`;
+
+  return this.all(sql, params);
+}
   async getScreenerItemById(id, userId) {
     const sql = `
       SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
