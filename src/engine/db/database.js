@@ -327,6 +327,78 @@ class Database {
     
     return this.get(sql, [setupId]);
   }
+
+async getScreenerItems(userId, enabledOnly = true) {
+  const sql = `
+    SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+    FROM screener_items si
+    JOIN exchange_accounts ea ON si.exchange_account_id = ea.id
+    WHERE (? IS NULL OR si.user_id = ?) ${enabledOnly ? 'AND si.enabled = 1' : ''}
+    ORDER BY si.created_at DESC
+  `;
+  
+  // You must pass userId twice because ? appears twice in the SQL string
+  return this.all(sql, [userId, userId]);
+}
+
+  async getScreenerItemById(id, userId) {
+    const sql = `
+      SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+      FROM screener_items si
+      JOIN exchange_accounts ea ON si.exchange_account_id = ea.id
+      WHERE si.id = ? AND si.user_id = ?
+    `;
+    return this.get(sql, [id, userId]);
+  }
+
+  async createScreenerItem(data) {
+    const sql = `
+      INSERT INTO screener_items (
+        user_id, exchange_account_id, symbol, timeframe, indicator_type, indicator_params, enabled
+      ) VALUES (?, ?, ?, ?, ?, ?, 1)
+    `;
+    const params = [
+      data.user_id,
+      data.exchange_account_id,
+      data.symbol,
+      data.timeframe,
+      data.indicator_type,
+      JSON.stringify(data.indicator_params || {})
+    ];
+    const result = await this.run(sql, params);
+    return { id: result.lastID };
+  }
+
+  async updateScreenerItem(id, userId, updates) {
+    const allowed = ['symbol', 'timeframe', 'indicator_type', 'indicator_params', 'enabled'];
+    const fields = [];
+    const params = [];
+    for (const [k, v] of Object.entries(updates)) {
+      if (allowed.includes(k)) {
+        fields.push(`${k} = ?`);
+        params.push(k === 'indicator_params' ? JSON.stringify(v) : v);
+      }
+    }
+    if (fields.length === 0) return;
+    params.push(new Date().toISOString(), id, userId);
+    const sql = `UPDATE screener_items SET ${fields.join(', ')}, updated_at = ? WHERE id = ? AND user_id = ?`;
+    return this.run(sql, params);
+  }
+
+  async updateScreenerItemSignal(id, signal, checkedAt) {
+    const sql = `UPDATE screener_items SET last_signal = ?, last_checked_at = ? WHERE id = ?`;
+    return this.run(sql, [signal, checkedAt, id]);
+  }
+
+  async updateScreenerItemAlerted(id, alertedAt) {
+    const sql = `UPDATE screener_items SET last_alerted_at = ? WHERE id = ?`;
+    return this.run(sql, [alertedAt, id]);
+  }
+
+  async deleteScreenerItem(id, userId) {
+    const sql = `DELETE FROM screener_items WHERE id = ? AND user_id = ?`;
+    return this.run(sql, [id, userId]);
+  }
 }
 
 module.exports = Database;

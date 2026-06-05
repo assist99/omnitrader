@@ -86,3 +86,23 @@ CREATE INDEX IF NOT EXISTS idx_setups_user_created ON trading_setups(user_id, cr
 CREATE INDEX IF NOT EXISTS idx_setups_status ON trading_setups(status);
 CREATE INDEX IF NOT EXISTS idx_setups_account ON trading_setups(exchange_account_id);
 CREATE INDEX IF NOT EXISTS idx_orders_setup ON orders(setup_id);
+
+-- Screener items for monitoring reversals
+CREATE TABLE IF NOT EXISTS screener_items (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  exchange_account_id INTEGER NOT NULL REFERENCES exchange_accounts(id) ON DELETE CASCADE,
+  symbol             TEXT NOT NULL,
+  timeframe          TEXT NOT NULL,
+  indicator_type     TEXT NOT NULL,
+  indicator_params   TEXT DEFAULT '{}',
+  enabled            INTEGER NOT NULL DEFAULT 1,
+  last_signal        TEXT,
+  last_checked_at    TEXT,
+  last_alerted_at    TEXT,
+  created_at         TEXT DEFAULT (datetime('now')),
+  updated_at         TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_screener_user_enabled ON screener_items(user_id, enabled);
+CREATE INDEX IF NOT EXISTS idx_screener_symbol_tf ON screener_items(symbol, timeframe);

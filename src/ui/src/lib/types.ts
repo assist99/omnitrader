@@ -1,6 +1,7 @@
 export type Side = 'long' | 'short';
 export type SetupStatus = 'pending' | 'triggered' | 'active' | 'closed' | 'cancelled';
 export type EntryIndicatorType = 'superTrend' | 'macd' | 'ema';
+export type ScreenerIndicatorType = 'supertrend' | 'macd' | 'ema';
 export type Timeframe = 'm1' | 'm5' | 'm15' | 'm30' | 'h1' | 'h2' | 'h4' | 'd1';
 export type RiskType = 'percent' | 'fixed';
 export type OrderType = 'entry' | 'tp1' | 'tp2' | 'tp3' | 'tp4' | 'sl';
@@ -87,6 +88,34 @@ export interface SetupFormData {
   be_trigger_price?: number;
   exit_indicator_type?: EntryIndicatorType;
   exit_indicator_tf?: Timeframe;
+}
+
+export interface ScreenerItem {
+  id: number;
+  user_id: number;
+  exchange_account_id: number;
+  exchange: string;
+  exchange_account_label?: string;
+  symbol: string;
+  timeframe: string;
+  indicator_type: 'supertrend' | 'macd' | 'ema';
+  indicator_params?: Record<string, unknown>;
+  enabled: number;
+  last_signal: 'bullish_crossover' | 'bearish_crossover' | null;
+  last_checked_at: string | null;
+  last_alerted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  is_testnet?: number;
+}
+
+export interface ScreenerFormData {
+  exchange_account_id: number;
+  symbol: string;
+  timeframe: Timeframe;
+  indicator_type: ScreenerIndicatorType;
+  indicator_params?: Record<string, unknown>;
+  enabled?: boolean;
 }
 
 export interface ApiResponse<T = any> {

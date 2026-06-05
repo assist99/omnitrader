@@ -4,6 +4,7 @@ const TelegramService = require('./services/telegramService');
 const PendingSetupService = require('./services/pendingSetupService');
 const EntryService = require('./services/entryService');
 const ActiveSetupService = require('./services/activeSetupService');
+const ScreenerService = require('./services/screenerService');
 const logger = require('./logger');
 
 class TradingEngine {
@@ -64,6 +65,8 @@ class TradingEngine {
       });
 
       await Promise.allSettled(setupPromises);
+
+      await ScreenerService.processAll(this.db, this, this.telegramService);
 
       this.stats.lastRun = new Date().toISOString();
       logger.info(`Processing completed. Stats: ${JSON.stringify(this.stats, null, 2)}`);

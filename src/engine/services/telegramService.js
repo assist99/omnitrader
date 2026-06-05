@@ -110,6 +110,9 @@ class TelegramService {
       case 'exit_triggered':
         message += this.formatExitTriggered(data);
         break;
+      case 'screener_reversal':
+        message += this.formatScreenerReversal(data);
+        break;
       case 'error':
         message += this.formatError(data);
         break;
@@ -140,6 +143,8 @@ class TelegramService {
             return `${data.symbol}${data.side ? ` • ${data.side.toUpperCase()}` : ''}`;
           }
           return '';
+        case 'screener_reversal':
+          return data && data.symbol ? `${data.symbol}` : '';
         case 'error':
           return data && data.component ? `Component: ${data.component}` : '';
         default:
@@ -245,6 +250,15 @@ class TelegramService {
 `;
   }
 
+  formatScreenerReversal(data) {
+    return `Signal: ${data.signal === 'bullish_crossover' ? 'Bullish Reversal 📈' : 'Bearish Reversal 📉'}
+💰 Price: $${data.price}
+⏱ Timeframe: ${data.timeframe}
+📊 Indicator: ${data.indicatorType.toUpperCase()}
+🏦 Exchange: ${data.exchange} (${data.isTestnet ? 'testnet' : 'main'})
+`;
+  }
+
   getEmojiForMessageType(messageType) {
     const emojiMap = {
       'setup_created': '📊',
@@ -256,6 +270,7 @@ class TelegramService {
       'sl_hit': '🛑',
       'be_activated': '🛡️',
       'exit_triggered': '🚪',
+      'screener_reversal': '🔔',
       'error': '⚠️'
     };
     
@@ -273,6 +288,7 @@ class TelegramService {
       'sl_hit': 'Stop Loss Hit',
       'be_activated': 'Break-Even Activated',
       'exit_triggered': 'Exit Triggered',
+      'screener_reversal': 'Screener Alert',
       'error': 'Error Alert'
     };
     

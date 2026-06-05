@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, Menu, X, ChevronDown } from 'lucide-react';
+import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, Menu, X, ChevronDown, Search } from 'lucide-react';
 import engineFetch from '@/lib/api';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -63,6 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard/screener', label: 'Screener', icon: Search },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/setups/new', label: 'New Setup', icon: PlusCircle },
   ];
@@ -172,6 +173,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }`}>
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
+          </Link>
+          <Link href="/dashboard/screener"
+            className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              pathname.startsWith('/dashboard/screener') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            <Search className="h-4 w-4" />
+            Screener
           </Link>
           <Link href="/dashboard/setups/new"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${

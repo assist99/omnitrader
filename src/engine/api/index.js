@@ -8,5 +8,6 @@ router.use('/setups', require('./routes/setups'));
 router.use('/orders', require('./routes/orders'));
 router.use('/users', require('./routes/users'));
 router.use('/system', require('./routes/system'));
+router.use('/screener', require('./routes/screener'));
 
 module.exports = router;
