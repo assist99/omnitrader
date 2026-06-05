@@ -329,17 +329,25 @@ class Database {
   }
 
 async getScreenerItems(userId, enabledOnly = true) {
-  const sql = `
-    SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
-    FROM screener_items si
-    JOIN exchange_accounts ea ON si.exchange_account_id = ea.id
-    WHERE (? IS NULL OR si.user_id = ?) ${enabledOnly ? 'AND si.enabled = 1' : ''}
-    ORDER BY si.created_at DESC
-  `;
-  
-  // You must pass userId twice because ? appears twice in the SQL string
-  return this.all(sql, [userId, userId]);
-}
+    let sql = `
+      SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+      FROM screener_items si
+      JOIN exchange_accounts ea ON si.exchange_account_id = ea.id
+    `;
+    const params = [userId];
+    
+    if (enabledOnly === true) {
+      sql += ` WHERE si.user_id = ? AND si.enabled = 1`;
+    } else if (enabledOnly === false) {
+      sql += ` WHERE si.user_id = ? AND si.enabled = 0`;
+    } else {
+      sql += ` WHERE si.user_id = ?`;
+    }
+    
+    sql += ` ORDER BY si.created_at DESC`;
+    
+    return this.all(sql, params);
+  }
 
   async getScreenerItemById(id, userId) {
     const sql = `
