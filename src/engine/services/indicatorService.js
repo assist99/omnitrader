@@ -37,7 +37,7 @@ class IndicatorService {
   static checkSuperTrend(candles, params = {}) {
     try {
       const period = params.period || 10;
-      const multiplier = params.multiplier || 3;
+      const multiplier = params.multiplier || 4;
       
       const highs = candles.map(c => c.high);
       const lows = candles.map(c => c.low);
@@ -213,44 +213,54 @@ class IndicatorService {
   }
 
   static calculateATR(highs, lows, closes, period) {
-    if (closes.length <= period) {
+    if (closes.length < period) {
       return [];
     }
 
-    const trueRanges = [];
-    for (let i = 1; i < closes.length; i++) {
-      const currentHigh = highs[i];
-      const currentLow = lows[i];
-      const prevClose = closes[i - 1];
-      const trueRange = Math.max(
-        currentHigh - currentLow,
-        Math.abs(currentHigh - prevClose),
-        Math.abs(currentLow - prevClose)
-      );
-      trueRanges.push(trueRange);
+    const trueRanges = new Array(closes.length).fill(0);
+    
+    // Calculate True Range for each bar
+    for (let i = 0; i < closes.length; i++) {
+      if (i === 0) {
+        trueRanges[i] = highs[i] - lows[i];
+      } else {
+        trueRanges[i] = Math.max(
+          highs[i] - lows[i],
+          Math.abs(highs[i] - closes[i - 1]),
+          Math.abs(lows[i] - closes[i - 1])
+        );
+      }
     }
-
-    if (trueRanges.length < period) {
-      return [];
-    }
-
-    const atr = [];
-    let sum = 0;
-
-    for (let i = 0; i < period; i++) {
-      sum += trueRanges[i];
-    }
-
-    let prevAtr = sum / period;
-    atr.push(prevAtr);
-
-    for (let i = period; i < trueRanges.length; i++) {
-      prevAtr = ((prevAtr * (period - 1)) + trueRanges[i]) / period;
-      atr.push(prevAtr);
-    }
-
-    return atr;
+    
+    // Calculate RMA (Recursive Moving Average) as in Pine Script
+    return this.calculateRMA(trueRanges, period);
   }
+
+  static calculateRMA(values, period) {
+    const alpha = 1 / period;
+    const rma = new Array(values.length).fill(null);
+    
+    for (let i = 0; i < values.length; i++) {
+      if (i < period - 1) {
+        // Not enough data for RMA yet
+        rma[i] = null;
+      } else if (i === period - 1) {
+        // First RMA value is SMA of first 'period' values
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+          sum += values[i - period + 1 + j];
+        }
+        rma[i] = sum / period;
+      } else {
+        // Subsequent RMA values use the recursive formula
+        rma[i] = alpha * values[i] + (1 - alpha) * rma[i - 1];
+      }
+    }
+    
+    return rma;
+  }
+
+  
 
   static calculateSuperTrend(highs, lows, closes, period, multiplier) {
     const atr = this.calculateATR(highs, lows, closes, period);
@@ -258,46 +268,86 @@ class IndicatorService {
       return [];
     }
 
-    const finalUpper = [];
-    const finalLower = [];
-    const superTrend = [];
+    const length = closes.length;
+    const superTrend = new Array(length).fill(null);
+    const direction = new Array(length).fill(0);
 
-    for (let i = period; i < closes.length; i++) {
-      const hl2 = (highs[i] + lows[i]) / 2;
-      const atrValue = atr[i - period];
-      const basicUpper = hl2 + multiplier * atrValue;
-      const basicLower = hl2 - multiplier * atrValue;
+    // Track previous values
+    let prevUpperBand = null;
+    let prevLowerBand = null;
+    let prevSuperTrend = null;
 
-      if (i === period) {
-        finalUpper.push(basicUpper);
-        finalLower.push(basicLower);
-        superTrend.push(closes[i] <= basicUpper ? basicUpper : basicLower);
+    for (let i = 0; i < length; i++) {
+      // Skip if no ATR value yet (RMA needs period-1 bars to start)
+      if (atr[i] === null) {
+        superTrend[i] = null;
+        direction[i] = 0;
         continue;
       }
 
-      const prevFinalUpper = finalUpper[finalUpper.length - 1];
-      const prevFinalLower = finalLower[finalLower.length - 1];
-      const prevSuperTrend = superTrend[superTrend.length - 1];
-      const prevClose = closes[i - 1];
+      // Use hl2 (high + low) / 2 as source, matching Pine Script
+      const src = (highs[i] + lows[i]) / 2;
+      
+      // Basic Bands
+      const upperBand = src + multiplier * atr[i];
+      const lowerBand = src - multiplier * atr[i];
 
-      const currentUpper = (basicUpper < prevFinalUpper || prevClose > prevFinalUpper)
-        ? basicUpper
-        : prevFinalUpper;
-      const currentLower = (basicLower > prevFinalLower || prevClose < prevFinalLower)
-        ? basicLower
-        : prevFinalLower;
+      // Final Upper Band logic (matching Pine Script exactly)
+      let finalUpperBand = upperBand;
+      if (prevUpperBand !== null && (upperBand < prevUpperBand || closes[i - 1] > prevUpperBand)) {
+        finalUpperBand = upperBand;
+      } else if (prevUpperBand !== null) {
+        finalUpperBand = prevUpperBand;
+      }
 
-      finalUpper.push(currentUpper);
-      finalLower.push(currentLower);
+      // Final Lower Band logic (matching Pine Script exactly)
+      let finalLowerBand = lowerBand;
+      if (prevLowerBand !== null && (lowerBand > prevLowerBand || closes[i - 1] < prevLowerBand)) {
+        finalLowerBand = lowerBand;
+      } else if (prevLowerBand !== null) {
+        finalLowerBand = prevLowerBand;
+      }
 
-      const currentSuperTrend = prevSuperTrend === prevFinalUpper
-        ? (closes[i] <= currentUpper ? currentUpper : currentLower)
-        : (closes[i] >= currentLower ? currentLower : currentUpper);
+      // Determine Direction and Supertrend value (matching Pine Script logic)
+      let _direction = 0;
+      let superTrendValue = null;
 
-      superTrend.push(currentSuperTrend);
+      if (i === 0 || atr[i - 1] === null) {
+        // First valid ATR bar
+        _direction = 1; // Default to downtrend
+      } else if (prevSuperTrend === prevUpperBand) {
+        // Previous was upper band (downtrend)
+        _direction = closes[i] > finalUpperBand ? -1 : 1;
+      } else {
+        // Previous was lower band (uptrend)
+        _direction = closes[i] < finalLowerBand ? 1 : -1;
+      }
+
+      superTrendValue = _direction === -1 ? finalLowerBand : finalUpperBand;
+      
+      direction[i] = _direction;
+      superTrend[i] = superTrendValue;
+
+      // Save current values as previous for next iteration
+      prevUpperBand = finalUpperBand;
+      prevLowerBand = finalLowerBand;
+      prevSuperTrend = superTrendValue;
     }
 
-    return superTrend;
+    // Return only non-null values for backward compatibility
+    return superTrend.filter(val => val !== null);
+  }
+
+    
+
+  static getSuperTrend(highs, lows, closes, period, multiplier) {
+    const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
+    const startIndex = period - 1;
+    const alignedSuperTrend = superTrend.map((st, i) => ({
+      index: startIndex + i,
+      value: st
+    }));
+    return alignedSuperTrend;
   }
 
   static checkCandlestickPattern(candles, patternType) {
@@ -355,7 +405,7 @@ class IndicatorService {
 
   static getIndicatorParameters(indicatorType) {
     const defaultParams = {
-      'supertrend': { period: 10, multiplier: 3 },
+      'supertrend': { period: 10, multiplier: 4 },
       'macd': { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
       'ema': { fastPeriod: 9, slowPeriod: 21 },
       'ema_cross': { fastPeriod: 9, slowPeriod: 21 }
@@ -508,7 +558,7 @@ class IndicatorService {
   static getSuperTrendSwingPrice(candles, side, params = {}) {
     try {
       const period = params.period || 10;
-      const multiplier = params.multiplier || 3;
+      const multiplier = params.multiplier || 4;
       
       const highs = candles.map(c => c.high);
       const lows = candles.map(c => c.low);

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "chartjs-node-canvas": "^5.0.0"
+  }
+}

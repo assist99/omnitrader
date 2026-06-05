@@ -9,3 +9,4 @@
 /db
 /.env
 /src/engine/cli/logs
+/cli/node_modules

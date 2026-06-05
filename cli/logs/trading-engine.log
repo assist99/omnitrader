@@ -160,3 +160,79 @@
 {"level":"error","message":"Invalid candles for indicator check: Invalid open value at index 0: undefined","service":"trading-engine","timestamp":"2026-06-05 05:32:26"}
 {"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 05:34:15"}
 {"level":"info","message":"Fetched 100 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 05:34:20"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:23:34"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:23:38"}
+{"level":"info","message":"SuperTrend swing price for short: $4475.89, sections: 13, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 06:23:38"}
+{"level":"info","message":"SL using default (1% above): $4705.2285","service":"trading-engine","timestamp":"2026-06-05 06:23:38"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:25:14"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:25:19"}
+{"level":"info","message":"SuperTrend swing price for short: $4475.89, sections: 13, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 06:25:19"}
+{"level":"info","message":"SL using default (1% above): $4705.2285","service":"trading-engine","timestamp":"2026-06-05 06:25:19"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:27:15"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:27:19"}
+{"level":"info","message":"SuperTrend swing price for short: $4475.89, sections: 13, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 06:27:19"}
+{"level":"info","message":"SL using default (1% above): $4705.2285","service":"trading-engine","timestamp":"2026-06-05 06:27:19"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:29:16"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:29:20"}
+{"level":"info","message":"SuperTrend swing price for short: $4475.89, sections: 13, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 06:29:20"}
+{"level":"info","message":"SL using default (1% above): $4705.2285","service":"trading-engine","timestamp":"2026-06-05 06:29:20"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:31:30"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:31:37"}
+{"level":"info","message":"SuperTrend swing price for short: $4475.89, sections: 13, last type: bearish","service":"trading-engine","timestamp":"2026-06-05 06:31:37"}
+{"level":"info","message":"SL using default (1% above): $4705.2285","service":"trading-engine","timestamp":"2026-06-05 06:31:37"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:42:07"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:42:12"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:43:43"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:44:02"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:44:23"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:46:27"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:46:34"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:48:06"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:48:13"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:55:27"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:55:33"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:56:50"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:56:57"}
+{"level":"info","message":"SuperTrend bearish crossover detected at $4449.29","service":"trading-engine","timestamp":"2026-06-05 06:56:57"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 06:57:43"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 06:57:50"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:03:47"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:03:54"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:05:16"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:05:22"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:06:19"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:06:24"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:08:09"}
+{"level":"info","message":"Fetched 200 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:08:14"}
+{"level":"info","message":"SuperTrend bearish crossover detected at $4452.82","service":"trading-engine","timestamp":"2026-06-05 07:08:14"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:08:59"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:09:06"}
+{"level":"info","message":"SuperTrend bearish crossover detected at $4453.45","service":"trading-engine","timestamp":"2026-06-05 07:09:06"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:10:57"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:11:01"}
+{"level":"info","message":"SuperTrend bearish crossover detected at $4453.23","service":"trading-engine","timestamp":"2026-06-05 07:11:01"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:12:05"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:12:12"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:12:57"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:13:03"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:13:19"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:13:26"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:40:58"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:41:04"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:42:15"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:42:22"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:45:07"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:45:11"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:48:32"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:48:39"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:49:53"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:50:20"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:50:23"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:50:52"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:50:54"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:51:14"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:51:17"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:51:36"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:51:38"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 07:51:55"}
+{"level":"info","message":"Fetched 300 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 07:51:58"}

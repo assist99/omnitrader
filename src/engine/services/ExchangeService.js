@@ -134,8 +134,8 @@ async getSymbolInfo(symbol) {
   async placeOrder(orderParams) {
     try {
       const symbol = orderParams.symbol;
-      const normalizedSymbol = symbol.replace('/', '').replace(':', '');
-      const exchangeSymbol = symbol.replace('/', '').replace(':', '');
+      const normalizedSymbol = symbol.replace(':USDT', '').replace('/', '');
+      const exchangeSymbol = symbol.replace(':USDT', '').replace('/', '');
       
       // Convert order parameters to CCXT format
       const params = {
