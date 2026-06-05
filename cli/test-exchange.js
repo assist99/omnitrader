@@ -22,30 +22,36 @@ async function main() {
   const isTestnet = false; // livenet
 
   const exchange = new ExchangeService(exchangeName, apiKey, apiSecret, isTestnet);
+  const markets = await exchange.exchange.loadMarkets();
 
   console.log('=== Testing Bybit ExchangeService (livenet) ===\n');
+  const symbol = 'XAU/USDT:USDT';
 
-  // Test 1: Get candles (using BTC/USDT as XAG/USDT may not exist)
-  console.log('1. Testing get candles for XAG/USDT, timeframe 5m...');
-  try {
-    const symbol = 'XAG/USDT:USDT';
-    const timeframe = '5m';
-    const candles = await exchange.getCandles(symbol, timeframe, 10);
-    console.log('Candles result (first 3):', candles.slice(0, 3));
-  } catch (error) {
-    console.error('Get candles error:', error.message);
+  const orderParams = {
+          symbol: symbol,
+          side: 'sell',
+          orderType: 'limit',
+          qty: '0.05',
+          price: '5000',
+          timeInForce: 'GTC',
+          reduceOnly: true,
+          positionIdx: 0
   }
-
-  console.log('\n---\n');
-
-  // Test 2: Get account balance
-  console.log('2. Testing get account balance...');
-  try {
-    const balance = await exchange.getAccountBalance();
-    console.log('Account balance (USDT):', balance);
-  } catch (error) {
-    console.error('Get account balance error:', error.message);
-  }
+  // const orderResult = await exchange.exchange.createOrder(
+  //   'XAU/USDT:USDT',
+  //   'limit',
+  //   'sell',
+  //   0.05,
+  //   5000,
+  //   {
+  //       reduceOnly: true,
+  //       positionIdx: 0
+  //   }
+  // );
+  const orderResult = await exchange.placeOrder(orderParams);
+  console.log('Order Result:', orderResult);
+  // console.log(await exchange.getPositions('XAU/USDT:USDT'));  
+  // console.log(await exchange.getOrderStatus('860bd935-c78a-4383-93bc-4eead85163bd','XAU/USDT:USDT'));
 }
 
 main().catch(console.error);

@@ -124,7 +124,7 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
             logger.warn(`Order status not found for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
             continue;
           }
-          if (status.orderStatus === 'Filled') {
+          if (status.orderStatus === 'closed' && status.amount==status.filled) {
             await ctx.db.updateOrderStatus(order.id, 'filled');
 
             await ctx.telegramService.sendNotification(setup.user_id, 'order_filled', {
@@ -171,8 +171,8 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
               await this.closeSetup(ctx, setup, 'stop_loss_hit');
               return;
             }
-          } else if (status.orderStatus === 'Cancelled' || status.orderStatus === 'Rejected') {
-            await ctx.db.updateOrderStatus(order.id, status.orderStatus.toLowerCase());
+          } else if (status.orderStatus === 'cancelled' || status.orderStatus === 'rejected') {
+            await ctx.db.updateOrderStatus(order.id, 'cancelled');
           }
         }
       }

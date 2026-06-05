@@ -135,14 +135,14 @@ async getSymbolInfo(symbol) {
     try {
       const symbol = orderParams.symbol;
       const normalizedSymbol = symbol;
-      const exchangeSymbol = symbol;
+      const exchangeSymbol = symbol.replace(':', '').replace('/', '');;
       
       // Convert order parameters to CCXT format
       const params = {
-        symbol: orderParams.symbol,
+        symbol: exchangeSymbol,
         type: orderParams.orderType.toLowerCase(),
         side: orderParams.side.toLowerCase(),
-        amount: parseFloat(orderParams.qty),
+        amount: parseFloat(orderParams.qty)
       };
       
       // Include price for limit orders
@@ -165,6 +165,13 @@ async getSymbolInfo(symbol) {
         params.reduceOnly = true;
       }
       
+      if (orderParams.triggerDirection) {
+        params.triggerDirection = orderParams.triggerDirection;
+      }
+      if (orderParams.positionIdx !== undefined && orderParams.positionIdx !== null) {
+        params.positionIdx = parseInt(orderParams.positionIdx);
+      }
+
       logger.info(`Placing ${this.exchangeName} order: ${JSON.stringify(params)}`);
       
       const order = await this.exchange.createOrder(
@@ -196,7 +203,7 @@ async getSymbolInfo(symbol) {
   // Get order status
   async getOrderStatus(orderId, symbol) {
     try {
-      const order = await this.exchange.fetchOrder(orderId, symbol);
+      const order = await this.exchange.fetchClosedOrder(orderId, symbol);
       return order;
     } catch (error) {
       // Order might not exist

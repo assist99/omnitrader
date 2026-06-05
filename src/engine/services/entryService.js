@@ -110,7 +110,7 @@ class EntryService {
 
       const entryOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
-        side: setup.side === 'long' ? 'Buy' : 'Sell',
+        side: setup.side === 'long' ? 'buy' : 'sell',
         orderType: 'Market',
         qty: roundedPositionSize,
         timeInForce: 'GTC'
@@ -131,11 +131,11 @@ class EntryService {
 
       const slOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
-        side: setup.side === 'long' ? 'Sell' : 'Buy',
+        side: setup.side === 'long' ? 'sell' : 'buy',
         orderType: 'Market',
         qty: roundedPositionSize,
         triggerPrice: slPrice,
-        triggerDirection: setup.side === 'long' ? 2 : 1, // 2 = price falls below (for Sell), 1 = price rises above (for Buy)
+        triggerDirection: setup.side === 'long' ? 'descending' : 'ascending', // 2 = price falls below (for Sell), 1 = price rises above (for Buy)
         triggerBy: 'MarkPrice',
         reduceOnly: true
       });
@@ -152,15 +152,17 @@ class EntryService {
 
 
       for (let i = 0; i < tpPrices.length; i++) {
-        const tpOrder = await exchangeService.placeOrder({
-          symbol: setup.symbol,
-          side: setup.side === 'long' ? 'Sell' : 'Buy',
-          orderType: 'Limit',
-          qty: tpQtys[i],
-          price: tpPrices[i],
-          timeInForce: 'GTC',
-          reduceOnly: true
-        });
+        const tpOrder = await exchange.exchange.createOrder(
+          setup.symbol,
+          'limit',
+          setup.side === 'long' ? 'sell' : 'buy',
+          tpQtys[i],
+          tpPrices[i],
+          {
+              reduceOnly: true,
+              positionIdx: 0
+          }
+        );
 
         await ctx.db.createOrder({
           setup_id: setup.id,
