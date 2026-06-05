@@ -134,8 +134,8 @@ async getSymbolInfo(symbol) {
   async placeOrder(orderParams) {
     try {
       const symbol = orderParams.symbol;
-      const normalizedSymbol = symbol;
-      const exchangeSymbol = symbol.replace(':', '').replace('/', '');;
+      const normalizedSymbol = symbol.replace('/', '').replace(':', '');
+      const exchangeSymbol = symbol.replace('/', '').replace(':', '');
       
       // Convert order parameters to CCXT format
       const params = {
@@ -183,7 +183,7 @@ async getSymbolInfo(symbol) {
         params
       );
       
-      logger.info(`Order placed on ${this.exchangeName}: ${order.id} for ${order.symbol} (${normalizedSymbol})`);
+      logger.info(`Order placed on ${this.exchangeName}: ${order.id} for ${order.symbol} (${exchangeSymbol}`);
       
       return {
         orderId: order.id,
