@@ -38,7 +38,7 @@ async function main() {
 
   console.log('\n=== Swing Price Results ===\n');
 
-  const indicators = ['macd'];
+  const indicators = ['macd','ema','supertrend'];
   
   for (const indicatorType of indicators) {
     console.log(`\n${indicatorType.toUpperCase().padEnd(12)} | LONG SWING      | SHORT SWING     | UNITS  | DETAILS`);

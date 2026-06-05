@@ -268,3 +268,22 @@
 {"level":"info","message":"Fetched 100 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:31:53"}
 {"level":"info","message":"MACD swing price for long: $4442.24, sections: 6, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:31:53"}
 {"level":"info","message":"MACD swing price for short: $4453.9, sections: 6, last type: positive","service":"trading-engine","timestamp":"2026-06-05 09:31:53"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:37:25"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:37:39"}
+{"level":"info","message":"Fetched 100 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:37:45"}
+{"level":"info","message":"MACD swing price for long: $4431.25, sections: 6, last type: positive, target section: [79-85]","service":"trading-engine","timestamp":"2026-06-05 09:37:45"}
+{"level":"info","message":"MACD swing price for short: $4469.99, sections: 6, last type: positive, target section: [86-99]","service":"trading-engine","timestamp":"2026-06-05 09:37:45"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:39:22"}
+{"level":"info","message":"Fetched 100 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:39:27"}
+{"level":"info","message":"MACD swing price for long: $4431.25, sections: 6, last type: positive, target section: [79-85]","service":"trading-engine","timestamp":"2026-06-05 09:39:27"}
+{"level":"info","message":"MACD swing price for short: $4469.99, sections: 6, last type: positive, target section: [86-99]","service":"trading-engine","timestamp":"2026-06-05 09:39:27"}
+{"level":"info","message":"EMA swing price for long: $4431.25, sections: 8, last type: bullish, target section: [80-86]","service":"trading-engine","timestamp":"2026-06-05 09:39:27"}
+{"level":"info","message":"EMA swing price for short: $4469.99, sections: 8, last type: bullish, target section: [87-99]","service":"trading-engine","timestamp":"2026-06-05 09:39:27"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-05 09:40:58"}
+{"level":"info","message":"Fetched 100 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
+{"level":"info","message":"MACD swing price for long: $4431.25, sections: 6, last type: positive, target section: [78-84]","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
+{"level":"info","message":"MACD swing price for short: $4469.99, sections: 6, last type: positive, target section: [85-99]","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
+{"level":"info","message":"EMA swing price for long: $4431.25, sections: 5, last type: bullish, target section: [79-85]","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
+{"level":"info","message":"EMA swing price for short: $4469.99, sections: 5, last type: bullish, target section: [86-99]","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
+{"level":"info","message":"SuperTrend swing price for long: $4448.300184737141","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
+{"level":"info","message":"SuperTrend swing price for short: $4448.300184737141","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}

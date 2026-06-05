@@ -51,7 +51,7 @@ class IndicatorService {
       const lastST = superTrend[superTrend.length - 1];
       const prevST = superTrend[superTrend.length - 2];
       const lastClose = closes[closes.length - 1];
-      console.log(`SuperTrend values: last=${lastST}, previous=${prevST}, close=${lastClose}`);
+      logger.debug(`SuperTrend values: last=${lastST}, previous=${prevST}, close=${lastClose}`);
       
       // Check for trend change
       const wasBullish = prevST > closes[closes.length - 2];
@@ -474,62 +474,71 @@ class IndicatorService {
       
       const macd = MACD.calculate(input);
       
-      if (macd.length < 50) {
+      if (macd.length < 2) {
         return { price: null, error: 'Insufficient MACD data for swing detection' };
       }
       
-      const histograms = macd.map(m => m.histogram);
+      // MACD output is shorter than candles — the first MACD value corresponds to candle
+      // at index (candles.length - macd.length), i.e. the offset needed to align them.
+      const candleOffset = candles.length - macd.length;
       
-      let sections = [];
-      let currentSection = { start: 0, type: null };
+      // Build sections based on histogram sign, tracking candle indices
+      const sections = [];
+      let currentSection = null;
       
-      for (let i = 1; i < histograms.length; i++) {
-        const prevHist = histograms[i - 1];
-        const currHist = histograms[i];
+      for (let mi = 0; mi < macd.length; mi++) {
+        const hist = macd[mi].histogram;
+        const candleIdx = candleOffset + mi;
+        const type = hist >= 0 ? 'positive' : 'negative';
         
-        if (currentSection.type === null) {
-          currentSection.type = prevHist >= 0 ? 'positive' : 'negative';
-          currentSection.start = i - 1;
-        }
-        
-        const sectionChanged = (prevHist >= 0 && currHist < 0) || (prevHist < 0 && currHist >= 0);
-        
-        if (sectionChanged) {
-          currentSection.end = i - 1;
-          currentSection.duration = currentSection.end - currentSection.start + 1;
+        if (currentSection === null) {
+          currentSection = { type, startCandle: candleIdx, endCandle: candleIdx };
+        } else if (type !== currentSection.type) {
+          // Section changed — close previous and start new
+          currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
           sections.push({ ...currentSection });
-          
-          currentSection = { start: i, type: currHist >= 0 ? 'positive' : 'negative' };
+          currentSection = { type, startCandle: candleIdx, endCandle: candleIdx };
+        } else {
+          currentSection.endCandle = candleIdx;
         }
-        
-        if (i === histograms.length - 1 && currentSection.type !== null) {
-          currentSection.end = i;
-          currentSection.duration = currentSection.end - currentSection.start + 1;
-          sections.push({ ...currentSection });
-        }
+      }
+      
+      // Close the final section
+      if (currentSection !== null) {
+        currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
+        sections.push({ ...currentSection });
       }
       
       if (sections.length < 2) {
         return { price: null, error: 'Not enough MACD sections for swing detection' };
       }
-      console.log(JSON.stringify(sections, null, 2));
+      
       const lastSection = sections[sections.length - 1];
       const prevSection = sections[sections.length - 2];
       
       let swingPrice = null;
+      let targetSection = null;
       
       if (side === 'long') {
-        const bearishSection = lastSection.type === 'negative' ? lastSection : prevSection.type === 'negative' ? prevSection : null;
+        // For long: find the most recent negative (bearish histogram) section
+        // and return its lowest low as the swing low support level
+        targetSection = lastSection.type === 'negative'
+          ? lastSection
+          : prevSection.type === 'negative' ? prevSection : null;
         
-        if (bearishSection) {
-          const sectionLows = lows.slice(bearishSection.start, bearishSection.end + 1);
+        if (targetSection) {
+          const sectionLows = lows.slice(targetSection.startCandle, targetSection.endCandle + 1);
           swingPrice = Math.min(...sectionLows);
         }
       } else if (side === 'short') {
-        const bullishSection = lastSection.type === 'positive' ? lastSection : prevSection.type === 'positive' ? prevSection : null;
+        // For short: find the most recent positive (bullish histogram) section
+        // and return its highest high as the swing high resistance level
+        targetSection = lastSection.type === 'positive'
+          ? lastSection
+          : prevSection.type === 'positive' ? prevSection : null;
         
-        if (bullishSection) {
-          const sectionHighs = highs.slice(bullishSection.start, bullishSection.end + 1);
+        if (targetSection) {
+          const sectionHighs = highs.slice(targetSection.startCandle, targetSection.endCandle + 1);
           swingPrice = Math.max(...sectionHighs);
         }
       }
@@ -538,7 +547,7 @@ class IndicatorService {
         return { price: null, error: 'Could not determine swing price from MACD sections' };
       }
       
-      logger.info(`MACD swing price for ${side}: $${swingPrice}, sections: ${sections.length}, last type: ${lastSection.type}`);
+      logger.info(`MACD swing price for ${side}: $${swingPrice}, sections: ${sections.length}, last type: ${lastSection.type}, target section: [${targetSection.startCandle}-${targetSection.endCandle}]`);
       
       return {
         price: swingPrice,
@@ -546,7 +555,9 @@ class IndicatorService {
         sectionType: lastSection.type,
         details: {
           lastSection: lastSection,
-          prevSection: prevSection
+          prevSection: prevSection,
+          targetSection: targetSection,
+          candleOffset: candleOffset
         }
       };
     } catch (error) {
@@ -601,44 +612,45 @@ class IndicatorService {
       const fastEMA = EMA.calculate({ period: fastPeriod, values: closes });
       const slowEMA = EMA.calculate({ period: slowPeriod, values: closes });
       
-      if (fastEMA.length < 50 || slowEMA.length < 50) {
+      if (fastEMA.length < 2 || slowEMA.length < 2) {
         return { price: null, error: 'Insufficient EMA data for swing detection' };
       }
       
-      let sections = [];
-      let currentSection = { start: 0, type: null };
+      // slowEMA is shorter — it defines the overlap window.
+      // slowEMA[0] corresponds to candles[candles.length - slowEMA.length].
+      // fastEMA[0] corresponds to candles[candles.length - fastEMA.length].
+      // We iterate over the slow EMA range (more restrictive) and align both arrays
+      // to their shared candle indices.
+      const slowOffset = candles.length - slowEMA.length; // candle index of slowEMA[0]
+      const fastOffset = candles.length - fastEMA.length; // candle index of fastEMA[0]
       
-      const startIdx = Math.min(fastEMA.length, slowEMA.length) - 50;
+      const sections = [];
+      let currentSection = null;
       
-      for (let i = startIdx + 1; i < Math.min(fastEMA.length, slowEMA.length); i++) {
-        const prevFast = fastEMA[i - 1];
-        const prevSlow = slowEMA[i - 1];
-        const currFast = fastEMA[i];
-        const currSlow = slowEMA[i];
+      for (let si = 0; si < slowEMA.length; si++) {
+        const candleIdx = slowOffset + si;
+        // Align fastEMA: fastEMA index = candleIdx - fastOffset
+        const fi = candleIdx - fastOffset;
+        if (fi < 0) continue; // fastEMA not yet available at this candle
         
-        const wasAbove = prevFast > prevSlow;
-        const isAbove = currFast > currSlow;
+        const type = fastEMA[fi] >= slowEMA[si] ? 'bullish' : 'bearish';
         
-        if (currentSection.type === null) {
-          currentSection.type = wasAbove ? 'bullish' : 'bearish';
-          currentSection.start = i - 1;
-        }
-        
-        const sectionChanged = (wasAbove && !isAbove) || (!wasAbove && isAbove);
-        
-        if (sectionChanged) {
-          currentSection.end = i - 1;
-          currentSection.duration = currentSection.end - currentSection.start + 1;
+        if (currentSection === null) {
+          currentSection = { type, startCandle: candleIdx, endCandle: candleIdx };
+        } else if (type !== currentSection.type) {
+          // Section changed — close previous and start new
+          currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
           sections.push({ ...currentSection });
-          
-          currentSection = { start: i, type: isAbove ? 'bullish' : 'bearish' };
+          currentSection = { type, startCandle: candleIdx, endCandle: candleIdx };
+        } else {
+          currentSection.endCandle = candleIdx;
         }
-        
-        if (i === Math.min(fastEMA.length, slowEMA.length) - 1 && currentSection.type !== null) {
-          currentSection.end = i;
-          currentSection.duration = currentSection.end - currentSection.start + 1;
-          sections.push({ ...currentSection });
-        }
+      }
+      
+      // Close the final section
+      if (currentSection !== null) {
+        currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
+        sections.push({ ...currentSection });
       }
       
       if (sections.length < 2) {
@@ -649,19 +661,26 @@ class IndicatorService {
       const prevSection = sections[sections.length - 2];
       
       let swingPrice = null;
+      let targetSection = null;
       
       if (side === 'long') {
-        const bearishSection = lastSection.type === 'bearish' ? lastSection : prevSection.type === 'bearish' ? prevSection : null;
+        // For long: find the most recent bearish section and return its lowest low
+        targetSection = lastSection.type === 'bearish'
+          ? lastSection
+          : prevSection.type === 'bearish' ? prevSection : null;
         
-        if (bearishSection) {
-          const sectionLows = lows.slice(bearishSection.start, bearishSection.end + 1);
+        if (targetSection) {
+          const sectionLows = lows.slice(targetSection.startCandle, targetSection.endCandle + 1);
           swingPrice = Math.min(...sectionLows);
         }
       } else if (side === 'short') {
-        const bullishSection = lastSection.type === 'bullish' ? lastSection : prevSection.type === 'bullish' ? prevSection : null;
+        // For short: find the most recent bullish section and return its highest high
+        targetSection = lastSection.type === 'bullish'
+          ? lastSection
+          : prevSection.type === 'bullish' ? prevSection : null;
         
-        if (bullishSection) {
-          const sectionHighs = highs.slice(bullishSection.start, bullishSection.end + 1);
+        if (targetSection) {
+          const sectionHighs = highs.slice(targetSection.startCandle, targetSection.endCandle + 1);
           swingPrice = Math.max(...sectionHighs);
         }
       }
@@ -670,7 +689,7 @@ class IndicatorService {
         return { price: null, error: 'Could not determine swing price from EMA sections' };
       }
       
-      logger.info(`EMA swing price for ${side}: $${swingPrice}, sections: ${sections.length}, last type: ${lastSection.type}`);
+      logger.info(`EMA swing price for ${side}: $${swingPrice}, sections: ${sections.length}, last type: ${lastSection.type}, target section: [${targetSection.startCandle}-${targetSection.endCandle}]`);
       
       return {
         price: swingPrice,
@@ -678,7 +697,9 @@ class IndicatorService {
         sectionType: lastSection.type,
         details: {
           lastSection: lastSection,
-          prevSection: prevSection
+          prevSection: prevSection,
+          targetSection: targetSection,
+          slowOffset: slowOffset
         }
       };
     } catch (error) {
