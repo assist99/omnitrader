@@ -56,6 +56,14 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
       );
 
       if (exitResult.met) {
+        const shouldExit = (setup.side === 'long' && exitResult.signal === 'bearish_crossover') ||
+                         (setup.side === 'short' && exitResult.signal === 'bullish_crossover');
+
+        if (!shouldExit) {
+          logger.info(`Exit signal mismatch for setup #${setup.id}: side=${setup.side}, signal=${exitResult.signal}`);
+          return;
+        }
+
         logger.info(`Exit condition met for setup #${setup.id}`);
         await this.closePosition(ctx, setup, exchangeService, 'exit_condition');
       }

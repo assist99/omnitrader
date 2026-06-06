@@ -141,6 +141,7 @@ class IndicatorService {
         macd: lastMACD.MACD,
         signalLine: lastMACD.signal,
         histogram: lastMACD.histogram,
+        price: closes[closes.length - 1],
         details: {
           fastPeriod: fastPeriod,
           slowPeriod: slowPeriod,

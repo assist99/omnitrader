@@ -40,6 +40,14 @@ class EntryService {
     );
 
     if (indicatorResult.met) {
+      const isValidDirection = (setup.side === 'long' && indicatorResult.signal === 'bullish_crossover') ||
+                             (setup.side === 'short' && indicatorResult.signal === 'bearish_crossover');
+
+      if (!isValidDirection) {
+        logger.info(`Signal direction mismatch for setup #${setup.id}: expected ${setup.side} but got ${indicatorResult.signal}`);
+        return;
+      }
+
       logger.info(`Entry condition met for setup #${setup.id}: ${indicatorResult.signal}`);
       await this.placeEntryOrder(ctx, setup, exchangeService, closedBars);
     } else {

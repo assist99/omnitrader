@@ -74,11 +74,11 @@ class ScreenerService {
 
           const now = new Date().toISOString();
           const currentSignal = result.signal;
+          const price = result.price ?? parsedCandles[parsedCandles.length - 1]?.close;
 
           if (currentSignal && currentSignal !== 'none' && currentSignal !== item.last_signal) {
             if (this.isCooldownElapsed(item.last_alerted_at, item.timeframe)) {
               const signal = currentSignal;
-              const price = result.price;
 
               await telegramService.sendNotification(item.user_id, 'screener_reversal', {
                 symbol: item.symbol,
