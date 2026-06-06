@@ -287,3 +287,8 @@
 {"level":"info","message":"EMA swing price for short: $4469.99, sections: 5, last type: bullish, target section: [86-99]","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
 {"level":"info","message":"SuperTrend swing price for long: $4448.300184737141","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
 {"level":"info","message":"SuperTrend swing price for short: $4448.300184737141","service":"trading-engine","timestamp":"2026-06-05 09:41:03"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-06 02:56:20"}
+{"level":"info","message":"Fetched 300 candles for BTC/USDT:USDT (BTC/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-06 02:56:24"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-06 03:39:43"}
+{"level":"info","message":"Fetched 300 candles for BTC/USDT:USDT (BTC/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-06 03:39:46"}
+{"level":"info","message":"SuperTrend check: lastST=61712.87423565746, lastClose=61104.1, wasBullish=false, isBullish=false, signal=none","service":"trading-engine","timestamp":"2026-06-06 03:39:46"}

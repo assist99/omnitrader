@@ -101,7 +101,7 @@ async function main() {
   const markets = await exchange.exchange.loadMarkets();
 
   console.log('=== Testing Bybit ExchangeService (livenet) ===\n');
-  const symbol = 'XAU/USDT:USDT';
+  const symbol = 'BTC/USDT:USDT';
 
   const candles = CandleUtils.parseExchangeCandles(await exchange.getCandles(symbol,'m5', 300));
   

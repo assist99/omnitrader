@@ -53,9 +53,9 @@ class IndicatorService {
       const lastClose = closes[closes.length - 1];
       logger.debug(`SuperTrend values: last=${lastST}, previous=${prevST}, close=${lastClose}`);
       
-      // Check for trend change
-      const wasBullish = prevST > closes[closes.length - 2];
-      const isBullish = lastST > lastClose;
+// Check for trend change (price > ST = bullish uptrend, price < ST = bearish downtrend)
+       const wasBullish = closes[closes.length - 2] > prevST;
+       const isBullish = lastClose > lastST;
       
       let signal = 'none';
       let met = false;
@@ -69,8 +69,8 @@ class IndicatorService {
         met = true;
         logger.info(`SuperTrend bearish crossover detected at $${lastClose}`);
       }
-      
-      return {
+      logger.info(`SuperTrend check: lastST=${lastST}, lastClose=${lastClose}, wasBullish=${wasBullish}, isBullish=${isBullish}, signal=${signal}`);
+       return {
         met: met,
         signal: signal,
         value: lastST,

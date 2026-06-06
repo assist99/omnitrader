@@ -33,7 +33,7 @@ class ScreenerService {
       const promises = items.map(async (item) => {
         try {
           if (!TimeUtils.isTriggerTime(item.timeframe)) {
-            logger.debug(`Skipping screener item ${item.id}: not trigger time for ${item.timeframe}`);
+            logger.info(`Skipping screener item ${item.id}: not trigger time for ${item.timeframe}`);
             return;
           }
 
@@ -58,12 +58,11 @@ class ScreenerService {
 
           const candles = await service.getCandles(item.symbol, item.timeframe, 100);
           const parsedCandles = CandleUtils.parseExchangeCandles(candles);
-
           if (parsedCandles.length < 20) {
-            logger.debug(`Insufficient candles for screener item ${item.id}: ${parsedCandles.length}`);
+            logger.info(`Insufficient candles for screener item ${item.id}: ${parsedCandles.length}`);
             return;
           }
-
+          console.log(`Processing screener item ${item.id} for ${item.symbol} (${parsedCandles.length} candles)`);
           const params = item.indicator_params ? JSON.parse(item.indicator_params) : {};
           const result = IndicatorService.checkCondition(item.indicator_type, parsedCandles, params);
 
@@ -96,7 +95,7 @@ class ScreenerService {
             }
           } else {
             await db.updateScreenerItemSignal(item.id, currentSignal || null, now);
-            logger.debug(`Screener item ${item.id}: no reversal (${currentSignal} vs ${item.last_signal})`);
+            logger.info(`Screener item ${item.id}: no reversal (${currentSignal} vs ${item.last_signal})`);
           }
         } catch (error) {
           logger.error(`Error processing screener item ${item.id}:`, error);
