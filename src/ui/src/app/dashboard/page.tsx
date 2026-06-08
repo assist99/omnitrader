@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { PlusCircle, ExternalLink, XCircle, Trash2 } from 'lucide-react';
 import engineFetch from '@/lib/api';
-import { STATUS_STYLES, parseTpPrices } from '@/lib/constants';
+import { parseTpPrices } from '@/lib/constants';
 import type { TradingSetup } from '@/lib/types';
 
 type TabType = 'pending' | 'triggered' | 'active' | 'closed';
@@ -49,14 +49,22 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm">
         <div>
           <p className="text-xs text-slate-500">Activation</p>
           <p className="font-mono text-white text-xs sm:text-sm">{setup.activation_price}</p>
         </div>
         <div>
+          <p className="text-xs text-slate-500">Risk</p>
+          <p className="font-mono text-white text-xs sm:text-sm">{setup.risk_type === 'percent' ? `${setup.risk_value}%` : `${setup.risk_value}`}</p>
+        </div>
+        <div>
           <p className="text-xs text-slate-500">Ignore Box</p>
           <p className="font-mono text-white text-xs sm:text-sm">{setup.ignore_box_lower} - {setup.ignore_box_upper}</p>
+        </div>
+        <div className="col-span-2 sm:col-span-2">
+          <p className="text-xs text-slate-500">TP Levels</p>
+          <p className="text-white text-xs sm:text-sm">{tpArr.length > 0 ? `${tpArr.length}x RR: ${tpArr.join(':')}` : '—'}</p>
         </div>
         {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'cancelled') && (
           <div>
@@ -66,10 +74,6 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
             </p>
           </div>
         )}
-        <div className={`col-span-2 sm:col-span-1 ${(setup.status === 'active' || setup.status === 'closed' || setup.status === 'cancelled') ? '' : 'sm:col-span-1'}`}>
-          <p className="text-xs text-slate-500">TP Levels</p>
-          <p className="text-white text-xs sm:text-sm">{tpArr.length > 0 ? `${tpArr.length}x RR: ${tpArr.join(':')}` : '\u2014'}</p>
-        </div>
       </div>
 
       <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
