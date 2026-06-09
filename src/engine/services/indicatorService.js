@@ -124,12 +124,11 @@ class IndicatorService {
       
       let signal = 'none';
       let met = false;
-      
-      if (!wasAbove && isAbove && !wasHistPositive && isHistPositive) {
+      if (!wasHistPositive && isHistPositive) {
         signal = 'bullish_crossover';
         met = true;
         logger.info(`MACD bullish crossover detected`);
-      } else if (wasAbove && !isAbove && wasHistPositive && !isHistPositive) {
+      } else if (wasHistPositive && !isHistPositive) {
         signal = 'bearish_crossover';
         met = true;
         logger.info(`MACD bearish crossover detected`);
@@ -147,7 +146,8 @@ class IndicatorService {
           slowPeriod: slowPeriod,
           signalPeriod: signalPeriod,
           macdAboveSignal: isAbove,
-          histogramPositive: isHistPositive
+          histogramPositive: isHistPositive,
+          pastHistogramPositive: wasHistPositive
         }
       };
     } catch (error) {
