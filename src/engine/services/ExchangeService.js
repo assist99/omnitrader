@@ -216,9 +216,9 @@ async getSymbolInfo(symbol) {
   }
   
   // Cancel order
-  async cancelOrder(orderId, symbol) {
+  async cancelOrder(orderId, symbol, params = {}) {
     try {
-      const result = await this.exchange.cancelOrder(orderId, symbol);
+      const result = await this.exchange.cancelOrder(orderId, symbol, params);
       logger.info(`Order cancelled on ${this.exchangeName}: ${orderId} for ${symbol}`);
       return true;
     } catch (error) {

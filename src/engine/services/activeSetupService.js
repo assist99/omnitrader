@@ -82,7 +82,7 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
 
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder.price === setup.entry_price) return;
-      await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol);
+      await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol,{ 'trigger': true });
 
       const newSlOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
@@ -160,7 +160,31 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
               });
 
               logger.tpHit(setup.id, tpLevel, order.price, pnl.netPnl);
+
+              const allTpOrders = orders.filter(o => o.order_type.startsWith('tp'));
+              const allTpFilled = allTpOrders.length > 0 && allTpOrders.every(o => o.status === 'filled');
+              if (allTpFilled) {
+                const slOrder = orders.find(o => o.order_type === 'sl');
+                if (slOrder && slOrder.status === 'pending' && slOrder.exchange_order_id) {
+                  try {
+                    await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol,{ 'trigger': true });
+                    await ctx.db.updateOrderStatus(slOrder.id, 'cancelled');
+                  } catch (error) {
+                    logger.error(`Error cancelling SL order after all TP filled for setup #${setup.id}:`, error);
+                  }
+                }
+              }
             } else if (order.order_type === 'sl') {
+              const pendingTpOrders = orders.filter(o => o.order_type.startsWith('tp') && o.status === 'pending' && o.exchange_order_id);
+              for (const tpOrder of pendingTpOrders) {
+                try {
+                  await exchangeService.cancelOrder(tpOrder.exchange_order_id, setup.symbol);
+                  await ctx.db.updateOrderStatus(tpOrder.id, 'cancelled');
+                } catch (error) {
+                  logger.error(`Error cancelling TP order ${tpOrder.id} after SL hit for setup #${setup.id}:`, error);
+                }
+              }
+
               const pnl = PriceUtils.calculatePnl(setup.entry_price, order.price, order.qty, setup.side);
 
               await ctx.telegramService.sendNotification(setup.user_id, 'sl_hit', {
@@ -214,7 +238,8 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
       for (const order of orders) {
         if (order.status === 'pending' && order.exchange_order_id) {
           try {
-            await exchangeService.cancelOrder(order.exchange_order_id, setup.symbol);
+            const params= order.order_type == 'sl'?{ 'trigger': true }:{}
+            await exchangeService.cancelOrder(order.exchange_order_id, setup.symbol,params);
             await ctx.db.updateOrderStatus(order.id, 'cancelled');
           } catch (error) {
             logger.error(`Error cancelling order ${order.id}:`, error);
