@@ -78,12 +78,10 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
 
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
       const tp1Order = orders.find(o => o.order_type === 'tp1');
-      console.log('TP1 Order:', tp1Order);
       if (!tp1Order || tp1Order.status !== 'filled') return;
 
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder.price === setup.entry_price) return;
-      console.log('SL Order:', slOrder);
       await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol);
 
       const newSlOrder = await exchangeService.placeOrder({
@@ -133,7 +131,6 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
             continue;
           }
           if (status.status === 'closed' && status.amount==status.filled) {
-            console.log('Order filled:', order.id);
             await ctx.db.updateOrderStatus(order.id, 'filled');
 
             await ctx.telegramService.sendNotification(setup.user_id, 'order_filled', {
