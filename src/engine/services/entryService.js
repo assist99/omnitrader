@@ -171,14 +171,14 @@ class EntryService {
               positionIdx: 0
           }
         );
-
+        console.log(`Placed TP${i + 1} order for setup #${setup.id}`,JSON.stringify(tpOrder,null,2));
         await ctx.db.createOrder({
           setup_id: setup.id,
           order_type: `tp${i + 1}`,
           side: setup.side === 'long' ? 'sell' : 'buy',
           price: tpPrices[i],
           qty: tpQtys[i],
-          exchange_order_id: tpOrder.orderId,
+          exchange_order_id: tpOrder.id,
           status: 'pending'
         });
       }
