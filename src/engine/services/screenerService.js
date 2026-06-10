@@ -57,13 +57,14 @@ class ScreenerService {
           }
 
           const candles = await service.getCandles(item.symbol, item.timeframe, 100);
-          const parsedCandles = CandleUtils.parseExchangeCandles(candles);
-          if (parsedCandles.length < 20) {
-            logger.info(`Insufficient candles for screener item ${item.id}: ${parsedCandles.length}`);
+          const unclosedParsedCandles = CandleUtils.parseExchangeCandles(candles);
+          const closedBars = CandleUtils.filterClosedBars(unclosedParsedCandles, item.timeframe);
+          if (unclosedParsedCandles.length < 20) {
+            logger.info(`Insufficient candles for screener item ${item.id}: ${unclosedParsedCandles.length}`);
             return;
           }
           const params = item.indicator_params ? JSON.parse(item.indicator_params) : {};
-          const result = IndicatorService.checkCondition(item.indicator_type, parsedCandles, params);
+          const result = IndicatorService.checkCondition(item.indicator_type, closedBars, params);
           logger.info(`Processed result item ${item.id}  for ${item.symbol}@${item.timeframe} ${JSON.stringify(result,null,2)}`);
 
           if (result.error) {
@@ -73,7 +74,7 @@ class ScreenerService {
 
           const now = new Date().toISOString();
           const currentSignal = result.signal;
-          const price = result.price ?? parsedCandles[parsedCandles.length - 1]?.close;
+          const price = result.price ?? closedBars[closedBars.length - 1]?.close;
 
           if (currentSignal && currentSignal !== 'none' && currentSignal !== item.last_signal) {
             if (this.isCooldownElapsed(item.last_alerted_at, item.timeframe)) {
