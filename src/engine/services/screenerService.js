@@ -62,10 +62,9 @@ class ScreenerService {
             logger.info(`Insufficient candles for screener item ${item.id}: ${parsedCandles.length}`);
             return;
           }
-          logger.info(`Processing screener item ${item.id} for ${item.symbol} (${parsedCandles.length} candles)`);
           const params = item.indicator_params ? JSON.parse(item.indicator_params) : {};
           const result = IndicatorService.checkCondition(item.indicator_type, parsedCandles, params);
-          logger.info(`Processed result item ${item.id}  for ${item.symbol} ${JSON.stringify(result,null,2)}`);
+          logger.info(`Processed result item ${item.id}  for ${item.symbol}@${item.timeframe} ${JSON.stringify(result,null,2)}`);
 
           if (result.error) {
             logger.error(`Error checking indicator for screener item ${item.id}: ${result.error}`);
