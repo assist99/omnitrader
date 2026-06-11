@@ -30,17 +30,17 @@ class ScreenerService {
       }
 
       const serviceCache = new Map();
-      const promises = items.map(async (item) => {
+      for (const item of items) {
         try {
           if (!TimeUtils.isTriggerTime(item.timeframe)) {
             logger.info(`Skipping screener item ${item.id}: not trigger time for ${item.timeframe}`);
-            return;
+            continue;
           }
 
           const account = await db.get('SELECT * FROM exchange_accounts WHERE id = ?', [item.exchange_account_id]);
           if (!account) {
             logger.error(`Exchange account not found for screener item ${item.id}`);
-            return;
+            continue;
           }
 
           const cacheKey = `${item.exchange_account_id}`;
@@ -61,7 +61,7 @@ class ScreenerService {
           const closedBars = CandleUtils.filterClosedBars(unclosedParsedCandles, item.timeframe);
           if (unclosedParsedCandles.length < 20) {
             logger.info(`Insufficient candles for screener item ${item.id}: ${unclosedParsedCandles.length}`);
-            return;
+            continue;
           }
           const params = item.indicator_params ? JSON.parse(item.indicator_params) : {};
           const result = IndicatorService.checkCondition(item.indicator_type, closedBars, params);
@@ -69,7 +69,7 @@ class ScreenerService {
 
           if (result.error) {
             logger.error(`Error checking indicator for screener item ${item.id}: ${result.error}`);
-            return;
+            continue;
           }
 
           const now = new Date().toISOString();
@@ -101,9 +101,7 @@ class ScreenerService {
         } catch (error) {
           logger.error(`Error processing screener item ${item.id}:`, error);
         }
-      });
-
-      await Promise.allSettled(promises);
+      }
       logger.info(`Screener processing completed. Processed ${items.length} items`);
     } catch (error) {
       logger.error('Error in screener processAll:', error);

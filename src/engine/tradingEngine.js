@@ -48,7 +48,7 @@ class TradingEngine {
       logger.info(`Found ${setups.length} setups to process`);
       this.stats.totalSetupsProcessed += setups.length;
 
-      const setupPromises = setups.map(async setup => {
+      for (const setup of setups) {
         try {
           await this.processSetup(setup);
         } catch (error) {
@@ -62,9 +62,7 @@ class TradingEngine {
             timestamp: new Date().toISOString()
           });
         }
-      });
-
-      await Promise.allSettled(setupPromises);
+      }
 
       await ScreenerService.processAll(this.db, this, this.telegramService);
 

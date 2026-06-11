@@ -28,7 +28,7 @@ static isTriggerTime(timeframe) {
       const currentMinute = now.getUTCMinutes();
       const currentSeconds = now.getUTCSeconds();
 
-      return currentMinute % minutes === 0 ;
+      return currentMinute % minutes <4 ;
     } catch (error) {
       logger.error(`Error checking trigger time for timeframe ${timeframe}:`, error);
       return false;

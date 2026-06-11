@@ -20,13 +20,13 @@ class ActiveSetupService {
 
     await this.updateOrderStatuses(ctx, setup, exchangeService);
 
-if (setup.exit_indicator_type && setup.exit_indicator_tf) {
-        if (TimeUtils.isTriggerTime(setup.exit_indicator_tf)) {
-          await this.checkExitCondition(ctx, setup, exchangeService);
-        }
+    if (setup.exit_indicator_type && setup.exit_indicator_tf) {
+      if (TimeUtils.isTriggerTime(setup.exit_indicator_tf)) {
+        await this.checkExitCondition(ctx, setup, exchangeService);
       }
+    }
 
-      await this.checkBreakEven(ctx, setup, exchangeService);
+    await this.checkBreakEven(ctx, setup, exchangeService);
   }
 
   static async checkExitCondition(ctx, setup, exchangeService) {
@@ -39,7 +39,7 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
 
       const ticker = await exchangeService.getTicker(setup.symbol);
       const currentPrice = parseFloat(ticker.lastPrice);
-
+      logger.info(`Checking exit condition for setup #${setup.id} at price ${currentPrice}`);
       const isInProfit = setup.side === 'long'
         ? currentPrice > setup.entry_price
         : currentPrice < setup.entry_price;
@@ -57,7 +57,7 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
 
       if (exitResult.met) {
         const shouldExit = (setup.side === 'long' && exitResult.signal === 'bearish_crossover') ||
-                         (setup.side === 'short' && exitResult.signal === 'bullish_crossover');
+          (setup.side === 'short' && exitResult.signal === 'bullish_crossover');
 
         if (!shouldExit) {
           logger.info(`Exit signal mismatch for setup #${setup.id}: side=${setup.side}, signal=${exitResult.signal}`);
@@ -82,7 +82,7 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
 
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder.price === setup.entry_price) return;
-      await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol,{ 'trigger': true });
+      await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol, { 'trigger': true });
 
       const newSlOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
@@ -130,7 +130,7 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
             logger.warn(`Order status not found for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
             continue;
           }
-          if (status.status === 'closed' && status.amount==status.filled) {
+          if (status.status === 'closed' && status.amount == status.filled) {
             await ctx.db.updateOrderStatus(order.id, 'filled');
 
             await ctx.telegramService.sendNotification(setup.user_id, 'order_filled', {
@@ -167,7 +167,7 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
                 const slOrder = orders.find(o => o.order_type === 'sl');
                 if (slOrder && slOrder.status === 'pending' && slOrder.exchange_order_id) {
                   try {
-                    await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol,{ 'trigger': true });
+                    await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol, { 'trigger': true });
                     await ctx.db.updateOrderStatus(slOrder.id, 'cancelled');
                   } catch (error) {
                     logger.error(`Error cancelling SL order after all TP filled for setup #${setup.id}:`, error);
@@ -238,8 +238,8 @@ if (setup.exit_indicator_type && setup.exit_indicator_tf) {
       for (const order of orders) {
         if (order.status === 'pending' && order.exchange_order_id) {
           try {
-            const params= order.order_type == 'sl'?{ 'trigger': true }:{}
-            await exchangeService.cancelOrder(order.exchange_order_id, setup.symbol,params);
+            const params = order.order_type == 'sl' ? { 'trigger': true } : {}
+            await exchangeService.cancelOrder(order.exchange_order_id, setup.symbol, params);
             await ctx.db.updateOrderStatus(order.id, 'cancelled');
           } catch (error) {
             logger.error(`Error cancelling order ${order.id}:`, error);
