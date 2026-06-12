@@ -28,7 +28,7 @@ class EntryService {
     const lastCandle = closedBars[closedBars.length - 1];
     const ignoreBoxCheck = TimeUtils.isWithinIgnoreBox(lastCandle, setup.ignore_box_lower, setup.ignore_box_upper);
     if (!ignoreBoxCheck.within) {
-      logger.info(`Triggered setup #${setup.id} cancelled: ${ignoreBoxCheck.reason}`);
+      logger.info(`Triggered setup #${setup.id} canceled: ${ignoreBoxCheck.reason}`);
       await PendingSetupService.cancelSetup(ctx, setup, ignoreBoxCheck.reason);
       return;
     }

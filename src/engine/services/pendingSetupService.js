@@ -5,13 +5,13 @@ const logger = require('../logger');
 class PendingSetupService {
   static async cancelSetup(ctx, setup, reason) {
     try {
-      await ctx.db.updateSetupStatus(setup.id, 'cancelled', {
+      await ctx.db.updateSetupStatus(setup.id, 'canceled', {
         closed_at: new Date().toISOString()
       });
 
       ctx.stats.setupsCancelled++;
 
-      await ctx.telegramService.sendNotification(setup.user_id, 'setup_cancelled', {
+      await ctx.telegramService.sendNotification(setup.user_id, 'setup_canceled', {
         setupId: setup.id,
         symbol: setup.symbol,
         side: setup.side,
@@ -70,7 +70,7 @@ class PendingSetupService {
     
     const ignoreBoxCheck = TimeUtils.isWithinIgnoreBox(lastCandle, setup.ignore_box_lower, setup.ignore_box_upper);
     if (!ignoreBoxCheck.within) {
-      logger.info(`Setup #${setup.id} cancelled: ${ignoreBoxCheck.reason}`);
+      logger.info(`Setup #${setup.id} canceled: ${ignoreBoxCheck.reason}`);
       await this.cancelSetup(ctx, setup, ignoreBoxCheck.reason);
       return false;
     }

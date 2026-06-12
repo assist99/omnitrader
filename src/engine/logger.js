@@ -49,7 +49,7 @@ logger.setupActivated = (setupId, price) => {
 };
 
 logger.setupCancelled = (setupId, reason) => {
-  logger.warn(`Setup cancelled: #${setupId} - ${reason}`);
+  logger.warn(`Setup canceled: #${setupId} - ${reason}`);
 };
 
 logger.orderPlaced = (setupId, orderType, symbol, price, quantity) => {

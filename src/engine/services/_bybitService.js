@@ -303,7 +303,7 @@ class BybitService {
       const response = await this.axiosInstance.post('/v5/order/cancel', params);
       
       if (response.data && response.data.result) {
-        logger.info(`Order cancelled: ${orderId} for ${symbol}`);
+        logger.info(`Order canceled: ${orderId} for ${symbol}`);
         return true;
       }
       

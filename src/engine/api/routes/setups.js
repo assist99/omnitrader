@@ -143,8 +143,8 @@ router.delete('/:id', auth, async (req, res) => {
       return res.json({ success: true });
     }
 
-    // Soft cancel: update status to cancelled
-    await db.updateSetupStatus(id, 'cancelled', { reason: 'Cancelled by user' });
+    // Soft cancel: update status to canceled
+    await db.updateSetupStatus(id, 'canceled', { reason: 'Cancelled by user' });
     const updated = await db.getSetupById(id);
     res.json({ success: true, data: updated });
   } catch (err) {

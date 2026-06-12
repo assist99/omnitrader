@@ -95,7 +95,7 @@ class ActiveSetupService {
         reduceOnly: true
       });
 
-      await ctx.db.updateOrderStatus(slOrder.id, 'cancelled');
+      await ctx.db.updateOrderStatus(slOrder.id, 'canceled');
       await ctx.db.createOrder({
         setup_id: setup.id,
         order_type: 'sl',
@@ -125,6 +125,7 @@ class ActiveSetupService {
 
       for (const order of orders) {
         if (order.status === 'pending' && order.exchange_order_id) {
+          console.log(`Checking status for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
           const status = await exchangeService.getOrderStatus(order.exchange_order_id, setup.symbol);
           if (!status) {
             logger.warn(`Order status not found for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
@@ -168,7 +169,7 @@ class ActiveSetupService {
                 if (slOrder && slOrder.status === 'pending' && slOrder.exchange_order_id) {
                   try {
                     await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol, { 'trigger': true });
-                    await ctx.db.updateOrderStatus(slOrder.id, 'cancelled');
+                    await ctx.db.updateOrderStatus(slOrder.id, 'canceled');
                   } catch (error) {
                     logger.error(`Error cancelling SL order after all TP filled for setup #${setup.id}:`, error);
                   }
@@ -179,7 +180,7 @@ class ActiveSetupService {
               for (const tpOrder of pendingTpOrders) {
                 try {
                   await exchangeService.cancelOrder(tpOrder.exchange_order_id, setup.symbol);
-                  await ctx.db.updateOrderStatus(tpOrder.id, 'cancelled');
+                  await ctx.db.updateOrderStatus(tpOrder.id, 'canceled');
                 } catch (error) {
                   logger.error(`Error cancelling TP order ${tpOrder.id} after SL hit for setup #${setup.id}:`, error);
                 }
@@ -201,8 +202,8 @@ class ActiveSetupService {
               await this.closeSetup(ctx, setup, 'stop_loss_hit');
               return;
             }
-          } else if (status.status === 'cancelled' || status.status === 'rejected') {
-            await ctx.db.updateOrderStatus(order.id, 'cancelled');
+          } else if (status.status === 'canceled' || status.status === 'rejected') {
+            await ctx.db.updateOrderStatus(order.id, 'canceled');
           }
         }
       }
@@ -240,7 +241,7 @@ class ActiveSetupService {
           try {
             const params = order.order_type == 'sl' ? { 'trigger': true } : {}
             await exchangeService.cancelOrder(order.exchange_order_id, setup.symbol, params);
-            await ctx.db.updateOrderStatus(order.id, 'cancelled');
+            await ctx.db.updateOrderStatus(order.id, 'canceled');
           } catch (error) {
             logger.error(`Error cancelling order ${order.id}:`, error);
           }

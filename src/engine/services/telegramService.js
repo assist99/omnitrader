@@ -89,7 +89,7 @@ class TelegramService {
       case 'setup_activated':
         message += this.formatSetupActivated(data);
         break;
-      case 'setup_cancelled':
+      case 'setup_canceled':
         message += this.formatSetupCancelled(data);
         break;
       case 'order_placed':
@@ -128,7 +128,7 @@ class TelegramService {
       switch (messageType) {
         case 'setup_created':
         case 'setup_activated':
-        case 'setup_cancelled':
+        case 'setup_canceled':
         case 'order_placed':
         case 'order_filled':
         case 'tp_hit':
@@ -263,7 +263,7 @@ class TelegramService {
     const emojiMap = {
       'setup_created': '📊',
       'setup_activated': '🚀',
-      'setup_cancelled': '❌',
+      'setup_canceled': '❌',
       'order_placed': '🔄',
       'order_filled': '✅',
       'tp_hit': '🎯',
@@ -281,7 +281,7 @@ class TelegramService {
     const titleMap = {
       'setup_created': 'Setup Created',
       'setup_activated': 'Setup Activated',
-      'setup_cancelled': 'Setup Cancelled',
+      'setup_canceled': 'Setup Cancelled',
       'order_placed': 'Order Placed',
       'order_filled': 'Order Filled',
       'tp_hit': 'Take Profit Hit',

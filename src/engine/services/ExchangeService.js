@@ -208,9 +208,10 @@ async getSymbolInfo(symbol) {
     } catch (error) {
       // Order might not exist
       if (error instanceof ccxt.OrderNotFound) {
+        console.log(`Order ${orderId} not found on ${this.exchangeName} for ${symbol}`);
         return null;
       }
-      logger.apiError('getOrderStatus', error);
+      logger.log('getOrderStatus', error);
       throw error;
     }
   }
@@ -219,7 +220,7 @@ async getSymbolInfo(symbol) {
   async cancelOrder(orderId, symbol, params = {}) {
     try {
       const result = await this.exchange.cancelOrder(orderId, symbol, params);
-      logger.info(`Order cancelled on ${this.exchangeName}: ${orderId} for ${symbol}`);
+      logger.info(`Order canceled on ${this.exchangeName}: ${orderId} for ${symbol}`);
       return true;
     } catch (error) {
       logger.apiError('cancelOrder', error);
