@@ -96,13 +96,13 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
               Delete
             </button>
           )}
-          <Link href={setup.status === 'active' ? `/dashboard/setups/${setup.id}/edit?mode=be` : `/dashboard/setups/${setup.id}/edit`}
+          <Link href={setup.status === 'active' ? `/dashboard/setups/${setup.id}/edit` : `/dashboard/setups/${setup.id}/edit`}
             className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
               setup.status === 'closed' || setup.status === 'cancelled'
                 ? 'text-slate-600 cursor-not-allowed'
                 : 'text-blue-400 hover:bg-blue-900/30'
             }`}>
-            {setup.status === 'active' ? 'Adjust BE' : setup.status === 'closed' || setup.status === 'cancelled' ? 'Read-only' : 'Edit'}
+            {setup.status === 'active' ? 'Edit' : setup.status === 'closed' || setup.status === 'cancelled' ? 'Read-only' : 'Edit'}
           </Link>
         </div>
       </div>
