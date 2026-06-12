@@ -199,7 +199,7 @@ class ActiveSetupService {
 
               logger.slHit(setup.id, order.price, pnl.netPnl);
 
-              await this.closeSetup(ctx, setup, 'stop_loss_hit');
+              await this.closeSetup(ctx, setup, 'stop_loss_hit', pnl.netPnl);
               return;
             }
           } else if (status.status === 'canceled' || status.status === 'rejected') {
@@ -233,9 +233,30 @@ class ActiveSetupService {
 
   static async closePosition(ctx, setup, exchangeService, reason) {
     try {
-      await exchangeService.closePosition(setup.symbol, setup.side);
-
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
+      
+      // Calculate filled TP quantity
+      const filledTpOrders = orders.filter(o => o.order_type.startsWith('tp') && o.status === 'filled');
+      const filledQty = filledTpOrders.reduce((sum, o) => sum + (o.qty || 0), 0);
+      const remainingQty = (setup.entry_qty || 0) - filledQty;
+      
+      // Place reduce-only market order for remaining quantity if any
+      if (remainingQty > 0) {
+        const closeOrder = {
+          symbol: setup.symbol,
+          side: setup.side === 'long' ? 'Sell' : 'Buy',
+          orderType: 'Market',
+          qty: remainingQty.toString(),
+          reduceOnly: true,
+          timeInForce: 'IOC'
+        };
+        await exchangeService.placeOrder(closeOrder);
+        logger.info(`Placed reduce-only close order for setup #${setup.id}: ${remainingQty} qty remaining`);
+      } else {
+        logger.info(`No remaining qty to close for setup #${setup.id} (already fully closed by TP orders)`);
+      }
+
+      // Cancel pending orders (including SL)
       for (const order of orders) {
         if (order.status === 'pending' && order.exchange_order_id) {
           try {
@@ -248,7 +269,17 @@ class ActiveSetupService {
         }
       }
 
-      await this.closeSetup(ctx, setup, reason);
+      // Calculate profit based on remaining qty (for partial close)
+      const qtyForPnl = remainingQty > 0 ? remainingQty : 0;
+      let pnl = null;
+      let currentPrice = null;
+      if (setup.entry_price && qtyForPnl > 0) {
+        const ticker = await exchangeService.getTicker(setup.symbol);
+        currentPrice = parseFloat(ticker.lastPrice);
+        pnl = PriceUtils.calculatePnl(setup.entry_price, currentPrice, qtyForPnl, setup.side);
+      }
+
+      await this.closeSetup(ctx, setup, reason, pnl ? pnl.netPnl : 0);
       logger.info(`Position closed for setup #${setup.id}: ${reason}`);
     } catch (error) {
       logger.error(`Error closing position for setup #${setup.id}:`, error);
@@ -256,27 +287,25 @@ class ActiveSetupService {
     }
   }
 
-  static async closeSetup(ctx, setup, reason) {
+  static async closeSetup(ctx, setup, reason, profit = 0) {
     try {
       const closePayload = {
-        closed_at: new Date().toISOString()
+        closed_at: new Date().toISOString(),
+        profit: profit
       };
-
-      let exchangeService;
-      let pnl;
-      let currentPrice;
-
-      if (setup.entry_price && setup.entry_qty) {
-        exchangeService = await ctx.getExchangeService(setup.exchange_account_id, setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
-        const ticker = await exchangeService.getTicker(setup.symbol);
-        currentPrice = parseFloat(ticker.lastPrice);
-        pnl = PriceUtils.calculatePnl(setup.entry_price, currentPrice, setup.entry_qty, setup.side);
-        closePayload.profit = pnl.netPnl;
-      }
 
       await ctx.db.updateSetupStatus(setup.id, 'closed', closePayload);
 
-      if (reason === 'exit_condition' && pnl) {
+      if (reason === 'exit_condition' && setup.entry_price) {
+        let currentPrice = null;
+        let pnl = null;
+        if (profit !== undefined) {
+          const exchangeService = await ctx.getExchangeService(setup.exchange_account_id, setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
+          const ticker = await exchangeService.getTicker(setup.symbol);
+          currentPrice = parseFloat(ticker.lastPrice);
+          pnl = { netPnl: profit };
+        }
+
         await ctx.telegramService.sendNotification(setup.user_id, 'exit_triggered', {
           setupId: setup.id,
           symbol: setup.symbol,

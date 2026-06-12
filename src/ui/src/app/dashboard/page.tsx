@@ -82,7 +82,7 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
           {setup.exit_indicator_type && <span>→ Exit: {setup.exit_indicator_type} ({setup.exit_indicator_tf})</span>}
         </div>
         <div className="flex gap-2">
-          {(setup.status === 'pending' || setup.status === 'triggered') && (
+          {(setup.status === 'pending' || setup.status === 'triggered' || setup.status === 'active') && (
             <button onClick={() => onCancel(setup.id)}
               className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-900/30">
               <XCircle className="h-3.5 w-3.5" />
