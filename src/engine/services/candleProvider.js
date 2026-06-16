@@ -301,10 +301,8 @@ class CandleProvider {
 
     if (!current) {
       this.currentCandles.set(key, raw);
-      console.log('no current return',console.log('get confirm',symbol));
       return;
     }
-    console.log('get confirm',symbol,raw,current,timeframe);
     if (raw[0] > current[0]) {
       const arr = this.store.get(key) || [];
       arr.push(raw);
@@ -316,7 +314,6 @@ class CandleProvider {
       }
       if (typeof this.onScreenerUpdate === 'function') {
         const closedBars = this.getClosedCandles(symbol, timeframe);
-        console.log('call onScreener update',symbol,timeframe,closedBars[closedBars.length-1])
         this.onScreenerUpdate(symbol, timeframe, closedBars);
       }
     } else if (raw[0] === current[0]) {

@@ -33,7 +33,7 @@ class ScreenerService {
         logger.info(`Insufficient candles for screener item ${item.id}: ${closedBars ? closedBars.length : 0}`);
         return;
       }
-
+      console.log('processing ',JSON.stringify(closedBars,null,2))
       const params = item.indicator_params ? JSON.parse(item.indicator_params) : {};
       const result = IndicatorService.checkCondition(item.indicator_type, closedBars, params);
       
@@ -85,11 +85,11 @@ class ScreenerService {
         logger.debug(`Insufficient candles for screener ${symbol}@${timeframe}: ${filtered.length}`);
         return;
       }
-
+      
       // Query database for screener items matching this symbol/timeframe
       const items = await this.db.getScreenerItemsBySymbolTimeframe(symbol, timeframe, true);
       if (!items || items.length === 0) return;
-
+      
       // Process all items in parallel for this symbol/timeframe
       const promises = items.map(item => 
         this.processItem(item, filtered, this.db, this.telegramService)
