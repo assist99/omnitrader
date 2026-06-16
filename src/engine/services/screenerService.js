@@ -44,8 +44,8 @@ class ScreenerService {
       const now = new Date().toISOString();
       const currentSignal = result.signal;
       const price = result.price ?? closedBars[closedBars.length - 1]?.close;
-
-      if (currentSignal && currentSignal !== 'none' && currentSignal !== item.last_signal) {
+      console.log({result})
+      if (currentSignal && currentSignal !== 'none') {
         const signal = currentSignal;
 
         await telegramService.sendNotification(item.user_id, 'screener_reversal', {
