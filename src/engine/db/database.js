@@ -419,6 +419,27 @@ async getScreenerItems(userId, enabledOnly = true) {
     const sql = `DELETE FROM screener_items WHERE id = ? AND user_id = ?`;
     return this.run(sql, [id, userId]);
   }
+
+  async getScreenerItemsBySymbolTimeframe(symbol, timeframe, enabledOnly = true) {
+    let sql = `
+      SELECT si.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+      FROM screener_items si
+      JOIN exchange_accounts ea ON si.exchange_account_id = ea.id
+      WHERE si.symbol = ? AND si.timeframe = ?
+    `;
+    
+    const params = [symbol, timeframe];
+    
+    if (enabledOnly === true) {
+      sql += ` AND si.enabled = 1`;
+    } else if (enabledOnly === false) {
+      sql += ` AND si.enabled = 0`;
+    }
+    
+    sql += ` ORDER BY si.created_at DESC`;
+    
+    return this.all(sql, params);
+  }
 }
 
 module.exports = Database;

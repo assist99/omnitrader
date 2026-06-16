@@ -1,0 +1,10 @@
+{"level":"info","message":"🚀 Starting OmniTrader Services...","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"info","message":"Starting TradingEngine scheduler...","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"info","message":"Starting ScreenerCandleProvider...","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"info","message":"✅ OmniTrader Services started","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"info","message":"📅 TradingEngine: Scheduled mode","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"info","message":"📊 ScreenerCandleProvider: Real-time screener alerts","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"error","message":"TradingEngine process exited with code 1, signal null","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"error","message":"TradingEngine process exited with code 1, signal null","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"info","message":"🛑 Shutting down OmniTrader Services (trading_engine_exited)...","service":"trading-engine","timestamp":"2026-06-16 06:08:22"}
+{"level":"info","message":"✅ OmniTrader Services shutdown complete","service":"trading-engine","timestamp":"2026-06-16 06:08:24"}

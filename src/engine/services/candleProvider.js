@@ -180,12 +180,13 @@ class BybitWS {
 }
 
 class CandleProvider {
-  constructor({ exchange = 'bybit', symbols = [], timeframes = [], limit = 100, onUpdate, isTestnet = true }) {
+  constructor({ exchange = 'bybit', symbols = [], timeframes = [], limit = 100, onUpdate, onScreenerUpdate, isTestnet = true }) {
     this.exchangeName = exchange.toLowerCase();
     this.symbols = symbols;
     this.timeframes = timeframes;
     this.limit = limit;
     this.onUpdate = onUpdate;
+    this.onScreenerUpdate = onScreenerUpdate;
     this.isTestnet = isTestnet;
 
     this.store = new Map();
@@ -309,6 +310,10 @@ class CandleProvider {
       this.currentCandles.set(key, raw);
       if (typeof this.onUpdate === 'function') {
         this.onUpdate(symbol, timeframe, current);
+      }
+      if (typeof this.onScreenerUpdate === 'function') {
+        const closedBars = this.getClosedCandles(symbol, timeframe);
+        this.onScreenerUpdate(symbol, timeframe, closedBars);
       }
     } else if (raw[0] === current[0]) {
       this.currentCandles.set(key, raw);
