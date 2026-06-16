@@ -44,7 +44,6 @@ class ScreenerService {
       const now = new Date().toISOString();
       const currentSignal = result.signal;
       const price = result.price ?? closedBars[closedBars.length - 1]?.close;
-      console.log({result})
       if (currentSignal && currentSignal !== 'none') {
         const signal = currentSignal;
 
