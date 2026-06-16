@@ -1,0 +1,12 @@
+{"level":"info","message":"Fetching historical candles for BTC/USDT:USDT:m5...","service":"trading-engine","timestamp":"2026-06-16 11:40:04"}
+{"level":"info","message":"Fetching historical candles for ETH/USDT:USDT:m5...","service":"trading-engine","timestamp":"2026-06-16 11:40:06"}
+{"level":"info","message":"CandleProvider started: 2 symbols x 1 timeframes (2 channels), limit=100, testnet=false","service":"trading-engine","timestamp":"2026-06-16 11:40:06"}
+{"level":"info","message":"Bybit WS connected: wss://stream.bybit.com/v5/public/linear","service":"trading-engine","timestamp":"2026-06-16 11:40:07"}
+{"level":"info","message":"Bybit WS subscribed to 2 topics","service":"trading-engine","timestamp":"2026-06-16 11:40:07"}
+{"level":"info","message":"CandleProvider stopped","service":"trading-engine","timestamp":"2026-06-16 11:40:32"}
+{"level":"info","message":"Fetching historical candles for BTC/USDT:USDT:m5...","service":"trading-engine","timestamp":"2026-06-16 11:43:16"}
+{"level":"info","message":"Fetching historical candles for ETH/USDT:USDT:m5...","service":"trading-engine","timestamp":"2026-06-16 11:43:18"}
+{"level":"info","message":"CandleProvider started: 2 symbols x 1 timeframes (2 channels), limit=100, testnet=false","service":"trading-engine","timestamp":"2026-06-16 11:43:19"}
+{"level":"info","message":"Bybit WS connected: wss://stream.bybit.com/v5/public/linear","service":"trading-engine","timestamp":"2026-06-16 11:43:20"}
+{"level":"info","message":"Bybit WS subscribed to 2 topics","service":"trading-engine","timestamp":"2026-06-16 11:43:20"}
+{"level":"info","message":"CandleProvider stopped","service":"trading-engine","timestamp":"2026-06-16 11:43:44"}

@@ -304,10 +304,10 @@ class CandleProvider {
       console.log('no current return',console.log('get confirm',symbol));
       return;
     }
-    console.log('get confirm',symbol,raw[0],current[0],timeframe);
+    console.log('get confirm',symbol,raw,current,timeframe);
     if (raw[0] > current[0]) {
       const arr = this.store.get(key) || [];
-      arr.push(current);
+      arr.push(raw);
       while (arr.length > this.limit) arr.shift();
       this.store.set(key, arr);
       this.currentCandles.set(key, raw);
