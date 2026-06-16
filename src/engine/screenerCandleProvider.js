@@ -71,9 +71,9 @@ class ScreenerCandleProvider {
         onScreenerUpdate: (symbol, timeframe, closedBars) => {
           // Query database for screener items matching this symbol/timeframe
           // This happens on each candle close, so we always get fresh data
-          ScreenerService.processItemFromCandle(symbol, timeframe, closedBars);
+          //ScreenerService.processItemFromCandle(symbol, timeframe, closedBars);
           // Also process supply/demand items
-          SupplyDemandService.processItemFromCandle(symbol, timeframe, closedBars);
+          //SupplyDemandService.processItemFromCandle(symbol, timeframe, closedBars);
         },
         isTestnet: false
       });
