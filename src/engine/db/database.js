@@ -440,6 +440,120 @@ async getScreenerItems(userId, enabledOnly = true) {
     
     return this.all(sql, params);
   }
+
+  async getSupplyDemandItems(userId, enabledOnly = true) {
+    let sql = `
+      SELECT sdi.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+      FROM supply_demand_items sdi
+      JOIN exchange_accounts ea ON sdi.exchange_account_id = ea.id
+    `;
+    
+    const params = [];
+    const whereClauses = [];
+
+    // 1. Only filter by user_id if a valid userId is provided
+    if (userId !== null && userId !== undefined) {
+      whereClauses.push(`sdi.user_id = ?`);
+      params.push(userId);
+    }
+
+    // 2. Handle enabledOnly logic (assuming enabled is a boolean/tinyint 1 or 0)
+    if (enabledOnly === true) {
+      whereClauses.push(`sdi.enabled = 1`);
+    } else if (enabledOnly === false) {
+      whereClauses.push(`sdi.enabled = 0`);
+    }
+    // If enabledOnly is anything else (like 'all'), we don't push an enabled filter
+
+    // 3. Append WHERE clause if there are any conditions
+    if (whereClauses.length > 0) {
+      sql += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    sql += ` ORDER BY sdi.created_at DESC`;
+
+    return this.all(sql, params);
+  }
+
+  async getSupplyDemandItemById(id, userId) {
+    const sql = `
+      SELECT sdi.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+      FROM supply_demand_items sdi
+      JOIN exchange_accounts ea ON sdi.exchange_account_id = ea.id
+      WHERE sdi.id = ? AND sdi.user_id = ?
+    `;
+    return this.get(sql, [id, userId]);
+  }
+
+  async createSupplyDemandItem(data) {
+    const sql = `
+      INSERT INTO supply_demand_items (
+        user_id, exchange_account_id, symbol, timeframe, indicator_type, indicator_params, enabled
+      ) VALUES (?, ?, ?, ?, ?, ?, 1)
+    `;
+    const params = [
+      data.user_id,
+      data.exchange_account_id,
+      data.symbol,
+      data.timeframe,
+      data.indicator_type || 'supply_demand',
+      JSON.stringify(data.indicator_params || {})
+    ];
+    const result = await this.run(sql, params);
+    return { id: result.lastID };
+  }
+
+  async updateSupplyDemandItem(id, userId, updates) {
+    const allowed = ['symbol', 'timeframe', 'indicator_type', 'indicator_params', 'enabled'];
+    const fields = [];
+    const params = [];
+    for (const [k, v] of Object.entries(updates)) {
+      if (allowed.includes(k)) {
+        fields.push(`${k} = ?`);
+        params.push(k === 'indicator_params' ? JSON.stringify(v) : v);
+      }
+    }
+    if (fields.length === 0) return;
+    params.push(new Date().toISOString(), id, userId);
+    const sql = `UPDATE supply_demand_items SET ${fields.join(', ')}, updated_at = ? WHERE id = ? AND user_id = ?`;
+    return this.run(sql, params);
+  }
+
+  async updateSupplyDemandItemSignal(id, signal, zonePrice, zoneTop, zoneBottom, zoneTf, checkedAt) {
+    const sql = `UPDATE supply_demand_items SET last_signal = ?, last_zone_price = ?, last_zone_top = ?, last_zone_bottom = ?, last_zone_timeframe = ?, last_checked_at = ? WHERE id = ?`;
+    return this.run(sql, [signal, zonePrice, zoneTop, zoneBottom, zoneTf, checkedAt, id]);
+  }
+
+  async updateSupplyDemandItemAlerted(id, alertedAt) {
+    const sql = `UPDATE supply_demand_items SET last_alerted_at = ? WHERE id = ?`;
+    return this.run(sql, [alertedAt, id]);
+  }
+
+  async deleteSupplyDemandItem(id, userId) {
+    const sql = `DELETE FROM supply_demand_items WHERE id = ? AND user_id = ?`;
+    return this.run(sql, [id, userId]);
+  }
+
+  async getSupplyDemandItemsBySymbolTimeframe(symbol, timeframe, enabledOnly = true) {
+    let sql = `
+      SELECT sdi.*, ea.exchange, ea.label as exchange_account_label, ea.is_testnet
+      FROM supply_demand_items sdi
+      JOIN exchange_accounts ea ON sdi.exchange_account_id = ea.id
+      WHERE sdi.symbol = ? AND sdi.timeframe = ?
+    `;
+    
+    const params = [symbol, timeframe];
+    
+    if (enabledOnly === true) {
+      sql += ` AND sdi.enabled = 1`;
+    } else if (enabledOnly === false) {
+      sql += ` AND sdi.enabled = 0`;
+    }
+    
+    sql += ` ORDER BY sdi.created_at DESC`;
+    
+    return this.all(sql, params);
+  }
 }
 
 module.exports = Database;

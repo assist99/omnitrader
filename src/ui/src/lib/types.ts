@@ -118,6 +118,43 @@ export interface ScreenerFormData {
   enabled?: boolean;
 }
 
+export interface SupplyDemandIndicatorParams {
+  bodyTolerance?: number;
+  minWickOverlapRate?: number;
+  checkCandle0Dir?: boolean;
+}
+
+export interface SupplyDemandItem {
+  id: number;
+  user_id: number;
+  exchange_account_id: number;
+  exchange: string;
+  exchange_account_label?: string;
+  symbol: string;
+  timeframe: string;
+  indicator_type: 'supply_demand';
+  indicator_params?: SupplyDemandIndicatorParams;
+  enabled: number;
+  last_signal: 'supply' | 'demand' | null;
+  last_zone_price: number | null;
+  last_zone_top: number | null;
+  last_zone_bottom: number | null;
+  last_zone_timeframe: string | null;
+  last_checked_at: string | null;
+  last_alerted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  is_testnet?: number;
+}
+
+export interface SupplyDemandFormData {
+  exchange_account_id: number;
+  symbol: string;
+  timeframe: Timeframe;
+  indicator_params?: SupplyDemandIndicatorParams;
+  enabled?: boolean;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;

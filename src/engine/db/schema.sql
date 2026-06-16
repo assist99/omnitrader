@@ -106,3 +106,27 @@ CREATE TABLE IF NOT EXISTS screener_items (
 
 CREATE INDEX IF NOT EXISTS idx_screener_user_enabled ON screener_items(user_id, enabled);
 CREATE INDEX IF NOT EXISTS idx_screener_symbol_tf ON screener_items(symbol, timeframe);
+
+-- Supply/demand screener items for monitoring supply/demand zones
+CREATE TABLE IF NOT EXISTS supply_demand_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  exchange_account_id INTEGER NOT NULL REFERENCES exchange_accounts(id) ON DELETE CASCADE,
+  symbol TEXT NOT NULL,
+  timeframe TEXT NOT NULL,
+  indicator_type TEXT NOT NULL DEFAULT 'supply_demand', -- fixed type
+  indicator_params TEXT DEFAULT '{}',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_signal TEXT, -- supply/demand/null
+  last_zone_price REAL, -- detected zone price (midpoint)
+  last_zone_top REAL, -- top price of zone
+  last_zone_bottom REAL, -- bottom price of zone
+  last_zone_timeframe TEXT, -- timeframe where zone detected (4H, 2H, etc)
+  last_checked_at TEXT,
+  last_alerted_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_supply_demand_user_enabled ON supply_demand_items(user_id, enabled);
+CREATE INDEX IF NOT EXISTS idx_supply_demand_symbol_tf ON supply_demand_items(symbol, timeframe);

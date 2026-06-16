@@ -9,6 +9,7 @@
 const Database = require('./db/database');
 const CandleProvider = require('./services/candleProvider');
 const ScreenerService = require('./services/screenerService');
+const SupplyDemandService = require('./services/supplyDemandService');
 const TelegramService = require('./services/telegramService');
 const logger = require('./logger');
 const Config = require('./config');
@@ -48,6 +49,9 @@ class ScreenerCandleProvider {
       // Initialize ScreenerService dependencies
       ScreenerService.setDeps(this.db, this.telegramService);
       
+      // Initialize SupplyDemandService dependencies
+      SupplyDemandService.setDeps(this.db, this.telegramService);
+      
       // Load ALL symbols and timeframes from config
       const symbols = this.loadSymbols();
       const timeframes = this.loadTimeframes();
@@ -68,6 +72,8 @@ class ScreenerCandleProvider {
           // Query database for screener items matching this symbol/timeframe
           // This happens on each candle close, so we always get fresh data
           ScreenerService.processItemFromCandle(symbol, timeframe, closedBars);
+          // Also process supply/demand items
+          SupplyDemandService.processItemFromCandle(symbol, timeframe, closedBars);
         },
         isTestnet: false
       });

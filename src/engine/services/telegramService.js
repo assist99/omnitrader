@@ -113,6 +113,9 @@ class TelegramService {
       case 'screener_reversal':
         message += this.formatScreenerReversal(data);
         break;
+      case 'supply_demand_zone':
+        message += this.formatSupplyDemandZone(data);
+        break;
       case 'error':
         message += this.formatError(data);
         break;
@@ -145,6 +148,8 @@ class TelegramService {
           return '';
         case 'screener_reversal':
           return data && data.symbol ? `${data.symbol}` : '';
+      case 'supply_demand_zone':
+          return data && data.symbol ? `${data.symbol} • ${data.signal === 'supply' ? 'Supply' : 'Demand'}` : '';
         case 'error':
           return data && data.component ? `Component: ${data.component}` : '';
         default:
@@ -259,6 +264,18 @@ class TelegramService {
 `;
   }
 
+  formatSupplyDemandZone(data) {
+    const signalEmoji = data.signal === 'supply' ? '📉' : '📈';
+    const signalType = data.signal === 'supply' ? 'Supply Zone' : 'Demand Zone';
+    
+    return `Zone: ${signalType} ${signalEmoji}
+💰 Current Price: $${data.price}
+⏱️ Timeframe: ${data.timeframe}
+📊 Zone Range: $${data.zoneBottom} - $${data.zoneTop}
+🏦 Exchange: ${data.exchange} (${data.isTestnet ? 'testnet' : 'main'})
+`;
+  }
+
   getEmojiForMessageType(messageType) {
     const emojiMap = {
       'setup_created': '📊',
@@ -271,6 +288,7 @@ class TelegramService {
       'be_activated': '🛡️',
       'exit_triggered': '🚪',
       'screener_reversal': '🔔',
+      'supply_demand_zone': '🏢',
       'error': '⚠️'
     };
     
@@ -289,6 +307,7 @@ class TelegramService {
       'be_activated': 'Break-Even Activated',
       'exit_triggered': 'Exit Triggered',
       'screener_reversal': 'Screener Alert',
+      'supply_demand_zone': 'Zone Alert',
       'error': 'Error Alert'
     };
     

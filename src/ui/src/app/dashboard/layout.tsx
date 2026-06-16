@@ -63,7 +63,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/screener', label: 'Screener', icon: Search },
+    { href: '/dashboard/screener', label: 'Reversal Screener', icon: Search },
+    { href: '/dashboard/supply-demand-screener', label: 'Supply/Demand Screener', icon: Search },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/setups/new', label: 'New Setup', icon: PlusCircle },
   ];
@@ -179,7 +180,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               pathname.startsWith('/dashboard/screener') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
             }`}>
             <Search className="h-4 w-4" />
-            Screener
+            Reversal Screener
+          </Link>
+          <Link href="/dashboard/supply-demand-screener"
+            className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              pathname.startsWith('/dashboard/supply-demand-screener') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            <Search className="h-4 w-4" />
+            Supply/Demand Screener
           </Link>
           <Link href="/dashboard/setups/new"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
