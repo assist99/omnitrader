@@ -1,6 +1,5 @@
 {
  "intervals":[
-      "m1",
       "m5",
       "m15",
       "m30",
@@ -30,10 +29,6 @@
     {
         "symbol":"SOL/USDT:USDT",
         "display":"SOLUSDT.P"
-    },
-    {
-        "symbol":"AVAX/USDT:USDT",
-        "display":"AVAXUSDT.P"
     },
     {
         "symbol":"GRT/USDT:USDT",
@@ -92,8 +87,12 @@
         "display":"XAGUSDT.P"
     },
     {
-        "symbol":"PXAG/USDT:USDT",
-        "display":"PAGUSDT.P"
+        "symbol":"PAXG/USDT:USDT",
+        "display":"PAXGUSDT.P"
+    },
+    {
+        "symbol":"AVAX/USDT:USDT",
+        "display":"AVAXUSDT.P"
     }
 
  ]

@@ -5,13 +5,17 @@ const PendingSetupService = require('./services/pendingSetupService');
 const EntryService = require('./services/entryService');
 const ActiveSetupService = require('./services/activeSetupService');
 const ScreenerService = require('./services/screenerService');
+const CandleProvider = require('./services/candleProvider');
 const logger = require('./logger');
+const fs = require('fs');
+const path = require('path');
 
 class TradingEngine {
   constructor() {
     this.db = new Database();
     this.telegramService = new TelegramService(this.db);
     this.exchangeServices = new Map();
+    this.candleProvider = null;
     this.isInitialized = false;
     this.stats = {
       totalSetupsProcessed: 0,
@@ -27,12 +31,52 @@ class TradingEngine {
     try {
       await this.db.connect();
       logger.info('Trading engine initialized');
+
+      const candleProviderEnabled = process.env.CANDLE_PROVIDER_ENABLED !== 'false';
+      if (candleProviderEnabled) {
+        try {
+          const symbols = this.loadSymbols();
+          const timeframes = this.loadTimeframes();
+          this.candleProvider = new CandleProvider({
+            exchange: 'bybit',
+            symbols,
+            timeframes,
+            limit: 100,
+            onUpdate: (symbol, timeframe, candle) => this.handleCandleUpdate(symbol, timeframe, candle),
+            isTestnet: false
+          });
+          await this.candleProvider.start();
+        } catch (error) {
+          logger.error('Failed to start CandleProvider:', error);
+        }
+      } else {
+        logger.info('CandleProvider disabled by CANDLE_PROVIDER_ENABLED=false');
+      }
+
       this.isInitialized = true;
       return true;
     } catch (error) {
       logger.error('Failed to initialize trading engine:', error);
       throw error;
     }
+  }
+
+  loadSymbols() {
+    const configPath = path.resolve(__dirname, '../../config/symbols/bybit.json');
+    const raw = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(raw);
+    return config.symbols.map(s => s.symbol);
+  }
+
+  loadTimeframes() {
+    const configPath = path.resolve(__dirname, '../../config/symbols/bybit.json');
+    const raw = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(raw);
+    return config.intervals;
+  }
+
+  handleCandleUpdate(symbol, timeframe, candle) {
+    logger.debug(`Candle closed: ${symbol} ${timeframe} O:${candle[1]} H:${candle[2]} L:${candle[3]} C:${candle[4]} V:${candle[5]}`);
   }
 
   async processAllSetups() {
@@ -124,6 +168,9 @@ class TradingEngine {
 
   async cleanup() {
     try {
+      if (this.candleProvider) {
+        await this.candleProvider.stop();
+      }
       await this.db.disconnect();
       this.exchangeServices.clear();
       this.isInitialized = false;
