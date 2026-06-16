@@ -35,8 +35,9 @@ class SupplyDemandService {
       }
 
       const params = item.indicator_params ? JSON.parse(item.indicator_params) : {};
-      const result = IndicatorService.checkCondition('supply_demand', closedBars, params);
       
+      const result = IndicatorService.checkCondition('supply_demand', closedBars, params);
+      console.log('Check result for supply demand',result);
       if (result.error) {
         logger.error(`Error checking supply/demand for item ${item.id}: ${result.error}`);
         return;
@@ -45,22 +46,6 @@ class SupplyDemandService {
       const now = new Date().toISOString();
       const currentSignal = result.signal;
       const price = result.price ?? closedBars[closedBars.length - 1]?.close;
-
-      // Check cooldown to avoid spamming alerts
-      logger.info(`Cooldown active for supply/demand item ${item.id}, skipping alert`);
-      // Still update signal if it changed
-      if (currentSignal && currentSignal !== item.last_signal) {
-        await db.updateSupplyDemandItemSignal(
-          item.id, 
-          currentSignal, 
-          result.zonePrice || null,
-          result.zoneTop || null,
-          result.zoneBottom || null,
-          result.zoneTf || item.timeframe,
-          now
-        );
-        return;
-      }
 
       if (currentSignal && currentSignal !== 'none' && currentSignal !== item.last_signal) {
         const signal = currentSignal;
