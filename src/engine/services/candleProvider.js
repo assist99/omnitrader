@@ -259,6 +259,7 @@ class CandleProvider {
           this.store.set(key, ordered);
           const last = ordered[ordered.length - 1];
           this.currentCandles.set(key, last ? [...last] : null);
+          console.log('last ',symbol,timeframe,last)
           await this.sleep(50);
         } catch (error) {
           logger.error(`Historical fetch failed for ${key}:`, error.message);
