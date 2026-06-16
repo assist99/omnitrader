@@ -21,7 +21,7 @@ class CandleUtils {
     if (closedBars.length === 0) {
       logger.warn('No closed bars available after filtering');
     }
-
+    console.log('last candle is',closedBars[closedBars.length - 1])
     return closedBars;
   }
 

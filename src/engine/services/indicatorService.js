@@ -535,7 +535,7 @@ class IndicatorService {
 
   static getIndicatorParameters(indicatorType) {
     const defaultParams = {
-      'supertrend': { period: 10, multiplier: 4 },
+      'supertrend': { period: 10, multiplier: 3 },
       'macd': { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
       'ema': { fastPeriod: 9, slowPeriod: 21 },
       'ema_cross': { fastPeriod: 9, slowPeriod: 21 },

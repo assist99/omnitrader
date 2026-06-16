@@ -47,20 +47,18 @@ class SupplyDemandService {
       const price = result.price ?? closedBars[closedBars.length - 1]?.close;
 
       // Check cooldown to avoid spamming alerts
-      if (!this.isCooldownElapsed(item.last_alerted_at, item.timeframe)) {
-        logger.info(`Cooldown active for supply/demand item ${item.id}, skipping alert`);
-        // Still update signal if it changed
-        if (currentSignal && currentSignal !== item.last_signal) {
-          await db.updateSupplyDemandItemSignal(
-            item.id, 
-            currentSignal, 
-            result.zonePrice || null,
-            result.zoneTop || null,
-            result.zoneBottom || null,
-            result.zoneTf || item.timeframe,
-            now
-          );
-        }
+      logger.info(`Cooldown active for supply/demand item ${item.id}, skipping alert`);
+      // Still update signal if it changed
+      if (currentSignal && currentSignal !== item.last_signal) {
+        await db.updateSupplyDemandItemSignal(
+          item.id, 
+          currentSignal, 
+          result.zonePrice || null,
+          result.zoneTop || null,
+          result.zoneBottom || null,
+          result.zoneTf || item.timeframe,
+          now
+        );
         return;
       }
 
