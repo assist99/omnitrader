@@ -255,7 +255,7 @@ class CandleProvider {
         try {
           logger.info(`Fetching historical candles for ${key}...`);
           const candles = await this.exchange.fetchOHLCV(symbol, getCcxtInterval(timeframe), undefined, this.limit);
-          const ordered = candles.slice();
+          const ordered = candles.slice(0, candles.length - 1);
           this.store.set(key, ordered);
           const last = ordered[ordered.length - 1];
           this.currentCandles.set(key, last ? [...last] : null);
