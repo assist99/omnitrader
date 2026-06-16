@@ -61,7 +61,7 @@ class ScreenerService {
         await db.updateScreenerItemAlerted(item.id, now);
         logger.info(`Screener alert sent for ${item.symbol}: ${signal}`);
       } else {
-        await db.updateScreenerItemSignal(item.id, currentSignal || null, now);
+        //await db.updateScreenerItemSignal(item.id, currentSignal || null, now);
         logger.info(`Screener item ${item.id}: no reversal (${currentSignal} vs ${item.last_signal})`);
       }
     } catch (error) {
