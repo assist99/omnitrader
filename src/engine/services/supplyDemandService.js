@@ -74,15 +74,6 @@ class SupplyDemandService {
         await db.updateSupplyDemandItemAlerted(item.id, now);
         logger.info(`Supply/demand alert sent for ${item.symbol}: ${signal} zone at ${result.zonePrice}`);
       } else {
-        await db.updateSupplyDemandItemSignal(
-          item.id, 
-          currentSignal || null,
-          result.zonePrice || null,
-          result.zoneTop || null,
-          result.zoneBottom || null,
-          result.zoneTf || item.timeframe,
-          now
-        );
         logger.info(`Supply/demand item ${item.id}: no zone detected (${currentSignal} vs ${item.last_signal})`);
       }
     } catch (error) {
