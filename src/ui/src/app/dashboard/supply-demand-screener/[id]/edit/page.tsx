@@ -23,8 +23,8 @@ export default function EditSupplyDemandScreenerPage() {
     symbol: '',
     timeframe: 'h1' as Timeframe,
     indicator_params: {
-      bodyTolerance: 0.5,
-      minWickOverlapRate: 0.8,
+      bodyTolerance: 0.2,
+      minWickOverlapRate: 0.1,
       checkCandle0Dir: true
     } as SupplyDemandIndicatorParams
   });
@@ -40,8 +40,8 @@ export default function EditSupplyDemandScreenerPage() {
             symbol: data.data.symbol,
             timeframe: data.data.timeframe as Timeframe,
             indicator_params: data.data.indicator_params || {
-              bodyTolerance: 0.5,
-              minWickOverlapRate: 0.8,
+              bodyTolerance: 0.2,
+              minWickOverlapRate: 0.1,
               checkCandle0Dir: true
             }
           });

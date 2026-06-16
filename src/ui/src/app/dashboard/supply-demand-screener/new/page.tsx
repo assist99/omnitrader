@@ -19,8 +19,8 @@ export default function NewSupplyDemandScreenerPage() {
     symbol: '',
     timeframe: 'h1',
     indicator_params: {
-      bodyTolerance: 0.5,
-      minWickOverlapRate: 0.8,
+      bodyTolerance: 0.2,
+      minWickOverlapRate: 0.1,
       checkCandle0Dir: true
     }
   });
