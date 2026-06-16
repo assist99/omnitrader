@@ -291,6 +291,7 @@ class CandleProvider {
     const interval = parts[1];
     const bybitSymbol = parts[2];
     const symbol = bybitToCcxtSymbol(bybitSymbol);
+    
 
     const timeframe = this.timeframes.find(tf => getBybitInterval(tf) === interval);
     if (!timeframe) return;
@@ -301,8 +302,10 @@ class CandleProvider {
     if (!current) {
       this.currentCandles.set(key, raw);
       return;
+    }else{
+      console.log('no current return',console.log('get confirm',symbol));
     }
-
+    console.log('get confirm',symbol,raw[0],current[0],timeframe);
     if (raw[0] > current[0]) {
       const arr = this.store.get(key) || [];
       arr.push(current);
@@ -317,6 +320,7 @@ class CandleProvider {
         this.onScreenerUpdate(symbol, timeframe, closedBars);
       }
     } else if (raw[0] === current[0]) {
+      console.log('not new bar',symbol,timeframe)
       this.currentCandles.set(key, raw);
     }
   }
