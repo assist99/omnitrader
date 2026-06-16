@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Trash2, Info, Lock } from 'lucide-react';
 import engineFetch from '@/lib/api';
 import { TIMEFRAMES, INDICATORS, DEFAULT_TP_RATIOS } from '@/lib/constants';
 import type { ExchangeAccount, TradingSetup, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
+import SymbolPicker from '@/components/SymbolPicker';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
@@ -260,9 +261,12 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
                 </div>
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Symbol</label>
-                  <input type="text" value={formData.symbol} onChange={(e) => updateField('symbol', e.target.value.toUpperCase())}
-                    className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white placeholder-slate-500 outline-none focus:border-blue-500"
-                    placeholder="BTCUSDT" required />
+                  <SymbolPicker
+                    value={formData.symbol}
+                    onChange={(val) => updateField('symbol', val.toUpperCase())}
+                    exchange={accounts.find(a => a.id === formData.exchange_account_id)?.exchange || 'bybit'}
+                    placeholder="Select symbol..."
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm text-slate-400">Side</label>

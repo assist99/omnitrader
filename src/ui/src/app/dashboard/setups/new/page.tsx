@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Trash2, Info } from 'lucide-react';
 import engineFetch from '@/lib/api';
 import { TIMEFRAMES, INDICATORS, DEFAULT_TP_RATIOS } from '@/lib/constants';
 import type { ExchangeAccount, SetupFormData, Side, EntryIndicatorType, Timeframe, RiskType } from '@/lib/types';
+import SymbolPicker from '@/components/SymbolPicker';
 
 export default function SetupFormPage() {
   const router = useRouter();
@@ -201,13 +202,11 @@ export default function SetupFormPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm text-slate-400">Symbol</label>
-              <input
-                type="text"
+              <SymbolPicker
                 value={formData.symbol}
-                onChange={(e) => updateField('symbol', e.target.value.toUpperCase())}
-                className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white placeholder-slate-500 outline-none focus:border-blue-500"
-                placeholder="BTCUSDT"
-                required
+                onChange={(val) => updateField('symbol', val.toUpperCase())}
+                exchange={accounts.find(a => a.id === formData.exchange_account_id)?.exchange || 'bybit'}
+                placeholder="Select symbol..."
               />
             </div>
             <div>
