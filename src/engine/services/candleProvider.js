@@ -358,7 +358,7 @@ class CandleProvider {
 }
 
 if (require.main === module) {
-  const symbolsConfigPath = path.resolve(__dirname, '../../config/symbols/bybit.json');
+  const symbolsConfigPath = path.resolve(__dirname, '../../../config/symbols/bybit.json');
   const symbolsConfig = JSON.parse(fs.readFileSync(symbolsConfigPath, 'utf8'));
   const symbols = symbolsConfig.symbols.map(s => s.symbol);
   const provider = new CandleProvider({
