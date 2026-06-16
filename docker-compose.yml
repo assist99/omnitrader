@@ -14,10 +14,10 @@ services:
 
   engine:
     build:
-      context: ./src/engine
+      context: .
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "3002:3002"
     env_file:
       - ./src/engine/.env
     volumes:
