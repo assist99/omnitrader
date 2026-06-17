@@ -126,9 +126,7 @@ class ActiveSetupService {
       for (const order of orders) {
         if (order.status === 'pending' && order.exchange_order_id) {
           console.log(`Checking status for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
-          const params = order.order_type === 'sl' ? { 'category':'linear','stop': true, 'orderFilter': 'StopOrder' } : {};
-          console.log(`Params for getOrderStatus:`, params);
-          const status = await exchangeService.getOrderStatus(order.exchange_order_id, setup.symbol, params);
+          const status = await exchangeService.getOrderStatus(order.exchange_order_id, setup.symbol);
           if (!status) {
             logger.warn(`Order status not found for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
             continue;
