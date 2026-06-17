@@ -74,6 +74,14 @@ class TelegramService {
   }
 
   formatMessage(messageType, data) {
+    if (messageType === 'screener_reversal' || messageType === 'supply_demand_zone') {
+      if (messageType === 'supply_demand_zone') {
+        const mapped = { ...data, signal: data.signal === 'demand' ? 'bullish' : 'bearish', indicatorType: data.signal === 'demand' ? 'Demand' : 'Supply' };
+        return this.formatScreenerReversal(mapped);
+      }
+      return this.formatScreenerReversal(data);
+    }
+
     const emoji = this.getEmojiForMessageType(messageType);
     const timestamp = new Date().toUTCString().substring(0, 22);
     const subtitle = this.getMessageSubtitle(messageType, data);
@@ -110,12 +118,6 @@ class TelegramService {
       case 'exit_triggered':
         message += this.formatExitTriggered(data);
         break;
-      case 'screener_reversal':
-        message += this.formatScreenerReversal(data);
-        break;
-      case 'supply_demand_zone':
-        message += this.formatSupplyDemandZone(data);
-        break;
       case 'error':
         message += this.formatError(data);
         break;
@@ -138,6 +140,7 @@ class TelegramService {
         case 'sl_hit':
         case 'be_activated':
         case 'exit_triggered':
+        case 'supply_demand_zone':
           if (data && data.setupId && data.symbol) {
             const side = data.side ? ` • ${data.side.toUpperCase()}` : '';
             return `Setup #${data.setupId} • ${data.symbol}${side}`;
@@ -148,8 +151,6 @@ class TelegramService {
           return '';
         case 'screener_reversal':
           return data && data.symbol ? `${data.symbol}` : '';
-      case 'supply_demand_zone':
-          return data && data.symbol ? `${data.symbol} • ${data.signal === 'supply' ? 'Supply' : 'Demand'}` : '';
         case 'error':
           return data && data.component ? `Component: ${data.component}` : '';
         default:
@@ -256,24 +257,25 @@ class TelegramService {
   }
 
   formatScreenerReversal(data) {
-    return `Signal: ${data.signal === 'bullish_crossover' ? 'Bullish Reversal 📈' : 'Bearish Reversal 📉'}
-💰 Price: $${data.price}
-⏱ Timeframe: ${data.timeframe}
-📊 Indicator: ${data.indicatorType.toUpperCase()}
-🏦 Exchange: ${data.exchange} (${data.isTestnet ? 'testnet' : 'main'})
+    const isBuy = data.signal === 'bullish_crossover' || data.signal === 'bullish';
+    const action = isBuy ? 'BUY' : 'SELL';
+    const emoji = isBuy ? '🟢' : '🔴';
+    const price = this.formatPrice(data.price);
+    const date = new Date();
+    const day = date.toUTCString().slice(0, 3);
+    const dd = String(date.getUTCDate()).padStart(2, '0');
+    const mon = date.toUTCString().slice(8, 11);
+    const hh = String(date.getUTCHours()).padStart(2, '0');
+    const mm = String(date.getUTCMinutes()).padStart(2, '0');
+
+    return `${emoji} ${action} · ${data.symbol} · ${data.timeframe} · ${data.indicatorType ? data.indicatorType.toUpperCase() : ''}
+Price: ${price}  ·  ${day} ${dd} ${mon} ${hh}:${mm}
 `;
   }
 
-  formatSupplyDemandZone(data) {
-    const signalEmoji = data.signal === 'supply' ? '📉' : '📈';
-    const signalType = data.signal === 'supply' ? 'Supply Zone' : 'Demand Zone';
-    
-    return `Zone: ${signalType} ${signalEmoji}
-💰 Current Price: $${data.price}
-⏱️ Timeframe: ${data.timeframe}
-📊 Zone Range: $${data.zoneBottom} - $${data.zoneTop}
-🏦 Exchange: ${data.exchange} (${data.isTestnet ? 'testnet' : 'main'})
-`;
+  formatPrice(price) {
+    if (price === undefined || price === null) return '$0.00';
+    return '$' + Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   getEmojiForMessageType(messageType) {
