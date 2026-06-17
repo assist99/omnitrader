@@ -1,4 +1,4 @@
-const Database = require('./db/database');
+const { getDatabaseManager } = require('./db');
 const ExchangeService = require('./services/ExchangeService');
 const TelegramService = require('./services/telegramService');
 const PendingSetupService = require('./services/pendingSetupService');
@@ -8,7 +8,7 @@ const logger = require('./logger');
 
 class TradingEngine {
   constructor() {
-    this.db = new Database();
+    this.db = getDatabaseManager();
     this.telegramService = new TelegramService(this.db);
     this.exchangeServices = new Map();
     this.isInitialized = false;

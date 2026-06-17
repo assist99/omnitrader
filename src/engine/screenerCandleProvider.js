@@ -6,7 +6,7 @@
  * real-time candle updates for screener items only.
  */
 
-const Database = require('./db/database');
+const { getDatabaseManager } = require('./db');
 const CandleProvider = require('./services/candleProvider');
 const ScreenerService = require('./services/screenerService');
 const SupplyDemandService = require('./services/supplyDemandService');
@@ -18,7 +18,7 @@ const path = require('path');
 
 class ScreenerCandleProvider {
   constructor() {
-    this.db = new Database();
+    this.db = getDatabaseManager();
     this.telegramService = new TelegramService(this.db);
     this.candleProvider = null;
     this.isRunning = false;
