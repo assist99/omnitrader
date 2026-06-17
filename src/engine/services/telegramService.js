@@ -1,13 +1,32 @@
 const TelegramBot = require('node-telegram-bot-api');
 const Config = require('../config');
 const logger = require('../logger');
+const MessageBatcher = require('./messageBatcher');
 
 class TelegramService {
+  static TRADING_MESSAGE_TYPES = new Set([
+    'setup_created',
+    'setup_activated',
+    'setup_canceled',
+    'order_placed',
+    'order_filled',
+    'tp_hit',
+    'sl_hit',
+    'be_activated',
+    'exit_triggered'
+  ]);
+
+  static SCREENER_MESSAGE_TYPES = new Set([
+    'screener_reversal',
+    'supply_demand_zone'
+  ]);
+
   constructor(db) {
     this.botToken = Config.getTelegramBotToken();
     this.bot = null;
     this.defaultChatId = Config.getTelegramUserId();
     this.db = db || null;
+    this.messageBatcher = null;
 
     if (this.botToken) {
       this.initializeBot();
@@ -19,11 +38,16 @@ class TelegramService {
   initializeBot() {
     try {
       this.bot = new TelegramBot(this.botToken, { polling: false });
+      this.messageBatcher = new MessageBatcher(
+        this.sendDirectNotification.bind(this),
+        { formatMessage: this.formatBatchMessage.bind(this) }
+      );
       logger.info('Telegram bot initialized');
 
     } catch (error) {
       logger.error('Failed to initialize Telegram bot:', error);
       this.bot = null;
+      this.messageBatcher = null;
     }
   }
 
@@ -40,14 +64,10 @@ class TelegramService {
         return false;
       }
 
-      const message = this.formatMessage(messageType, data);
+      const accepted = await this.messageBatcher.enqueue(messageType, userId, data || {}, chatId);
+      if (!accepted) return false;
 
-      await this.bot.sendMessage(chatId, message, {
-        parse_mode: 'HTML',
-        disable_web_page_preview: true
-      });
-
-      logger.info(`Telegram notification sent: ${messageType}`);
+      logger.info(`Telegram notification queued: ${messageType}`);
       return true;
     } catch (error) {
       logger.error('Failed to send Telegram notification:', error);
@@ -73,18 +93,29 @@ class TelegramService {
     }
   }
 
-  formatMessage(messageType, data) {
+  async flush() {
+    if (!this.messageBatcher) return true;
+    return this.messageBatcher.flush();
+  }
+
+  formatMessage(messageType, data, options = {}) {
+    const payload = data || {};
+
+    if (options.batch) {
+      return this.formatBatchMessage(messageType, payload);
+    }
+
     if (messageType === 'screener_reversal' || messageType === 'supply_demand_zone') {
       if (messageType === 'supply_demand_zone') {
-        const mapped = { ...data, signal: data.signal === 'demand' ? 'bullish' : 'bearish', indicatorType: data.signal === 'demand' ? 'Demand' : 'Supply' };
+        const mapped = { ...payload, signal: payload.signal === 'demand' ? 'bullish' : 'bearish', indicatorType: payload.signal === 'demand' ? 'Demand' : 'Supply' };
         return this.formatScreenerReversal(mapped);
       }
-      return this.formatScreenerReversal(data);
+      return this.formatScreenerReversal(payload);
     }
 
     const emoji = this.getEmojiForMessageType(messageType);
     const timestamp = new Date().toUTCString().substring(0, 22);
-    const subtitle = this.getMessageSubtitle(messageType, data);
+    const subtitle = this.getMessageSubtitle(messageType, payload);
 
     let message = `${emoji} <b>${this.getMessageTitle(messageType)}</b>`;
     if (subtitle) message += `\n${subtitle}`;
@@ -92,40 +123,93 @@ class TelegramService {
     
     switch (messageType) {
       case 'setup_created':
-        message += this.formatSetupCreated(data);
+        message += this.formatSetupCreated(payload);
         break;
       case 'setup_activated':
-        message += this.formatSetupActivated(data);
+        message += this.formatSetupActivated(payload);
         break;
       case 'setup_canceled':
-        message += this.formatSetupCancelled(data);
+        message += this.formatSetupCancelled(payload);
         break;
       case 'order_placed':
-        message += this.formatOrderPlaced(data);
+        message += this.formatOrderPlaced(payload);
         break;
       case 'order_filled':
-        message += this.formatOrderFilled(data);
+        message += this.formatOrderFilled(payload);
         break;
       case 'tp_hit':
-        message += this.formatTpHit(data);
+        message += this.formatTpHit(payload);
         break;
       case 'sl_hit':
-        message += this.formatSlHit(data);
+        message += this.formatSlHit(payload);
         break;
       case 'be_activated':
-        message += this.formatBeActivated(data);
+        message += this.formatBeActivated(payload);
         break;
       case 'exit_triggered':
-        message += this.formatExitTriggered(data);
+        message += this.formatExitTriggered(payload);
         break;
       case 'error':
-        message += this.formatError(data);
+        message += this.formatError(payload);
         break;
       default:
-        message += JSON.stringify(data, null, 2);
+        message += JSON.stringify(payload, null, 2);
     }
     
     return message;
+  }
+
+  formatBatchMessage(messageType, data) {
+    const payload = data || {};
+
+    if (messageType === 'supply_demand_zone') {
+      const mapped = {
+        ...payload,
+        signal: payload.signal === 'demand' ? 'bullish' : 'bearish',
+        indicatorType: payload.signal === 'demand' ? 'Demand' : 'Supply'
+      };
+      return this.formatScreenerReversal(mapped);
+    }
+
+    if (this.constructor.SCREENER_MESSAGE_TYPES.has(messageType)) {
+      return this.formatScreenerReversal(payload);
+    }
+
+    if (this.constructor.TRADING_MESSAGE_TYPES.has(messageType)) {
+      return this.formatTradingBatchMessage(messageType, payload);
+    }
+
+    return this.formatMessage(messageType, payload);
+  }
+
+  formatTradingBatchMessage(messageType, data) {
+    switch (messageType) {
+      case 'setup_created':
+        return this.formatSetupCreated(data);
+      case 'setup_activated':
+        return this.formatSetupActivated(data);
+      case 'setup_canceled':
+        return this.formatSetupCancelled(data);
+      case 'order_placed':
+        return this.formatOrderPlaced(data);
+      case 'order_filled':
+        return this.formatOrderFilled(data);
+      case 'tp_hit':
+        return this.formatTpHit(data);
+      case 'sl_hit':
+        return this.formatSlHit(data);
+      case 'be_activated':
+        return this.formatBeActivated(data);
+      case 'exit_triggered':
+        return this.formatExitTriggered(data);
+      default:
+        return this.formatCompactTradingMessage(
+          ['NOTIFICATION', data.symbol, messageType],
+          '📨',
+          data.price || data.activationPrice || data.entryPrice,
+          data.timestamp
+        );
+    }
   }
 
   getMessageSubtitle(messageType, data) {
@@ -162,115 +246,169 @@ class TelegramService {
   }
 
   formatSetupCreated(data) {
-    return `🎯 Activation: $${data.activationPrice}
-📊 Entry: ${data.entryIndicatorType} (${data.entryIndicatorTf})
-⚖️ Risk: ${data.riskValue} ${data.riskType}
+    const payload = data || {};
+    const side = this.getSideAction(payload.side);
+    const timeframe = payload.entryIndicatorTf || payload.entry_indicator_tf || '';
+    const indicator = payload.entryIndicatorType || payload.entry_indicator_type || '';
 
-📝 ${data.memo || 'No memo'}
-`;
+    return this.formatCompactTradingMessage(
+      [side.action, payload.symbol, timeframe, indicator],
+      side.emoji,
+      payload.activationPrice || payload.price,
+      payload.timestamp
+    );
   }
 
   formatSetupActivated(data) {
-    return `💰 Price: $${data.price}
+    const payload = data || {};
+    const side = this.getSideAction(payload.side);
 
-📊 Checking entry conditions...
-`;
+    return this.formatCompactTradingMessage(
+      [side.action, payload.symbol, 'ACTIVATED'],
+      side.emoji,
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatSetupCancelled(data) {
-    return `📝 Reason: ${data.reason}
-`;
+    const payload = data || {};
+    const side = this.getSideAction(payload.side);
+
+    return this.formatCompactTradingMessage(
+      [side.action, payload.symbol, 'CANCELED'],
+      '❌',
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatOrderPlaced(data) {
-    const orderTypeMap = {
-      'entry': 'Entry',
-      'tp1': 'TP1',
-      'tp2': 'TP2',
-      'tp3': 'TP3',
-      'tp4': 'TP4',
-      'sl': 'SL'
-    };
-    
-    return `💰 Price: $${data.price}
-  📊 Quantity: ${data.quantity}
+    const payload = data || {};
+    const side = this.getSideAction(payload.side);
+    const orderType = payload.orderType || payload.order_type || 'ORDER';
 
-  📈 Side: ${data.side.toUpperCase()}
-  🎯 Type: ${data.orderType.toUpperCase()}
-  `;
+    return this.formatCompactTradingMessage(
+      [side.action, payload.symbol, orderType],
+      '🔄',
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatOrderFilled(data) {
-    const orderTypeMap = {
-      'entry': 'Entry',
-      'tp1': 'TP1',
-      'tp2': 'TP2',
-      'tp3': 'TP3',
-      'tp4': 'TP4',
-      'sl': 'SL'
-    };
-    
-    const pnlInfo = data.pnl ? `\n💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)` : '';
+    const payload = data || {};
+    const side = this.getSideAction(payload.side);
+    const orderType = payload.orderType || payload.order_type || 'ORDER';
 
-    return `💰 Price: $${data.price}
-  📊 Quantity: ${data.quantity}${pnlInfo}
-  `;
+    return this.formatCompactTradingMessage(
+      [side.action, payload.symbol, orderType],
+      '✅',
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatTpHit(data) {
-    return `💰 Price: $${data.price}
-📊 Quantity: ${data.quantity}
+    const payload = data || {};
+    const tpLevel = payload.tpLevel ? `TP${payload.tpLevel}` : 'TP';
 
-💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)
-📈 RR: ${data.tpLevel}:1
-`;
+    return this.formatCompactTradingMessage(
+      [tpLevel, payload.symbol, 'HIT'],
+      '🎯',
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatSlHit(data) {
-    return `💰 Price: $${data.price}
-📊 Quantity: ${data.quantity}
-
-💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)
-`;
+    const payload = data || {};
+    return this.formatCompactTradingMessage(
+      ['SL', payload.symbol, 'HIT'],
+      '🛑',
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatBeActivated(data) {
-    return `🎯 SL moved to entry price: $${data.entryPrice}
-
-📊 Position now risk-free!
-`;
+    const payload = data || {};
+    return this.formatCompactTradingMessage(
+      ['BE', payload.symbol, 'ACTIVATED'],
+      '🛡️',
+      payload.entryPrice,
+      payload.timestamp
+    );
   }
 
   formatExitTriggered(data) {
-    return `📊 Exit: ${data.exitIndicatorType} (${data.exitIndicatorTf})
-💰 Price: $${data.price}
+    const payload = data || {};
+    const timeframe = payload.exitIndicatorTf || payload.exit_indicator_tf || '';
+    const indicator = payload.exitIndicatorType || payload.exit_indicator_type || 'EXIT';
 
-💰 P&L: $${data.pnl.netPnl.toFixed(2)} (${data.pnl.pnlPercent.toFixed(2)}%)
-`;
+    return this.formatCompactTradingMessage(
+      ['EXIT', payload.symbol, timeframe, indicator],
+      '🚪',
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatError(data) {
-    return `❌ Error: ${data.error}
+    const payload = data || {};
+    return `❌ Error: ${payload.error || 'Unknown error'}
 
-📝 Details: ${data.details || 'No additional details'}
+📝 Details: ${payload.details || 'No additional details'}
 `;
   }
 
-  formatScreenerReversal(data) {
-    const isBuy = data.signal === 'bullish_crossover' || data.signal === 'bullish';
-    const action = isBuy ? 'BUY' : 'SELL';
-    const emoji = isBuy ? '🟢' : '🔴';
-    const price = this.formatPrice(data.price);
-    const date = new Date();
+  formatCompactTradingMessage(parts, emoji, price, timestamp) {
+    const lineParts = Array.isArray(parts) ? parts : [parts];
+    const filteredParts = lineParts
+      .map(part => String(part || '').trim())
+      .filter(part => part.length > 0);
+    const line = filteredParts.length > 0 ? filteredParts.join(' · ') : 'NOTIFICATION';
+
+    return `${emoji} ${line}
+Price: ${this.formatPrice(price)}  ·  ${this.formatBatchTimestamp(timestamp)}
+`;
+  }
+
+  getSideAction(side) {
+    const normalizedSide = String(side || '').toLowerCase();
+    if (normalizedSide === 'short' || normalizedSide === 'sell') {
+      return { action: 'SELL', emoji: '🔴' };
+    }
+
+    return { action: 'BUY', emoji: '🟢' };
+  }
+
+  formatBatchTimestamp(timestamp) {
+    const date = timestamp ? new Date(timestamp) : new Date();
+    if (Number.isNaN(date.getTime())) return this.formatBatchTimestamp();
+
     const day = date.toUTCString().slice(0, 3);
     const dd = String(date.getUTCDate()).padStart(2, '0');
     const mon = date.toUTCString().slice(8, 11);
     const hh = String(date.getUTCHours()).padStart(2, '0');
     const mm = String(date.getUTCMinutes()).padStart(2, '0');
 
-    return `${emoji} ${action} · ${data.symbol} · ${data.timeframe} · ${data.indicatorType ? data.indicatorType.toUpperCase() : ''}
-Price: ${price}  ·  ${day} ${dd} ${mon} ${hh}:${mm}
-`;
+    return `${day} ${dd} ${mon} ${hh}:${mm}`;
+  }
+
+  formatScreenerReversal(data) {
+    const payload = data || {};
+    const isBuy = payload.signal === 'bullish_crossover' || payload.signal === 'bullish';
+    const action = isBuy ? 'BUY' : 'SELL';
+    const emoji = isBuy ? '🟢' : '🔴';
+    const indicator = payload.indicatorType ? payload.indicatorType.toUpperCase() : '';
+
+    return this.formatCompactTradingMessage(
+      [action, payload.symbol, payload.timeframe, indicator],
+      emoji,
+      payload.price,
+      payload.timestamp
+    );
   }
 
   formatPrice(price) {
