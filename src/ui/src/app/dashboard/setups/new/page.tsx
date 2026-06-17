@@ -125,8 +125,12 @@ export default function SetupFormPage() {
     setError('');
     setSubmitting(true);
 
+    // Determine status based on activation price
+    const status = formData.activation_price === 0 ? 'triggered' : 'pending';
+
     const payload = {
       ...formData,
+      status,
       be_enabled: formData.be_enabled,
       be_trigger_price: formData.be_enabled ? formData.be_trigger_price : 0,
     };
@@ -260,6 +264,11 @@ type="number"
                   required
                 />
                 {showZeroWarning('activation_price')}
+                {formData.activation_price === 0 && (
+                  <div className="mt-2 p-2 rounded bg-green-900/30 border border-green-800">
+                    <p className="text-xs text-green-400">Setup will be <span className="font-semibold">immediately triggered</span> when created.</p>
+                  </div>
+                )}
             </div>
             <div>
               <label className="mb-1 block text-sm text-slate-400">Ignore Box Upper</label>
