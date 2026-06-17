@@ -180,21 +180,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               pathname.startsWith('/dashboard/screener') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
             }`}>
             <Search className="h-4 w-4" />
-            Reversal Screener
+            Reversal
           </Link>
           <Link href="/dashboard/supply-demand-screener"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
               pathname.startsWith('/dashboard/supply-demand-screener') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
             }`}>
             <Search className="h-4 w-4" />
-            Supply/Demand Screener
+            Supply/Demand
           </Link>
           <Link href="/dashboard/setups/new"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
               pathname.includes('/setups/new') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
             }`}>
             <PlusCircle className="h-4 w-4" />
-            New Setup
+            New Trade
           </Link>
           <Link href="/dashboard/settings"
             className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
