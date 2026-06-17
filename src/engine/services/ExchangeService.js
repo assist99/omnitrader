@@ -208,7 +208,6 @@ async getSymbolInfo(symbol) {
     } catch (error) {
       // Order might not exist
       if (error instanceof ccxt.OrderNotFound) {
-        console.log(`Order ${orderId} not found on ${this.exchangeName} for ${symbol}`);
         return null;
       }
       logger.log('getOrderStatus', error);

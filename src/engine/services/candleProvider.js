@@ -315,7 +315,6 @@ class CandleProvider {
         this.onScreenerUpdate(symbol, timeframe, closedBars);
       }
     } else if (raw[0] === current[0]) {
-      console.log('not new bar',symbol,timeframe)
       this.currentCandles.set(key, raw);
     }
   }

@@ -79,10 +79,8 @@ class EntryService {
       const qtyStepSize = parseFloat(symbolInfo.lotSizeFilter?.qtyStep) || 0.001;
 
       slPrice = PriceUtils.roundToTickSize(slPrice, tickSize);
-      console.log(`Calculated and rounded SL price for setup #${setup.id}: ${slPrice}`);
 
       const accountBalance = await exchangeService.getAccountBalance();
-      console.log(`Account balance for setup #${setup.id}: ${accountBalance}`);
       const riskType = setup.risk_type || 'percent';
       const positionSize = PriceUtils.calculatePositionSize(
         setup.risk_value,
@@ -104,17 +102,6 @@ class EntryService {
         tpPrices.length,
         qtyStepSize
       );
-
-        console.log('place order with params', {
-        entryPrice,
-        slPrice,
-        positionSize,
-        roundedPositionSize,
-        accountBalance,
-        riskType,
-        tickSize,
-        qtyStepSize
-      });
 
       const entryOrder = await exchangeService.placeOrder({
         symbol: setup.symbol,
@@ -171,7 +158,6 @@ class EntryService {
               positionIdx: 0
           }
         );
-        console.log(`Placed TP${i + 1} order for setup #${setup.id}`,JSON.stringify(tpOrder,null,2));
         await ctx.db.createOrder({
           setup_id: setup.id,
           order_type: `tp${i + 1}`,

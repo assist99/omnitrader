@@ -37,7 +37,6 @@ class SupplyDemandService {
       const params = item.indicator_params ? JSON.parse(item.indicator_params) : {};
       
       const result = IndicatorService.checkCondition('supply_demand', closedBars, params);
-      console.log('Check result for supply demand',result);
       if (result.error) {
         logger.error(`Error checking supply/demand for item ${item.id}: ${result.error}`);
         return;

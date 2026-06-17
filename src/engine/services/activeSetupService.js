@@ -144,13 +144,11 @@ class ActiveSetupService {
           const isPendingSl = order.order_type === 'sl';
           if (isPendingSl) continue;
 
-          console.log(`Checking status for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
           const status = await exchangeService.getOrderStatus(order.exchange_order_id, setup.symbol);
           if (!status) {
             logger.warn(`Order status not found for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
             continue;
           }
-          console.log(order)
           if (status.status === 'closed' && status.amount == status.filled) {
             await ctx.db.updateOrderStatus(order.id, 'filled');
 
