@@ -255,21 +255,6 @@ class ActiveSetupService {
       const remainingQty = (setup.entry_qty || 0) - filledQty;
       const qtyForPnl = remainingQty > 0 ? remainingQty : setup.entry_qty || 0;
 
-      if (remainingQty > 0) {
-        try {
-          await exchangeService.placeOrder({
-            symbol: setup.symbol,
-            side: setup.side === 'long' ? 'Sell' : 'Buy',
-            orderType: 'Market',
-            qty: remainingQty.toString(),
-            reduceOnly: true
-          });
-          logger.info(`Placed market close order for setup #${setup.id} after SL hit: ${remainingQty} qty`);
-        } catch (error) {
-          logger.error(`Error placing close order for SL hit on setup #${setup.id}:`, error);
-        }
-      }
-
       const pnl = PriceUtils.calculatePnl(setup.entry_price, slOrder.price, qtyForPnl, setup.side);
 
       await ctx.db.updateOrderStatus(slOrder.id, 'filled');
