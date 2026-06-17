@@ -3,7 +3,7 @@
 import type { SupplyDemandItem } from '@/lib/types';
 import SignalCell from './signal-cell';
 
-const TF_WHITELIST = ['m15', 'm30', 'h1', 'h2', 'h4'] as const;
+const TF_WHITELIST = ['m15', 'm30', 'h1', 'h2', 'h4', 'd1'] as const;
 type WhitelistedTf = (typeof TF_WHITELIST)[number];
 
 const TF_LABELS: Record<WhitelistedTf, string> = {
@@ -12,6 +12,7 @@ const TF_LABELS: Record<WhitelistedTf, string> = {
   h1: '1 H',
   h2: '2 H',
   h4: '4 H',
+  d1: 'Daily',
 };
 
 function isWhitelistedTf(tf: string): tf is WhitelistedTf {
