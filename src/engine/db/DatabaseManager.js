@@ -154,6 +154,26 @@ class DatabaseManager {
     return this.db.getSetupsByStatus(statuses);
   }
 
+  async getPendingSetupsBySymbolTimeframe() {
+    return this.db.getPendingSetupsBySymbolTimeframe();
+  }
+
+  async getPendingSetupsForSymbolTimeframe(symbol, timeframe) {
+    return this.db.getPendingSetupsForSymbolTimeframe(symbol, timeframe);
+  }
+
+  async getTriggeredSetupsBySymbolTimeframe() {
+    return this.db.getTriggeredSetupsBySymbolTimeframe();
+  }
+
+  async getTriggeredSetupsForSymbolTimeframe(symbol, timeframe) {
+    return this.db.getTriggeredSetupsForSymbolTimeframe(symbol, timeframe);
+  }
+
+  async getActiveSetups() {
+    return this.db.getActiveSetups();
+  }
+
   async getOrdersBySetupId(setupId) {
     return this.db.getOrdersBySetupId(setupId);
   }
