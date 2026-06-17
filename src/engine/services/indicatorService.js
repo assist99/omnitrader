@@ -39,7 +39,7 @@ class IndicatorService {
   static checkSuperTrend(candles, params = {}) {
     try {
       const period = params.period || 10;
-      const multiplier = params.multiplier || 4;
+      const multiplier = params.multiplier || 3;
       
       const highs = candles.map(c => c.high);
       const lows = candles.map(c => c.low);
