@@ -101,11 +101,9 @@ class SupplyDemandService {
       if (!items || items.length === 0) return;
 
       // Process all items in parallel for this symbol/timeframe
-      const promises = items.map(item => 
-        this.processItem(item, filtered, this.db, this.telegramService)
-      );
-      
-      await Promise.all(promises);
+      for (const item of items) {
+        await this.processItem(item, filtered, this.db, this.telegramService);
+      }
       logger.debug(`Processed ${items.length} supply/demand items for ${symbol} ${timeframe}`);
     } catch (error) {
       logger.error(`Error in processItemFromCandle for ${symbol} ${timeframe}:`, error);

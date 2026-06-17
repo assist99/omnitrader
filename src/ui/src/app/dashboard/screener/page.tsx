@@ -23,7 +23,7 @@ type TabType = 'enabled' | 'disabled' | 'market';
 export default function ScreenerPage() {
   const [items, setItems] = useState<ScreenerItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<TabType>('enabled');
+  const [tab, setTab] = useState<TabType>('market');
   const [refreshing, setRefreshing] = useState(false);
 
   async function fetchItems(refresh = false) {

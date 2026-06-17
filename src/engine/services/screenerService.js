@@ -88,11 +88,17 @@ class ScreenerService {
       const items = await this.db.getScreenerItemsBySymbolTimeframe(symbol, timeframe, true);
       if (!items || items.length === 0) return;
       
-      // Process all items in parallel for this symbol/timeframe
-      const promises = items.map(item => 
-        this.processItem(item, filtered, this.db, this.telegramService)
-      );
-      
+      for (const item of items) {
+        await this.processItem(item, filtered, this.db, this.telegramService);
+      }
+    } catch (error) {
+      logger.error(`Error in processItemFromCandle for ${symbol} ${timeframe}:`, error);
+    }
+  }
+
+  static async processAll(db, engine, telegramService) {
+    try {
+      logger.info('Processing screener items');
       await Promise.all(promises);
       logger.debug(`Processed ${items.length} screener items for ${symbol} ${timeframe}`);
     } catch (error) {

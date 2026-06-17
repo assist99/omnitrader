@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { PlusCircle, Trash2, ToggleLeft, ToggleRight, Search, Pencil } from 'lucide-react';
+import { PlusCircle, Trash2, ToggleLeft, ToggleRight, Search, Pencil, RefreshCw } from 'lucide-react';
 import engineFetch from '@/lib/api';
 import type { SupplyDemandItem } from '@/lib/types';
+import MarketHeader from './market-header';
+import MarketTable from './market-table';
 
 const TIMEFRAME_LABELS: Record<string, string> = {
   m1: '1 Min',
@@ -17,23 +19,27 @@ const TIMEFRAME_LABELS: Record<string, string> = {
   d1: '1 D'
 };
 
-type TabType = 'enabled' | 'disabled';
+type TabType = 'enabled' | 'disabled' | 'market';
 
 export default function SupplyDemandScreenerPage() {
   const [items, setItems] = useState<SupplyDemandItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<TabType>('enabled');
+  const [tab, setTab] = useState<TabType>('market');
+  const [refreshing, setRefreshing] = useState(false);
 
-  async function fetchItems() {
-    setLoading(true);
+  async function fetchItems(refresh = false) {
+    if (refreshing) return;
+    setRefreshing(true);
+    if (!refresh) setLoading(true);
     try {
-      const enabledParam = tab === 'enabled' ? 'true' : 'false';
+      const enabledParam = (tab === 'enabled' || tab === 'market') ? 'true' : 'false';
       const data = await engineFetch(`/api/supply-demand?enabled=${enabledParam}`);
       if (data.success) setItems(data.data);
     } catch (err) {
       console.error(err);
     }
-    setLoading(false);
+    if (!refresh) setLoading(false);
+    setRefreshing(false);
   }
 
   useEffect(() => {
@@ -83,20 +89,30 @@ export default function SupplyDemandScreenerPage() {
           <Search className="h-6 w-6" />
           Supply/Demand Screener
         </h1>
-        <Link href="/dashboard/supply-demand-screener/new"
-          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 w-full sm:w-auto">
-          <PlusCircle className="h-4 w-4" />
-          Add Supply/Demand Screener
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchItems(true)}
+            disabled={refreshing}
+            className="flex items-center justify-center rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700 border border-slate-700/50"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <Link href="/dashboard/supply-demand-screener/new"
+            className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 w-full sm:w-auto">
+            <PlusCircle className="h-4 w-4" />
+            Add Supply/Demand Screener
+          </Link>
+        </div>
       </div>
 
       <div className="mb-4 flex items-center gap-1 border-b border-slate-700/50 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-        {(['enabled', 'disabled'] as TabType[]).map((t) => (
+        {(['enabled', 'disabled', 'market'] as TabType[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`whitespace-nowrap px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 ${
               tab === t ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'
             }`}>
-            {t === 'enabled' ? 'Enabled' : 'Disabled'}
+            {t === 'enabled' ? 'Enabled' : t === 'disabled' ? 'Disabled' : 'Market'}
           </button>
         ))}
       </div>
@@ -104,6 +120,10 @@ export default function SupplyDemandScreenerPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+        </div>
+      ) : tab === 'market' ? (
+        <div className="rounded-lg border border-slate-700/50 bg-slate-800">
+          <MarketTable items={items} />
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
