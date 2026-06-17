@@ -39,8 +39,8 @@ async function main() {
 
   const exchange = new ExchangeService(exchangeName, apiKey, apiSecret, isTestnet);
   const telegramService = new MockTelegramService();
-
-  const setup = await db.get(`SELECT * FROM trading_setups WHERE id = 33`);
+  const setupId = 60;
+  const setup = await db.get(`SELECT * FROM trading_setups WHERE id = ${setupId}`);
   if (!setup) {
     console.error('Setup #33 not found in database');
     process.exit(1);
@@ -50,7 +50,7 @@ async function main() {
   console.log(`Found setup #33: ${setup.symbol} ${setup.side} | status: ${setup.status}`);
   console.log(`  entry_price: ${setup.entry_price}, entry_qty: ${setup.entry_qty}`);
 
-  const orders = await db.all(`SELECT * FROM orders WHERE setup_id = 33 ORDER BY id`);
+  const orders = await db.all(`SELECT * FROM orders WHERE setup_id = ${setupId} ORDER BY id`);
   console.log(`\nOrders for setup #33 (${orders.length}):`);
   for (const order of orders) {
     console.log(`  [${order.order_type}] id=${order.id} status=${order.status} exchange_id=${order.exchange_order_id} price=${order.price}`);
@@ -67,15 +67,15 @@ async function main() {
   await ActiveSetupService.updateOrderStatuses(ctx, setup, exchange);
 
   console.log('\n--- Orders after updateOrderStatuses ---');
-  const updatedOrders = await db.all(`SELECT * FROM orders WHERE setup_id = 33 ORDER BY id`);
+  const updatedOrders = await db.all(`SELECT * FROM orders WHERE setup_id = ${setupId} ORDER BY id`);
   for (const order of updatedOrders) {
     console.log(`  [${order.order_type}] id=${order.id} status=${order.status} exchange_id=${order.exchange_order_id}`);
   }
 
-  const updatedSetup = await db.get(`SELECT * FROM trading_setups WHERE id = 33`);
+  const updatedSetup = await db.get(`SELECT * FROM trading_setups WHERE id = ${setupId}`);
   console.log(`\nSetup #33 status after: ${updatedSetup.status}`);
   if (updatedSetup.profit !== undefined) {
-    console.log(`Setup #33 profit: ${updatedSetup.profit}`);
+    console.log(`Setup #${setupId} profit: ${updatedSetup.profit}`);
   }
 
   await db.disconnect();

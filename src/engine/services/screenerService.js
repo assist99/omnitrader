@@ -99,16 +99,6 @@ class ScreenerService {
   static async processAll(db, engine, telegramService) {
     try {
       logger.info('Processing screener items');
-      await Promise.all(promises);
-      logger.debug(`Processed ${items.length} screener items for ${symbol} ${timeframe}`);
-    } catch (error) {
-      logger.error(`Error in processItemFromCandle for ${symbol} ${timeframe}:`, error);
-    }
-  }
-
-  static async processAll(db, engine, telegramService) {
-    try {
-      logger.info('Processing screener items');
 
       const items = await db.getScreenerItems(null, true);
       if (!items || items.length === 0) {

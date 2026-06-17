@@ -133,6 +133,11 @@ if (require.main === module) {
   // Handle process signals
   const shutdown = async (signal) => {
     logger.info(`Received ${signal}, shutting down...`);
+    try {
+      await app.telegramService.flush();
+    } catch (error) {
+      logger.error('Error flushing telegram messages:', error);
+    }
     await app.stop();
     process.exit(0);
   };

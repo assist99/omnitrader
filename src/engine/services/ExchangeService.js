@@ -201,9 +201,9 @@ async getSymbolInfo(symbol) {
   }
   
   // Get order status
-  async getOrderStatus(orderId, symbol) {
+  async getOrderStatus(orderId, symbol,params={}) {
     try {
-      const order = await this.exchange.fetchClosedOrder(orderId, symbol);
+      const order = await this.exchange.fetchOrder(orderId, symbol,params);
       return order;
     } catch (error) {
       // Order might not exist

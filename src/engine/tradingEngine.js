@@ -125,6 +125,7 @@ class TradingEngine {
 
   async cleanup() {
     try {
+      await this.telegramService.flush();
       await this.db.disconnect();
       this.exchangeServices.clear();
       this.isInitialized = false;

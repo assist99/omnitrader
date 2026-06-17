@@ -101,7 +101,7 @@ class MessageBatcher {
     }
 
     if (this.constructor.SCREENER_MESSAGE_TYPES.has(messageType)) {
-      return { type: 'screener', symbol, key: `screener:${safeUserId}:${symbol}` };
+      return { type: 'screener', symbol: null, key: `screener:${safeUserId}` };
     }
 
     if (this.constructor.TRADING_MESSAGE_TYPES.has(messageType)) {
@@ -125,7 +125,7 @@ class MessageBatcher {
       other: '📨 Notifications'
     };
     const label = labels[type] || 'Notifications';
-    return symbol && symbol !== 'unknown' ? `${label} — ${symbol}` : label;
+    return label;
   }
 
   formatMessage(messageType, data) {
