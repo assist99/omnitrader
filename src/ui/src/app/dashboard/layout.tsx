@@ -63,10 +63,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/screener', label: 'Reversal Screener', icon: Search },
-    { href: '/dashboard/supply-demand-screener', label: 'Supply/Demand Screener', icon: Search },
+    { href: '/dashboard/screener', label: 'Reversal', icon: Search },
+    { href: '/dashboard/supply-demand-screener', label: 'Supply/Demand', icon: Search },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
-    { href: '/dashboard/setups/new', label: 'New Setup', icon: PlusCircle },
+    { href: '/dashboard/setups/new', label: 'New Trade', icon: PlusCircle },
   ];
 
   return (
