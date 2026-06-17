@@ -54,6 +54,7 @@ class TradingEngine {
       for (const setup of setups) {
         try {
           await this.processSetup(setup);
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
           logger.error(`Error processing setup #${setup.id}:`, error);
           this.stats.errors++;
