@@ -157,23 +157,61 @@ class Database {
     return this.run('ROLLBACK');
   }
 
-  async getSetupsByStatus(statuses) {
-    if (!Array.isArray(statuses) || statuses.length === 0) {
-      return [];
-    }
-    
-    const placeholders = statuses.map(() => '?').join(',');
+  async getPendingSetupsBySymbolTimeframe() {
     const sql = `
-      SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet, ea.label as account_label,
-             u.email as user_email
+      SELECT DISTINCT ts.symbol, ts.entry_indicator_tf as timeframe
+      FROM trading_setups ts
+      WHERE ts.status = 'pending'
+      ORDER BY ts.symbol, ts.entry_indicator_tf
+    `;
+    return this.all(sql);
+  }
+
+  async getPendingSetupsForSymbolTimeframe(symbol, timeframe) {
+    const sql = `
+      SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet
       FROM trading_setups ts
       JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
-      JOIN users u ON ts.user_id = u.id
-      WHERE ts.status IN (${placeholders})
+      WHERE ts.status = 'pending' 
+        AND ts.symbol = ? 
+        AND ts.entry_indicator_tf = ?
       ORDER BY ts.created_at ASC
     `;
-    
-    return this.all(sql, statuses);
+    return this.all(sql, [symbol, timeframe]);
+  }
+
+  async getTriggeredSetupsBySymbolTimeframe() {
+    const sql = `
+      SELECT DISTINCT ts.symbol, ts.entry_indicator_tf as timeframe
+      FROM trading_setups ts
+      WHERE ts.status = 'triggered'
+      ORDER BY ts.symbol, ts.entry_indicator_tf
+    `;
+    return this.all(sql);
+  }
+
+  async getTriggeredSetupsForSymbolTimeframe(symbol, timeframe) {
+    const sql = `
+      SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet
+      FROM trading_setups ts
+      JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
+      WHERE ts.status = 'triggered' 
+        AND ts.symbol = ? 
+        AND ts.entry_indicator_tf = ?
+      ORDER BY ts.created_at ASC
+    `;
+    return this.all(sql, [symbol, timeframe]);
+  }
+
+  async getActiveSetups() {
+    const sql = `
+      SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet
+      FROM trading_setups ts
+      JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
+      WHERE ts.status = 'active'
+      ORDER BY ts.created_at ASC
+    `;
+    return this.all(sql);
   }
 
   async updateSetupStatus(setupId, newStatus, updates = {}) {

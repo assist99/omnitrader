@@ -1,8 +1,6 @@
 const { getDatabaseManager } = require('./db');
 const ExchangeService = require('./services/ExchangeService');
 const TelegramService = require('./services/telegramService');
-const PendingSetupService = require('./services/pendingSetupService');
-const EntryService = require('./services/entryService');
 const ActiveSetupService = require('./services/activeSetupService');
 const logger = require('./logger');
 
@@ -13,10 +11,9 @@ class TradingEngine {
     this.exchangeServices = new Map();
     this.isInitialized = false;
     this.stats = {
-      totalSetupsProcessed: 0,
-      setupsActivated: 0,
-      setupsCancelled: 0,
-      ordersPlaced: 0,
+      activeSetupsProcessed: 0,
+      positionsMonitored: 0,
+      ordersUpdated: 0,
       errors: 0,
       lastRun: null
     };
@@ -44,12 +41,12 @@ class TradingEngine {
     }
 
     try {
-      logger.info('Starting to process all setups');
+      logger.info('Starting to process all active setups');
 
-      const setups = await this.db.getSetupsByStatus(['pending', 'triggered', 'active']);
+      const setups = await this.db.getActiveSetups();
 
-      logger.info(`Found ${setups.length} setups to process`);
-      this.stats.totalSetupsProcessed += setups.length;
+      logger.info(`Found ${setups.length} active setups to process`);
+      this.stats.activeSetupsProcessed += setups.length;
 
       for (const setup of setups) {
         try {
@@ -82,17 +79,11 @@ class TradingEngine {
     logger.info(`Processing setup #${setup.id}: ${setup.symbol} ${setup.side} (${setup.status})`);
 
     switch (setup.status) {
-      case 'pending':
-        const rt = await PendingSetupService.processPendingSetup(this, setup);
-        if (!rt) break;
-      case 'triggered':
-        await EntryService.processTriggeredSetup(this, setup);
-        break;
       case 'active':
         await ActiveSetupService.processActiveSetup(this, setup);
         break;
       default:
-        logger.warn(`Unknown setup status: ${setup.status} for setup #${setup.id}`);
+        logger.info(`Setup #${setup.id} with status '${setup.status}' handled by candle provider`);
     }
   }
 

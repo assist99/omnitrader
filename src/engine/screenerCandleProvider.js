@@ -3,13 +3,16 @@
  * Screener CandleProvider - Standalone service for screener candle updates
  * 
  * This service runs independently from the TradingEngine and handles
- * real-time candle updates for screener items only.
+ * real-time candle updates for screener items, supply/demand items,
+ * pending setups, and triggered setups.
  */
 
 const { getDatabaseManager } = require('./db');
 const CandleProvider = require('./services/candleProvider');
 const ScreenerService = require('./services/screenerService');
 const SupplyDemandService = require('./services/supplyDemandService');
+const PendingSetupService = require('./services/pendingSetupService');
+const EntryService = require('./services/entryService');
 const TelegramService = require('./services/telegramService');
 const logger = require('./logger');
 const Config = require('./config');
@@ -52,6 +55,12 @@ class ScreenerCandleProvider {
       // Initialize SupplyDemandService dependencies
       SupplyDemandService.setDeps(this.db, this.telegramService);
       
+      // Initialize PendingSetupService dependencies
+      PendingSetupService.setDeps(this.db, this.telegramService);
+      
+      // Initialize EntryService dependencies
+      EntryService.setDeps(this.db, this.telegramService);
+      
       // Load ALL symbols and timeframes from config
       const symbols = this.loadSymbols();
       const timeframes = this.loadTimeframes();
@@ -70,10 +79,13 @@ class ScreenerCandleProvider {
         },
         onScreenerUpdate: (symbol, timeframe, closedBars) => {
           // Query database for screener items matching this symbol/timeframe
-          // This happens on each candle close, so we always get fresh data
           ScreenerService.processItemFromCandle(symbol, timeframe, closedBars);
           // Also process supply/demand items
           SupplyDemandService.processItemFromCandle(symbol, timeframe, closedBars);
+          // Process pending setups
+          PendingSetupService.processItemFromCandle(symbol, timeframe, closedBars);
+          // Process triggered setups
+          EntryService.processItemFromCandle(symbol, timeframe, closedBars);
         },
         isTestnet: false
       });
