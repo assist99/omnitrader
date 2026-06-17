@@ -20,13 +20,18 @@ class ActiveSetupService {
 
     await this.updateOrderStatuses(ctx, setup, exchangeService);
 
+    const updatedSetup = await ctx.db.getSetupById(setup.id);
+    if (!updatedSetup || updatedSetup.status !== 'active') {
+      return;
+    }
+
     if (setup.exit_indicator_type && setup.exit_indicator_tf) {
       if (TimeUtils.isTriggerTime(setup.exit_indicator_tf)) {
-        await this.checkExitCondition(ctx, setup, exchangeService);
+        await this.checkExitCondition(ctx, updatedSetup, exchangeService);
       }
     }
 
-    await this.checkBreakEven(ctx, setup, exchangeService);
+    await this.checkBreakEven(ctx, updatedSetup, exchangeService);
   }
 
   static async checkExitCondition(ctx, setup, exchangeService) {
@@ -123,8 +128,22 @@ class ActiveSetupService {
     try {
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
 
+      const slOrder = orders.find(o => o.order_type === 'sl');
+      if (slOrder && slOrder.status === 'pending') {
+        if (setup.entry_indicator_tf && TimeUtils.isTriggerTime(setup.entry_indicator_tf)) {
+          const slHit = await this.checkSlCandleHit(ctx, setup, exchangeService, orders);
+          if (slHit) {
+            await this.processSlHit(ctx, setup, exchangeService, orders, slOrder);
+            return;
+          }
+        }
+      }
+
       for (const order of orders) {
         if (order.status === 'pending' && order.exchange_order_id) {
+          const isPendingSl = order.order_type === 'sl';
+          if (isPendingSl) continue;
+
           console.log(`Checking status for order ${order.id} (Exchange ID: ${order.exchange_order_id})`);
           const status = await exchangeService.getOrderStatus(order.exchange_order_id, setup.symbol);
           if (!status) {
@@ -166,42 +185,16 @@ class ActiveSetupService {
               const allTpOrders = orders.filter(o => o.order_type.startsWith('tp'));
               const allTpFilled = allTpOrders.length > 0 && allTpOrders.every(o => o.status === 'filled');
               if (allTpFilled) {
-                const slOrder = orders.find(o => o.order_type === 'sl');
-                if (slOrder && slOrder.status === 'pending' && slOrder.exchange_order_id) {
+                const currentSlOrder = orders.find(o => o.order_type === 'sl');
+                if (currentSlOrder && currentSlOrder.status === 'pending' && currentSlOrder.exchange_order_id) {
                   try {
-                    await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol, { 'trigger': true });
-                    await ctx.db.updateOrderStatus(slOrder.id, 'canceled');
+                    await exchangeService.cancelOrder(currentSlOrder.exchange_order_id, setup.symbol, { 'trigger': true });
+                    await ctx.db.updateOrderStatus(currentSlOrder.id, 'canceled');
                   } catch (error) {
                     logger.error(`Error cancelling SL order after all TP filled for setup #${setup.id}:`, error);
                   }
                 }
               }
-            } else if (order.order_type === 'sl') {
-              const pendingTpOrders = orders.filter(o => o.order_type.startsWith('tp') && o.status === 'pending' && o.exchange_order_id);
-              for (const tpOrder of pendingTpOrders) {
-                try {
-                  await exchangeService.cancelOrder(tpOrder.exchange_order_id, setup.symbol);
-                  await ctx.db.updateOrderStatus(tpOrder.id, 'canceled');
-                } catch (error) {
-                  logger.error(`Error cancelling TP order ${tpOrder.id} after SL hit for setup #${setup.id}:`, error);
-                }
-              }
-
-              const pnl = PriceUtils.calculatePnl(setup.entry_price, order.price, order.qty, setup.side);
-
-              await ctx.telegramService.sendNotification(setup.user_id, 'sl_hit', {
-                setupId: setup.id,
-                symbol: setup.symbol,
-                price: order.price,
-                quantity: order.qty,
-                pnl: pnl,
-                timestamp: new Date().toISOString()
-              });
-
-              logger.slHit(setup.id, order.price, pnl.netPnl);
-
-              await this.closeSetup(ctx, setup, 'stop_loss_hit', pnl.netPnl);
-              return;
             }
           } else if (status.status === 'canceled' || status.status === 'rejected') {
             await ctx.db.updateOrderStatus(order.id, 'canceled');
@@ -215,6 +208,86 @@ class ActiveSetupService {
       }
     } catch (error) {
       logger.error(`Error updating order statuses for setup #${setup.id}:`, error);
+    }
+  }
+
+  static async checkSlCandleHit(ctx, setup, exchangeService, orders) {
+    try {
+      const slOrder = orders.find(o => o.order_type === 'sl');
+      if (!slOrder) return null;
+
+      const candles = await exchangeService.getCandles(setup.symbol, setup.entry_indicator_tf, 100);
+      const parsedCandles = CandleUtils.parseExchangeCandles(candles);
+      const closedBars = CandleUtils.filterClosedBars(parsedCandles, setup.entry_indicator_tf);
+
+      if (closedBars.length === 0) return null;
+
+      const lastCandle = closedBars[closedBars.length - 1];
+
+      if (setup.side === 'long' && lastCandle.low <= slOrder.price) {
+        return lastCandle;
+      }
+      if (setup.side === 'short' && lastCandle.high >= slOrder.price) {
+        return lastCandle;
+      }
+
+      return null;
+    } catch (error) {
+      logger.error(`Error checking SL candle hit for setup #${setup.id}:`, error);
+      return null;
+    }
+  }
+
+  static async processSlHit(ctx, setup, exchangeService, orders, slOrder) {
+    try {
+      const pendingTpOrders = orders.filter(o => o.order_type.startsWith('tp') && o.status === 'pending' && o.exchange_order_id);
+      for (const tpOrder of pendingTpOrders) {
+        try {
+          await exchangeService.cancelOrder(tpOrder.exchange_order_id, setup.symbol);
+          await ctx.db.updateOrderStatus(tpOrder.id, 'canceled');
+        } catch (error) {
+          logger.error(`Error cancelling TP order ${tpOrder.id} after SL hit for setup #${setup.id}:`, error);
+        }
+      }
+
+      const filledTpOrders = orders.filter(o => o.order_type.startsWith('tp') && o.status === 'filled');
+      const filledQty = filledTpOrders.reduce((sum, o) => sum + (o.qty || 0), 0);
+      const remainingQty = (setup.entry_qty || 0) - filledQty;
+      const qtyForPnl = remainingQty > 0 ? remainingQty : setup.entry_qty || 0;
+
+      if (remainingQty > 0) {
+        try {
+          await exchangeService.placeOrder({
+            symbol: setup.symbol,
+            side: setup.side === 'long' ? 'Sell' : 'Buy',
+            orderType: 'Market',
+            qty: remainingQty.toString(),
+            reduceOnly: true
+          });
+          logger.info(`Placed market close order for setup #${setup.id} after SL hit: ${remainingQty} qty`);
+        } catch (error) {
+          logger.error(`Error placing close order for SL hit on setup #${setup.id}:`, error);
+        }
+      }
+
+      const pnl = PriceUtils.calculatePnl(setup.entry_price, slOrder.price, qtyForPnl, setup.side);
+
+      await ctx.db.updateOrderStatus(slOrder.id, 'filled');
+
+      await ctx.telegramService.sendNotification(setup.user_id, 'sl_hit', {
+        setupId: setup.id,
+        symbol: setup.symbol,
+        price: slOrder.price,
+        quantity: qtyForPnl,
+        pnl: pnl,
+        timestamp: new Date().toISOString()
+      });
+
+      logger.slHit(setup.id, slOrder.price, pnl.netPnl);
+
+      await this.closeSetup(ctx, setup, 'stop_loss_hit', pnl.netPnl);
+    } catch (error) {
+      logger.error(`Error processing SL hit for setup #${setup.id}:`, error);
     }
   }
 
