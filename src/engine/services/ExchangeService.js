@@ -151,6 +151,10 @@ async getSymbolInfo(symbol) {
         params.price = parseFloat(orderParams.price);
       }
       
+      if ((orderParams.orderType.toLowerCase() === 'market' && this.exchangeName === 'hyperliquid')) {
+        params.price = parseFloat(orderParams.price);
+      }
+
       // Include additional parameters
       if (orderParams.timeInForce) {
         params.timeInForce = orderParams.timeInForce;
