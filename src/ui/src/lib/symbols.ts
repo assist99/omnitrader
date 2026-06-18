@@ -27,7 +27,93 @@ export const BYBIT_SYMBOLS: SymbolOption[] = [
   { symbol: 'PXAG/USDT:USDT', display: 'PAGUSDT.P' }
 ];
 
-export const HYPERLIQUID_SYMBOLS: SymbolOption[] = [];
+export const HYPERLIQUID_SYMBOLS: SymbolOption[] = [
+  {
+    "symbol": "BTC/USDC:USDC",
+    "display": "BTCUSDC.P"
+  },
+  {
+    "symbol": "ETH/USDC:USDC",
+    "display": "ETHUSDC.P"
+  },
+  {
+    "symbol": "BNB/USDC:USDC",
+    "display": "BNBUSDC.P"
+  },
+  {
+    "symbol": "LINK/USDC:USDC",
+    "display": "LINKUSDC.P"
+  },
+  {
+    "symbol": "SOL/USDC:USDC",
+    "display": "SOLUSDC.P"
+  },
+  {
+    "symbol": "GRT/USDC:USDC",
+    "display": "GRTUSDC.P"
+  },
+  {
+    "symbol": "NEAR/USDC:USDC",
+    "display": "NEARUSDC.P"
+  },
+  {
+    "symbol": "AAVE/USDC:USDC",
+    "display": "AAVEUSDC.P"
+  },
+  {
+    "symbol": "INJ/USDC:USDC",
+    "display": "INJUSDC.P"
+  },
+  {
+    "symbol": "ADA/USDC:USDC",
+    "display": "ADAUSDC.P"
+  },
+  {
+    "symbol": "TRX/USDC:USDC",
+    "display": "TRXUSDC.P"
+  },
+  {
+    "symbol": "DOGE/USDC:USDC",
+    "display": "DOGEUSDC.P"
+  },
+  {
+    "symbol": "ATOM/USDC:USDC",
+    "display": "ATOMUSDC.P"
+  },
+  {
+    "symbol": "LTC/USDC:USDC",
+    "display": "LTCUSDC.P"
+  },
+  {
+    "symbol": "SUI/USDC:USDC",
+    "display": "SUIUSDC.P"
+  },
+  {
+    "symbol": "ARB/USDC:USDC",
+    "display": "ARBUSDC.P"
+  },
+  {
+    "symbol": "DOT/USDC:USDC",
+    "display": "DOTUSDC.P"
+  },
+  {
+    "symbol": "XAU/USDC:USDC",
+    "display": "XAUUSDC.P"
+  },
+  {
+    "symbol": "XAG/USDC:USDC",
+    "display": "XAGUSDC.P"
+  },
+  {
+    "symbol": "PAXG/USDC:USDC",
+    "display": "PAXGUSDC.P"
+  },
+  {
+    "symbol": "AVAX/USDC:USDC",
+    "display": "AVAXUSDC.P"
+  }
+
+];
 
 export const SYMBOLS: Record<string, SymbolOption[]> = {
   bybit: BYBIT_SYMBOLS,
