@@ -77,7 +77,10 @@ class EntryService {
       }
       
       const setups = await this.db.getTriggeredSetupsForSymbolTimeframe(symbol, timeframe);
-      if (!setups || setups.length === 0) return;
+      if (!setups || setups.length === 0) {
+        console.log(`No triggered setups for ${symbol} ${timeframe}`);
+        return;
+      }
       
       logger.debug(`Processing ${setups.length} triggered setups for ${symbol} ${timeframe}`);
       
