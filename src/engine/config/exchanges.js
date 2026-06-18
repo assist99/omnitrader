@@ -110,10 +110,18 @@ function fromExchangeSymbol(symbol, exchangeName) {
 function getCcxtConfig(exchangeName, apiKey, apiSecret, isTestnet) {
   const config = getExchangeConfig(exchangeName);
   
-  const ccxtConfig = {
+  const ccxtConfig = exchangeName=='hyperliquid'?{
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,
+    privateKey:apiSecret,
+    slippage:0.03,
+    walletAddress: '0x673236C3e2ca96c6d3cE787C333a43673958Dc7E'
+  }:{
+    apiKey,
+    secret: apiSecret,
+    enableRateLimit: true
+
   };
   
   // Add URLs if exchange-specific

@@ -103,12 +103,7 @@ async getSymbolInfo(symbol) {
         symbol: ticker.symbol,
         lastPrice: ticker.last.toString(),
         bidPrice: ticker.bid.toString(),
-        askPrice: ticker.ask.toString(),
-        volume: ticker.baseVolume.toString(),
-        quoteVolume: ticker.quoteVolume.toString(),
-        high24h: ticker.high.toString(),
-        low24h: ticker.low.toString(),
-        change24h: ticker.percentage.toString(),
+        askPrice: ticker.ask.toString()
       };
     } catch (error) {
       logger.apiError('getTicker', error);
@@ -120,10 +115,16 @@ async getSymbolInfo(symbol) {
   async getAccountBalance() {
     try {
       const balance = await this.exchange.fetchBalance();
-      
+      if (this.exchangeName=='hyperliquid'){
+        const usdtBalance = balance.total?.USDC;
+        return parseFloat(usdtBalance);
+
+      }else{
+        const usdtBalance = balance.total?.USDT  || balance.total?.usdt || 0;
+        return parseFloat(usdtBalance);
+
+      }
       // Find USDT balance
-      const usdtBalance = balance.total?.USDT || balance.total?.usdt || 0;
-      return parseFloat(usdtBalance);
     } catch (error) {
       logger.apiError('getAccountBalance', error);
       throw error;
@@ -134,8 +135,8 @@ async getSymbolInfo(symbol) {
   async placeOrder(orderParams) {
     try {
       const symbol = orderParams.symbol;
-      const normalizedSymbol = symbol.replace(':USDT', '').replace('/', '');
-      const exchangeSymbol = symbol.replace(':USDT', '').replace('/', '');
+      const normalizedSymbol = this.exchangeName =='hyperliquid'?symbol:symbol.replace(':USDT', '').replace('/', '');
+      const exchangeSymbol = this.exchangeName =='hyperliquid'?symbol:symbol.replace(':USDT', '').replace('/', '');
       
       // Convert order parameters to CCXT format
       const params = {
@@ -146,7 +147,7 @@ async getSymbolInfo(symbol) {
       };
       
       // Include price for limit orders
-      if (orderParams.orderType.toLowerCase() === 'limit' && orderParams.price) {
+      if ((orderParams.orderType.toLowerCase() === 'limit' || orderParams.orderType.toLowerCase() === 'stop_market') && orderParams.price) {
         params.price = parseFloat(orderParams.price);
       }
       
@@ -158,6 +159,9 @@ async getSymbolInfo(symbol) {
       // Trigger price for conditional orders
       if (orderParams.triggerPrice !== undefined && orderParams.triggerPrice !== null) {
         params.triggerPrice = parseFloat(orderParams.triggerPrice);
+        if(this.exchangeName=='hyperliquid'){
+          params.price = orderParams.orderParams.triggerPrice;
+        }
       }
       
       // Reduce only flag
@@ -203,8 +207,14 @@ async getSymbolInfo(symbol) {
   // Get order status
   async getOrderStatus(orderId, symbol) {
     try {
-      const order = await this.exchange.fetchClosedOrder(orderId, symbol);
-      return order;
+      if(this.exchange =='bybit'){
+        const order = await this.exchange.fetchClosedOrder(orderId, symbol);
+        return order;
+
+      }else{
+        const order = await this.exchange.fetchOrder(orderId, symbol);
+        return order;
+      }
     } catch (error) {
       // Order might not exist
       if (error instanceof ccxt.OrderNotFound) {
