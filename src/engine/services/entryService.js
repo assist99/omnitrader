@@ -148,6 +148,7 @@ class EntryService {
         side: setup.side === 'long' ? 'buy' : 'sell',
         orderType: 'Market',
         qty: roundedPositionSize,
+        price: entryPrice,
         timeInForce: 'GTC'
       });
 
