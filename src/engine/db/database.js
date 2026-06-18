@@ -180,16 +180,23 @@ class Database {
   }
 
   async getPendingSetupsForSymbolTimeframe(symbol, timeframe) {
+    // Extract base currency for pattern matching
+    let symbolPattern = symbol;
+    if (symbol.includes('/')) {
+      const base = symbol.split('/')[0];
+      symbolPattern = base + '/%';
+    }
+    
     const sql = `
       SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet
       FROM trading_setups ts
       JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
       WHERE ts.status = 'pending' 
-        AND ts.symbol = ? 
+        AND ts.symbol LIKE ? 
         AND ts.entry_indicator_tf = ?
       ORDER BY ts.created_at ASC
     `;
-    return this.all(sql, [symbol, timeframe]);
+    return this.all(sql, [symbolPattern, timeframe]);
   }
 
   async getTriggeredSetupsBySymbolTimeframe() {
@@ -203,16 +210,23 @@ class Database {
   }
 
   async getTriggeredSetupsForSymbolTimeframe(symbol, timeframe) {
+    // Extract base currency for pattern matching
+    let symbolPattern = symbol;
+    if (symbol.includes('/')) {
+      const base = symbol.split('/')[0];
+      symbolPattern = base + '/%';
+    }
+    
     const sql = `
       SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet
       FROM trading_setups ts
       JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
       WHERE ts.status = 'triggered' 
-        AND ts.symbol = ? 
+        AND ts.symbol LIKE ? 
         AND ts.entry_indicator_tf = ?
       ORDER BY ts.created_at ASC
     `;
-    return this.all(sql, [symbol, timeframe]);
+    return this.all(sql, [symbolPattern, timeframe]);
   }
 
   async getActiveSetups() {
