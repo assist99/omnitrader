@@ -164,7 +164,7 @@ async getSymbolInfo(symbol) {
       if (orderParams.triggerPrice !== undefined && orderParams.triggerPrice !== null) {
         params.triggerPrice = parseFloat(orderParams.triggerPrice);
         if(this.exchangeName=='hyperliquid'){
-          params.price = orderParams.orderParams.triggerPrice;
+          params.price = orderParams.triggerPrice;
         }
       }
       
