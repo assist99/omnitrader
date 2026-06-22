@@ -45,14 +45,6 @@ class ActiveSetupService {
       const ticker = await exchangeService.getTicker(setup.symbol);
       const currentPrice = parseFloat(ticker.lastPrice);
       logger.info(`Checking exit condition for setup #${setup.id} at price ${currentPrice}`);
-      const isInProfit = setup.side === 'long'
-        ? currentPrice > setup.entry_price
-        : currentPrice < setup.entry_price;
-
-      if (!isInProfit) {
-        logger.info(`Setup #${setup.id} not in profit. Skipping exit check.`);
-        return;
-      }
 
       const exitResult = IndicatorService.checkCondition(
         setup.exit_indicator_type,
