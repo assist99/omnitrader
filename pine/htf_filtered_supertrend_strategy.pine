@@ -1,0 +1,200 @@
+//@version=6
+strategy("HTF Filtered SuperTrend Strategy", overlay=true, initial_capital=10000, default_qty_type=strategy.cash, default_qty_value=10, margin_long=1, margin_short=1)
+
+// ==========================================
+// INPUTS
+// ==========================================
+var string G_HTF  = "Higher Timeframe Settings"
+htf_res     = input.timeframe("60", "HTF Resolution", options=["15","30","60", "120", "240"], group=G_HTF, tooltip="H1=60, H2=120, H4=240")
+htf_factor  = input.float(3.0, "HTF SuperTrend Factor", step=0.1, group=G_HTF)
+htf_atr_len = input.int(10, "HTF SuperTrend ATR Period", minval=1, group=G_HTF)
+use_htf_exit = input.bool(true, "Close Position on HTF Trend Change?", group=G_HTF)
+trade_mode   = input.string("First Change Only", "Trading Mode", options=["First Change Only", "Continuous Entries"], group=G_HTF, tooltip="First Change Only: Only trade the very first chart TF signal. Continuous: Keep taking chart TF signals until HTF changes.")
+
+var string G_LTF  = "Chart Timeframe Settings"
+ltf_factor  = input.float(3.0, "Chart SuperTrend Factor", step=0.1, group=G_LTF)
+ltf_atr_len = input.int(10, "Chart SuperTrend ATR Period", minval=1, group=G_LTF)
+
+var string G_RISK = "Risk Management"
+risk_perc   = input.float(3.0, "Risk Per Trade (%)", minval=0.1, maxval=100, step=0.5, group=G_RISK)
+use_be      = input.bool(false, "Move SL to Break-Even when TP2 is hit?", group=G_RISK)
+
+var string G_TP   = "Take Profit Multipliers"
+tp1_ratio   = input.float(1.0, "TP 1 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp2_ratio   = input.float(2.0, "TP 2 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp3_ratio   = input.float(3.0, "TP 3 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp4_ratio   = input.float(4.0, "TP 4 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp5_ratio   = input.float(5.0, "TP 5 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp6_ratio   = input.float(6.0, "TP 6 Multiplier", minval=0.1, step=0.1, group=G_TP)
+
+// ==========================================
+// SUPERTREND CALCULATIONS (CHART TIMEFRAME)
+// ==========================================
+[ltf_st, ltf_dir] = ta.supertrend(ltf_factor, ltf_atr_len)
+
+// ==========================================
+// SUPERTREND CALCULATIONS (HTF TIMEFRAME)
+// ==========================================
+f_htf_st() =>
+    [st, dir] = ta.supertrend(htf_factor, htf_atr_len)
+    [st, dir, close] 
+
+[htf_st_raw, htf_dir_raw, htf_close] = request.security(syminfo.tickerid, htf_res, f_htf_st(), barmerge.gaps_off, barmerge.lookahead_off)
+
+// ==========================================
+// DYNAMIC PREVIOUS TREND LENGTH TRACKING
+// ==========================================
+var int trend_bar_counter = 0
+var int prev_trend_duration = 1
+
+// Fixed the compilation type error here (checking == 0 instead of 'not'):
+if ta.change(ltf_dir) == 0
+    trend_bar_counter += 1
+else
+    prev_trend_duration := trend_bar_counter + 1 
+    trend_bar_counter := 0
+
+// Calculate swing edges strictly over the length of the previous trend period
+lowest_low_prev_trend   = ta.lowest(low, prev_trend_duration)
+highest_high_prev_trend = ta.highest(high, prev_trend_duration)
+
+// ==========================================
+// SIGNALS & LOGIC
+// ==========================================
+htf_bullish = htf_dir_raw == -1
+htf_bearish = htf_dir_raw == 1
+
+htf_changed_to_bearish = htf_dir_raw == 1 and htf_dir_raw[1] == -1
+htf_changed_to_bullish = htf_dir_raw == -1 and htf_dir_raw[1] == 1
+
+ltf_bull_signal = ta.change(ltf_dir) != 0 and ltf_dir == -1
+ltf_bear_signal = ta.change(ltf_dir) != 0 and ltf_dir == 1
+
+var bool htf_long_trade_taken  = false
+var bool htf_short_trade_taken = false
+
+if htf_changed_to_bullish or htf_changed_to_bearish
+    htf_long_trade_taken  := false
+    htf_short_trade_taken := false
+
+long_allowed  = (trade_mode == "Continuous Entries") or (trade_mode == "First Change Only" and not htf_long_trade_taken)
+short_allowed = (trade_mode == "Continuous Entries") or (trade_mode == "First Change Only" and not htf_short_trade_taken)
+
+entry_long  = ltf_bull_signal and htf_bullish and long_allowed
+entry_short = ltf_bear_signal and htf_bearish and short_allowed
+
+// ==========================================
+// POSITION SIZING & RISK MANAGEMENT
+// ==========================================
+var float long_sl   = na
+var float long_tp1  = na
+var float long_tp2  = na
+var float long_tp3  = na
+var float long_tp4  = na
+var float long_tp5  = na
+var float long_tp6  = na
+
+var float short_sl  = na
+var float short_tp1 = na
+var float short_tp2 = na
+var float short_tp3 = na
+var float short_tp4 = na
+var float short_tp5 = na
+var float short_tp6 = na
+
+var bool long_be_active  = false
+var bool short_be_active = false
+
+risk_cash = strategy.equity * (risk_perc / 100.0)
+
+if strategy.position_size == 0
+    long_be_active  := false
+    short_be_active := false
+
+if entry_long and strategy.position_size == 0
+    // HARDCODED: Set stop loss strictly to the structural swing low
+    long_sl := lowest_low_prev_trend
+    
+    risk_per_share = close - long_sl
+    if risk_per_share > 0
+        qty = risk_cash / risk_per_share
+        long_tp1 := close + (risk_per_share * tp1_ratio)
+        long_tp2 := close + (risk_per_share * tp2_ratio)
+        long_tp3 := close + (risk_per_share * tp3_ratio)
+        long_tp4 := close + (risk_per_share * tp4_ratio)
+        long_tp5 := close + (risk_per_share * tp5_ratio)
+        long_tp6 := close + (risk_per_share * tp6_ratio)
+        
+        htf_long_trade_taken := true 
+        strategy.entry("Long", strategy.long, qty=qty)
+
+if entry_short and strategy.position_size == 0
+    // HARDCODED: Set stop loss strictly to the structural swing high
+    short_sl := highest_high_prev_trend
+    
+    risk_per_share = short_sl - close
+    if risk_per_share > 0
+        qty = risk_cash / risk_per_share
+        short_tp1 := close - (risk_per_share * tp1_ratio)
+        short_tp2 := close - (risk_per_share * tp2_ratio)
+        short_tp3 := close - (risk_per_share * tp3_ratio)
+        short_tp4 := close - (risk_per_share * tp4_ratio)
+        short_tp5 := close - (risk_per_share * tp5_ratio)
+        short_tp6 := close - (risk_per_share * tp6_ratio)
+        
+        htf_short_trade_taken := true 
+        strategy.entry("Short", strategy.short, qty=qty)
+
+// Check for BE Activation
+if strategy.position_size > 0 and use_be and not long_be_active
+    if high >= long_tp2
+        long_be_active := true
+
+if strategy.position_size < 0 and use_be and not short_be_active
+    if low <= short_tp2
+        short_be_active := true
+
+current_long_sl  = long_be_active  ? strategy.position_avg_price : long_sl
+current_short_sl = short_be_active ? strategy.position_avg_price : short_sl
+
+// ==========================================
+// EXITS & EXECUTION
+// ==========================================
+var float tier_qty = na
+if ta.change(strategy.position_size) != 0 and strategy.position_size != 0 and strategy.position_size[1] == 0
+    tier_qty := math.abs(strategy.position_size) / 6.0
+
+if strategy.position_size > 0
+    strategy.exit("TP1 Long", "Long", qty=tier_qty, limit=long_tp1, stop=current_long_sl)
+    strategy.exit("TP2 Long", "Long", qty=tier_qty, limit=long_tp2, stop=current_long_sl)
+    strategy.exit("TP3 Long", "Long", qty=tier_qty, limit=long_tp3, stop=current_long_sl)
+    strategy.exit("TP4 Long", "Long", qty=tier_qty, limit=long_tp4, stop=current_long_sl)
+    strategy.exit("TP5 Long", "Long", qty=tier_qty, limit=long_tp5, stop=current_long_sl)
+    strategy.exit("TP6 Long", "Long", qty=tier_qty, limit=long_tp6, stop=current_long_sl)
+
+if strategy.position_size < 0
+    strategy.exit("TP1 Short", "Short", qty=tier_qty, limit=short_tp1, stop=current_short_sl)
+    strategy.exit("TP2 Short", "Short", qty=tier_qty, limit=short_tp2, stop=current_short_sl)
+    strategy.exit("TP3 Short", "Short", qty=tier_qty, limit=short_tp3, stop=current_short_sl)
+    strategy.exit("TP4 Short", "Short", qty=tier_qty, limit=short_tp4, stop=current_short_sl)
+    strategy.exit("TP5 Short", "Short", qty=tier_qty, limit=short_tp5, stop=current_short_sl)
+    strategy.exit("TP6 Short", "Short", qty=tier_qty, limit=short_tp6, stop=current_short_sl)
+
+// Optional HTF Change Exit Logic
+if use_htf_exit
+    if strategy.position_size > 0 and htf_changed_to_bearish
+        strategy.close("Long", comment="HTF Exit")
+    if strategy.position_size < 0 and htf_changed_to_bullish
+        strategy.close("Short", comment="HTF Exit")
+
+// ==========================================
+// VISUALIZATION
+// ==========================================
+plot(ltf_dir == -1 ? ltf_st : na, "Chart ST Bull", color=color.green, linewidth=2, style=plot.style_linebr)
+plot(ltf_dir == 1 ? ltf_st : na, "Chart ST Bear", color=color.red, linewidth=2, style=plot.style_linebr)
+
+plot(htf_dir_raw == -1 ? htf_st_raw : na, "HTF ST Bull", color=color.blue, linewidth=4, style=plot.style_linebr)
+plot(htf_dir_raw == 1 ? htf_st_raw : na, "HTF ST Bear", color=color.orange, linewidth=4, style=plot.style_linebr)
+
+plotshape(long_be_active and ta.change(long_be_active), title="BE Long Active", style=shape.labelup, location=location.belowbar, color=color.blue, text="BE Locked", textcolor=color.white, size=size.small)
+plotshape(short_be_active and ta.change(short_be_active), title="BE Short Active", style=shape.labeldown, location=location.abovebar, color=color.orange, text="BE Locked", textcolor=color.white, size=size.small)
