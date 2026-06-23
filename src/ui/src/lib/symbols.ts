@@ -22,9 +22,10 @@ export const BYBIT_SYMBOLS: SymbolOption[] = [
   { symbol: 'SUI/USDT:USDT', display: 'SUIUSDT.P' },
   { symbol: 'ARB/USDT:USDT', display: 'ARBUSDT.P' },
   { symbol: 'DOT/USDT:USDT', display: 'DOTUSDT.P' },
+  { symbol: 'XRP/USDT:USDT', display: 'XRPUSDT.P' },
   { symbol: 'XAU/USDT:USDT', display: 'XAUUSDT.P' },
   { symbol: 'XAG/USDT:USDT', display: 'XAGUSDT.P' },
-  { symbol: 'PXAG/USDT:USDT', display: 'PAGUSDT.P' }
+  { symbol: 'PAXG/USDT:USDT', display: 'PAXGUSDT.P' }
 ];
 
 export const HYPERLIQUID_SYMBOLS: SymbolOption[] = [
@@ -111,6 +112,10 @@ export const HYPERLIQUID_SYMBOLS: SymbolOption[] = [
   {
     "symbol": "AVAX/USDC:USDC",
     "display": "AVAXUSDC.P"
+  },
+  {
+    "symbol": "XRP/USDC:USDC",
+    "display": "XRPUSDC.P"
   }
 
 ];

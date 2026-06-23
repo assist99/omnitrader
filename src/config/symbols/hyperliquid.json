@@ -79,6 +79,10 @@
         "display":"DOTUSDC.P"
     },
     {
+        "symbol":"XRP/USDC:USDC",
+        "display":"DOTUSDC.P"
+    },
+    {
         "symbol":"XAU/USDC:USDC",
         "display":"XAUUSDC.P"
     },

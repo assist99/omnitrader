@@ -212,7 +212,7 @@ async getSymbolInfo(symbol) {
   async getOrderStatus(orderId, symbol) {
     logger.info(`Fetching order status for ${orderId} on ${this.exchangeName} (${symbol})`);
     try {
-      if(this.exchange =='bybit'){
+      if(this.exchangeName=='bybit'){
         const order = await this.exchange.fetchClosedOrder(orderId, symbol);
         return order;
 
@@ -225,7 +225,7 @@ async getSymbolInfo(symbol) {
       if (error instanceof ccxt.OrderNotFound) {
         return null;
       }
-      logger.log('getOrderStatus', error);
+      logger.info('getOrderStatus', error);
       throw error;
     }
   }

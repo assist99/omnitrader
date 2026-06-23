@@ -79,6 +79,10 @@
         "display":"DOTUSDT.P"
     },
     {
+        "symbol":"XRP/USDT:USDT",
+        "display":"XRPUSDT.P"
+    },
+    {
         "symbol":"XAU/USDT:USDT",
         "display":"XAUUSDT.P"
     },
