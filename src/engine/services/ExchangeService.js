@@ -210,14 +210,18 @@ async getSymbolInfo(symbol) {
   
   // Get order status
   async getOrderStatus(orderId, symbol) {
-    logger.info(`Fetching order status for ${orderId} on ${this.exchangeName} (${symbol})`);
+    
     try {
       if(this.exchangeName=='bybit'){
+        logger.info(`Fetching order status for ${orderId} on ${this.exchangeName} (${symbol})`);
         const order = await this.exchange.fetchClosedOrder(orderId, symbol);
+        logger.info('Order status fetched:', order);
         return order;
 
       }else{
+        logger.info(`Fetching order status for ${orderId} on ${this.exchangeName} (${symbol})`);
         const order = await this.exchange.fetchOrder(orderId, symbol);
+        logger.info('Order status fetched:', order);
         return order;
       }
     } catch (error) {
