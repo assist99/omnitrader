@@ -1,0 +1,233 @@
+//@version=6
+strategy("Rolling H1 Asymmetry Engine (M15)", overlay=true, initial_capital=100000, default_qty_type=strategy.cash, margin_long=1, margin_short=1, close_entries_rule="ANY")
+
+// ==========================================
+// INPUTS & CONFIGURATION
+// ==========================================
+var string G_SYNTH  = "Synthetic Macro Frame Settings"
+bars_per_hour       = input.int(4, title="M15 Bars per Hour (Macro Window)", minval=1, group=G_SYNTH)
+macro_atr_len       = input.int(10, title="H1 Equivalent ATR Length", minval=1, group=G_SYNTH)
+macro_mult          = input.float(3.0, title="Macro SuperTrend Multiplier", minval=0.01, step=0.01, group=G_SYNTH)
+use_htf_exit        = input.bool(true, "Close Position on H1 Structural Reversal?", group=G_SYNTH)
+trade_mode          = input.string("First Change Only", "Trading Mode", options=["First Change Only", "Continuous Entries"], group=G_SYNTH)
+
+var string G_LOCAL  = "Local Execution Frame Settings"
+local_atr_len       = input.int(10, title="M15 Local ATR Length", minval=1, group=G_LOCAL)
+local_mult          = input.float(3.0, title="M15 Local Multiplier", minval=0.01, step=0.01, group=G_LOCAL)
+
+var string G_RISK   = "Risk Management"
+risk_perc           = input.float(3.0, "Risk Per Trade (%)", minval=0.1, maxval=100, step=0.5, group=G_RISK)
+use_be              = input.bool(true, "Move SL to Break-Even when TP1 is hit?", group=G_RISK)
+
+var string G_TP     = "Take Profit Multipliers"
+tp1_ratio           = input.float(1.0, "TP 1 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp2_ratio           = input.float(2.0, "TP 2 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp3_ratio           = input.float(3.0, "TP 3 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp4_ratio           = input.float(4.0, "TP 4 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp5_ratio           = input.float(5.0, "TP 5 Multiplier", minval=0.1, step=0.1, group=G_TP)
+tp6_ratio           = input.float(6.0, "TP 6 Multiplier", minval=0.1, step=0.1, group=G_TP)
+
+var string G_TIME   = "Temporal & Session Filters"
+use_session         = input.bool(true, title="Filter Orders by Market Time?", group=G_TIME, tooltip="If checked, trades will only trigger between London open and US close.")
+trade_session       = input.session("0930-2100:23456", title="London to US Close Session (UTC)", group=G_TIME)
+
+
+// ==========================================
+// 1. LOCAL TIME FRAME CALCULATIONS
+// ==========================================
+[m15_st, m15_dir] = ta.supertrend(local_mult, local_atr_len)
+m15_st := barstate.isfirst ? na : m15_st
+
+// ==========================================
+// 2. SYNTHETIC H1 TIMEFRAME CORE (ROLLING INTERNAL)
+// ==========================================
+rolling_high  = ta.highest(high, bars_per_hour)
+rolling_low   = ta.lowest(low, bars_per_hour)
+rolling_close = close
+prev_rolling_close = rolling_close[bars_per_hour]
+
+val1 = rolling_high - rolling_low
+val2 = math.abs(rolling_high - prev_rolling_close)
+val3 = math.abs(rolling_low - prev_rolling_close)
+synthetic_tr = math.max(val1, math.max(val2, val3))
+synthetic_atr = ta.rma(synthetic_tr, macro_atr_len)
+
+hl2_synthetic = (rolling_high + rolling_low) / 2
+var float synth_st_line = na
+var int synth_dir = 1 
+
+up_band   = hl2_synthetic - (macro_mult * synthetic_atr)
+dn_band   = hl2_synthetic + (macro_mult * synthetic_atr)
+prev_up_band = synth_st_line[1]
+prev_dn_band = synth_st_line[1]
+
+up_band := (rolling_close[1] > prev_up_band) ? math.max(up_band, prev_up_band) : up_band
+dn_band := (rolling_close[1] < prev_dn_band) ? math.min(dn_band, prev_dn_band) : dn_band
+
+if synth_dir == 1 and rolling_close > dn_band
+    synth_dir := -1
+else if synth_dir == -1 and rolling_close < up_band
+    synth_dir := 1
+
+synth_st_line := (synth_dir == -1) ? up_band : dn_band
+synth_st_line := barstate.isfirst ? na : synth_st_line
+
+// ==========================================
+// 3. DYNAMIC TREND LENGTH TRACKING
+// ==========================================
+var int trend_bar_counter = 0
+var int prev_trend_duration = 1
+
+if ta.change(m15_dir) == 0
+    trend_bar_counter += 1
+else
+    prev_trend_duration := trend_bar_counter + 1 
+    trend_bar_counter := 0
+
+lowest_low_prev_trend   = ta.lowest(low, prev_trend_duration)
+highest_high_prev_trend = ta.highest(high, prev_trend_duration)
+
+// ==========================================
+// 4. SIGNALS & OPERATIONAL FILTERS
+// ==========================================
+in_session = not use_session or not na(time(timeframe.period, trade_session, "UTC"))
+can_trade  = in_session
+
+htf_bullish = synth_dir == -1
+htf_bearish = synth_dir == 1
+
+htf_changed_to_bearish = (synth_dir == 1 and synth_dir[1] == -1)
+htf_changed_to_bullish = (synth_dir == -1 and synth_dir[1] == 1)
+
+m15_bull_signal = ta.change(m15_dir) != 0 and m15_dir == -1
+m15_bear_signal = ta.change(m15_dir) != 0 and m15_dir == 1
+
+var bool htf_long_trade_taken  = false
+var bool htf_short_trade_taken = false
+
+if htf_changed_to_bullish or htf_changed_to_bearish
+    htf_long_trade_taken  := false
+    htf_short_trade_taken := false
+
+long_allowed  = (trade_mode == "Continuous Entries") or (trade_mode == "First Change Only" and not htf_long_trade_taken)
+short_allowed = (trade_mode == "Continuous Entries") or (trade_mode == "First Change Only" and not htf_short_trade_taken)
+
+entry_long  = m15_bull_signal and htf_bullish and long_allowed and can_trade
+entry_short = m15_bear_signal and htf_bearish and short_allowed and can_trade
+
+// ==========================================
+// 5. POSITION SIZING & RISK ARCHITECTING
+// ==========================================
+var float long_sl   = na
+var float long_tp1  = na, var float long_tp2  = na, var float long_tp3  = na
+var float long_tp4  = na, var float long_tp5  = na, var float long_tp6  = na
+
+var float short_sl  = na
+var float short_tp1 = na, var float short_tp2 = na, var float short_tp3 = na
+var float short_tp4 = na, var float short_tp5 = na, var float short_tp6 = na
+
+var bool long_be_active  = false
+var bool short_be_active = false
+
+risk_cash = strategy.equity * (risk_perc / 100.0)
+
+if strategy.position_size == 0
+    long_be_active  := false
+    short_be_active := false
+
+if entry_long and strategy.position_size == 0
+    long_sl := lowest_low_prev_trend
+    float risk_per_share = close - long_sl
+    if risk_per_share > 0
+        float qty = risk_cash / risk_per_share
+        long_tp1 := close + (risk_per_share * tp1_ratio)
+        long_tp2 := close + (risk_per_share * tp2_ratio)
+        long_tp3 := close + (risk_per_share * tp3_ratio)
+        long_tp4 := close + (risk_per_share * tp4_ratio)
+        long_tp5 := close + (risk_per_share * tp5_ratio)
+        long_tp6 := close + (risk_per_share * tp6_ratio)
+        
+        htf_long_trade_taken := true 
+        strategy.entry("Long", strategy.long, qty=qty)
+
+if entry_short and strategy.position_size == 0
+    short_sl := highest_high_prev_trend
+    float risk_per_share = short_sl - close
+    if risk_per_share > 0
+        float qty = risk_cash / risk_per_share
+        short_tp1 := close - (risk_per_share * tp1_ratio)
+        short_tp2 := close - (risk_per_share * tp2_ratio)
+        short_tp3 := close - (risk_per_share * tp3_ratio)
+        short_tp4 := close - (risk_per_share * tp4_ratio)
+        short_tp5 := close - (risk_per_share * tp5_ratio)
+        short_tp6 := close - (risk_per_share * tp6_ratio)
+        
+        htf_short_trade_taken := true 
+        strategy.entry("Short", strategy.short, qty=qty)
+
+// Break-Even Evaluation
+if strategy.position_size > 0 and use_be and not long_be_active
+    if high >= long_tp1
+        long_be_active := true
+
+if strategy.position_size < 0 and use_be and not short_be_active
+    if low <= short_tp1
+        short_be_active := true
+
+current_long_sl  = long_be_active  ? strategy.position_avg_price : long_sl
+current_short_sl = short_be_active ? strategy.position_avg_price : short_sl
+
+// ==========================================
+// 6. SCALED EXIT MATRICES
+// ==========================================
+var float tier_qty = na
+if ta.change(strategy.position_size) != 0 and strategy.position_size != 0 and strategy.position_size[1] == 0
+    tier_qty := math.abs(strategy.position_size) / 6.0
+
+if strategy.position_size > 0
+    strategy.exit("TP1 Long", "Long", qty=tier_qty, limit=long_tp1, stop=current_long_sl)
+    strategy.exit("TP2 Long", "Long", qty=tier_qty, limit=long_tp2, stop=current_long_sl)
+    strategy.exit("TP3 Long", "Long", qty=tier_qty, limit=long_tp3, stop=current_long_sl)
+    strategy.exit("TP4 Long", "Long", qty=tier_qty, limit=long_tp4, stop=current_long_sl)
+    strategy.exit("TP5 Long", "Long", qty=tier_qty, limit=long_tp5, stop=current_long_sl)
+    strategy.exit("TP6 Long", "Long", qty=tier_qty, limit=long_tp6, stop=current_long_sl)
+
+if strategy.position_size < 0
+    strategy.exit("TP1 Short", "Short", qty=tier_qty, limit=short_tp1, stop=current_short_sl)
+    strategy.exit("TP2 Short", "Short", qty=tier_qty, limit=short_tp2, stop=current_short_sl)
+    strategy.exit("TP3 Short", "Short", qty=tier_qty, limit=short_tp3, stop=current_short_sl)
+    strategy.exit("TP4 Short", "Short", qty=tier_qty, limit=short_tp4, stop=current_short_sl)
+    strategy.exit("TP5 Short", "Short", qty=tier_qty, limit=short_tp5, stop=current_short_sl)
+    strategy.exit("Exit TP6 Short", "Short", qty=tier_qty, limit=short_tp6, stop=current_short_sl)
+
+// Optional HTF Change Exit Logic
+if use_htf_exit
+    if strategy.position_size > 0 and htf_changed_to_bearish
+        strategy.close("Long", comment="Macro Structural Exit")
+    if strategy.position_size < 0 and htf_changed_to_bullish
+        strategy.close("Short", comment="Macro Structural Exit")
+
+// ==========================================
+// 7. EXACT VISUALIZATION LAYERS
+// ==========================================
+bodyMiddle = plot(barstate.isfirst ? na : (open + close) / 2, "Body Middle", display=display.none)
+m15_up   = plot(m15_dir == -1 ? m15_st : na, "M15 Up Trend",   color=color.green, style=plot.style_linebr, linewidth=1)
+m15_down = plot(m15_dir == -1 ? na : m15_st, "M15 Down Trend", color=color.red,   style=plot.style_linebr, linewidth=1)
+
+h1_up    = plot(synth_dir == -1 ? synth_st_line : na, "H1 Up Trend",   color=color.blue,  style=plot.style_linebr, linewidth=3)
+h1_down  = plot(synth_dir == -1 ? na : synth_st_line, "H1 Down Trend", color=color.orange, style=plot.style_linebr, linewidth=3)
+
+fill(bodyMiddle, m15_up,   color=color.new(color.green, 90), fillgaps=false)
+fill(bodyMiddle, m15_down, color=color.new(color.red,   90), fillgaps=false)
+fill(bodyMiddle, h1_up,    color=color.new(color.blue,  94), fillgaps=false)
+fill(bodyMiddle, h1_down,  color=color.new(color.orange, 94), fillgaps=false)
+
+// Active Structural Swing-Point Stop Loss Plots
+plot(strategy.position_size > 0 ? current_long_sl : na, "Active Structural Long SL", color=color.maroon, style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size < 0 ? current_short_sl : na, "Active Structural Short SL", color=color.maroon, style=plot.style_linebr, linewidth=2)
+
+plotshape(entry_long,  title="Engine Long entry",  style=shape.diamond, location=location.belowbar, color=color.green, size=size.small)
+plotshape(entry_short, title="Engine Short entry", style=shape.diamond, location=location.abovebar, color=color.red, size=size.small)
+
+plotshape(long_be_active and ta.change(long_be_active), title="BE Long Active", style=shape.labelup, location=location.belowbar, color=color.blue, text="BE Locked", textcolor=color.white, size=size.small)
+plotshape(short_be_active and ta.change(short_be_active), title="BE Short Active", style=shape.labeldown, location=location.abovebar, color=color.orange, text="BE Locked", textcolor=color.white, size=size.small)
