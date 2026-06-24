@@ -706,23 +706,127 @@ class IndicatorService {
       const lows = candles.map(c => c.low);
       const closes = candles.map(c => c.close);
       
-      const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
-      
-      if (superTrend.length < 1) {
-        return { price: null, error: 'Insufficient SuperTrend data for swing detection' };
+      const atr = this.calculateATR(highs, lows, closes, period);
+      if (atr.length === 0) {
+        return { price: null, error: 'Insufficient data for SuperTrend swing detection' };
       }
-      
 
-      let swingPrice = superTrend[superTrend.length - 1];
-      
-      logger.info(`SuperTrend swing price for ${side}: $${swingPrice}`);
-      
+      const length = closes.length;
+      const direction = new Array(length).fill(0);
+
+      let prevUpperBand = null;
+      let prevLowerBand = null;
+      let prevSuperTrend = null;
+
+      for (let i = 0; i < length; i++) {
+        if (atr[i] === null) {
+          direction[i] = 0;
+          continue;
+        }
+
+        const src = (highs[i] + lows[i]) / 2;
+        const upperBand = src + multiplier * atr[i];
+        const lowerBand = src - multiplier * atr[i];
+
+        let finalUpperBand = upperBand;
+        if (prevUpperBand !== null && (upperBand < prevUpperBand || closes[i - 1] > prevUpperBand)) {
+          finalUpperBand = upperBand;
+        } else if (prevUpperBand !== null) {
+          finalUpperBand = prevUpperBand;
+        }
+
+        let finalLowerBand = lowerBand;
+        if (prevLowerBand !== null && (lowerBand > prevLowerBand || closes[i - 1] < prevLowerBand)) {
+          finalLowerBand = lowerBand;
+        } else if (prevLowerBand !== null) {
+          finalLowerBand = prevLowerBand;
+        }
+
+        let _direction = 0;
+        if (i === 0 || atr[i - 1] === null) {
+          _direction = 1;
+        } else if (prevSuperTrend === prevUpperBand) {
+          _direction = closes[i] > finalUpperBand ? -1 : 1;
+        } else {
+          _direction = closes[i] < finalLowerBand ? 1 : -1;
+        }
+
+        const superTrendValue = _direction === -1 ? finalLowerBand : finalUpperBand;
+        direction[i] = _direction;
+        
+        prevUpperBand = finalUpperBand;
+        prevLowerBand = finalLowerBand;
+        prevSuperTrend = superTrendValue;
+      }
+
+      const sections = [];
+      let currentSection = null;
+
+      for (let i = 0; i < length; i++) {
+        if (direction[i] === 0) continue;
+        
+        const type = direction[i] === -1 ? 'bullish' : 'bearish';
+        
+        if (currentSection === null) {
+          currentSection = { type, startCandle: i, endCandle: i };
+        } else if (type !== currentSection.type) {
+          currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
+          sections.push({ ...currentSection });
+          currentSection = { type, startCandle: i, endCandle: i };
+        } else {
+          currentSection.endCandle = i;
+        }
+      }
+
+      if (currentSection !== null) {
+        currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
+        sections.push({ ...currentSection });
+      }
+
+      if (sections.length < 2) {
+        return { price: null, error: 'Not enough SuperTrend sections for swing detection' };
+      }
+
+      const lastSection = sections[sections.length - 1];
+      const prevSection = sections[sections.length - 2];
+
+      let swingPrice = null;
+      let targetSection = null;
+
+      if (side === 'long') {
+        targetSection = lastSection.type === 'bearish'
+          ? lastSection
+          : prevSection.type === 'bearish' ? prevSection : null;
+        
+        if (targetSection) {
+          const sectionLows = lows.slice(targetSection.startCandle, targetSection.endCandle + 1);
+          swingPrice = Math.min(...sectionLows);
+        }
+      } else if (side === 'short') {
+        targetSection = lastSection.type === 'bullish'
+          ? lastSection
+          : prevSection.type === 'bullish' ? prevSection : null;
+        
+        if (targetSection) {
+          const sectionHighs = highs.slice(targetSection.startCandle, targetSection.endCandle + 1);
+          swingPrice = Math.max(...sectionHighs);
+        }
+      }
+
+      if (swingPrice === null || swingPrice <= 0) {
+        return { price: null, error: 'Could not determine swing price from SuperTrend sections' };
+      }
+
+      logger.info(`SuperTrend swing price for ${side}: $${swingPrice}, sections: ${sections.length}, last type: ${lastSection.type}, target section: [${targetSection.startCandle}-${targetSection.endCandle}]`);
+
       return {
         price: swingPrice,
-        sections: 0, // SuperTrend doesn't have clear sections like MACD/EMA
-        sectionType: 'trend',
+        sections: sections.length,
+        sectionType: lastSection.type,
         details: {
-          trend: swingPrice < closes[closes.length - 1] ? 'bullish' : 'bearish'
+          lastSection: lastSection,
+          prevSection: prevSection,
+          targetSection: targetSection
         }
       };
     } catch (error) {

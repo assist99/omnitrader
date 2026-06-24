@@ -26,9 +26,9 @@ async function main() {
   const markets = await exchange.exchange.loadMarkets();
 
   console.log('=== Testing getSwingPrice Function with Real Data ===\n');
-  const symbol = 'XAU/USDT:USDT';
+  const symbol = 'BTC/USDT:USDT';
 
-  const candles = CandleUtils.parseExchangeCandles(await exchange.getCandles(symbol, 'm5', 500));
+  const candles = CandleUtils.parseExchangeCandles(await exchange.getCandles(symbol, 'm15', 500));
   
   console.log(`Fetched ${candles.length} candles for ${symbol}`);
   console.log(`First: ${new Date(candles[0].timestamp).toISOString()} - $${candles[0].close}`);

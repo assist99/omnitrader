@@ -177,3 +177,36 @@
 {"level":"info","message":"ExchangeService initialized for hyperliquid - key_len=42, secret_len=66, testnet=false","service":"trading-engine","timestamp":"2026-06-18 21:02:58"}
 {"level":"info","message":"Placing hyperliquid order: {\"symbol\":\"AVAX/USDC:USDC\",\"type\":\"stop_market\",\"side\":\"sell\",\"amount\":3,\"price\":6.19,\"triggerPrice\":6.19,\"triggerDirection\":\"ascending\"}","service":"trading-engine","timestamp":"2026-06-18 21:02:58"}
 {"level":"info","message":"Order placed on hyperliquid: 473241256560 for undefined (AVAX/USDC:USDC","service":"trading-engine","timestamp":"2026-06-18 21:03:18"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-24 10:11:43"}
+{"level":"info","message":"Fetched 100 candles for LINK/USDT:USDT (LINK/USDT:USDT) m15 on bybit","service":"trading-engine","timestamp":"2026-06-24 10:11:50"}
+{"level":"info","message":"SuperTrend check: lastST=7.562801156322797, lastClose=7.602, wasBullish=true, isBullish=true, signal=none","service":"trading-engine","timestamp":"2026-06-24 10:11:50"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-24 10:12:10"}
+{"level":"info","message":"Fetched 100 candles for BTC/USDT:USDT (BTC/USDT:USDT) m15 on bybit","service":"trading-engine","timestamp":"2026-06-24 10:12:17"}
+{"level":"info","message":"SuperTrend check: lastST=62481.53207334745, lastClose=62629.9, wasBullish=true, isBullish=true, signal=none","service":"trading-engine","timestamp":"2026-06-24 10:12:17"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-24 10:12:47"}
+{"level":"info","message":"Fetched 500 candles for XAU/USDT:USDT (XAU/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"MACD swing price for long: $4076.62, sections: 37, last type: negative, target section: [484-499]","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"MACD swing price for short: $4101.11, sections: 37, last type: negative, target section: [443-483]","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"SuperTrend swing price for long: $4076.62, sections: 17, last type: bearish, target section: [496-499]","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"SuperTrend swing price for short: $4101.11, sections: 17, last type: bearish, target section: [466-495]","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"SuperTrend check: lastST=4092.4996834973076, lastClose=4078.14, wasBullish=false, isBullish=false, signal=none","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"EMA swing price for long: $4076.62, sections: 23, last type: bearish, target section: [493-499]","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"EMA swing price for short: $4101.11, sections: 23, last type: bearish, target section: [462-492]","service":"trading-engine","timestamp":"2026-06-24 10:12:54"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-24 10:13:04"}
+{"level":"info","message":"Fetched 500 candles for BTC/USDT:USDT (BTC/USDT:USDT) m5 on bybit","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"MACD swing price for long: $62574, sections: 39, last type: negative, target section: [473-499]","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"MACD swing price for short: $63060.4, sections: 39, last type: negative, target section: [456-472]","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"SuperTrend swing price for long: $62574, sections: 15, last type: bearish, target section: [486-499]","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"SuperTrend swing price for short: $63060.4, sections: 15, last type: bearish, target section: [464-485]","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"SuperTrend check: lastST=62831.02582006773, lastClose=62582.2, wasBullish=false, isBullish=false, signal=none","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"EMA swing price for long: $62574, sections: 21, last type: bearish, target section: [482-499]","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"EMA swing price for short: $63060.4, sections: 21, last type: bearish, target section: [459-481]","service":"trading-engine","timestamp":"2026-06-24 10:13:09"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-24 10:14:13"}
+{"level":"info","message":"Fetched 500 candles for BTC/USDT:USDT (BTC/USDT:USDT) m15 on bybit","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"MACD swing price for long: $62574, sections: 41, last type: negative, target section: [494-499]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"MACD swing price for short: $63060.4, sections: 41, last type: negative, target section: [489-493]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"SuperTrend swing price for long: $61878.4, sections: 10, last type: bullish, target section: [340-426]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"SuperTrend swing price for short: $63113.4, sections: 10, last type: bullish, target section: [427-499]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"SuperTrend check: lastST=62481.580272173014, lastClose=62620, wasBullish=true, isBullish=true, signal=none","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"EMA swing price for long: $62574, sections: 29, last type: bearish, target section: [497-499]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"EMA swing price for short: $63060.4, sections: 29, last type: bearish, target section: [488-496]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}

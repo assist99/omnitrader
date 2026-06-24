@@ -26,7 +26,7 @@ async function main() {
   await exchange.exchange.loadMarkets();
 
   console.log('=== Comprehensive Swing Price Test ===\n');
-  const symbol = 'LINK/USDT:USDT';
+  const symbol = 'BTC/USDT:USDT';
 
   let candles = CandleUtils.parseExchangeCandles(await exchange.getCandles(symbol, 'm15', 100));
   candles = candles.slice(0,candles.length - 1)
