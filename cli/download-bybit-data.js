@@ -16,7 +16,7 @@ const INTERVAL_MAP = {
   'd1':  { bybit: 'D',  ms: 24 * 60 * 60 * 1000 },
 };
 
-const CHUNK_LIMIT = 200;
+const CHUNK_LIMIT = 1000;
 const REQUEST_DELAY_MS = 200;
 const RETRY_DELAY_MS = 3000;
 const MAX_RETRIES = 5;
@@ -128,7 +128,7 @@ async function downloadSymbol(symbol, display, interval, years) {
 
     if (filtered.length < CHUNK_LIMIT || oldestInBatch <= fromTime) break;
 
-    endTime = oldestInBatch;
+    endTime = oldestInBatch - 1;
   }
 
   if (chunks.length === 0) {
@@ -139,7 +139,7 @@ async function downloadSymbol(symbol, display, interval, years) {
   const allCandles = chunks.flat().reverse();
 
   const filePath = path.join(PRICES_DIR, `${display}.csv`);
-  const header = 'timestamp,open,high,low,close,volume\n';
+  const header = 'timestamp,open,high,low,close,volume,volume2\n';
   const rows = allCandles.map(c => c.join(',')).join('\n');
   fs.writeFileSync(filePath, header + rows);
 
@@ -161,7 +161,7 @@ async function main() {
 
   for (const asset of config.symbols) {
     try {
-      await downloadSymbol(asset.symbol, asset.display, options.interval, options.years);
+      await downloadSymbol(asset.symbol, asset.display.replace("USDT.P","_"+options.interval), options.interval, options.years);
       await delay(1000);
     } catch (err) {
       console.error(`  FAILED [${asset.display}]: ${err.message}`);

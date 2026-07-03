@@ -206,7 +206,7 @@ class PriceUtils {
   }
 
   static splitQuantity(quantity, parts, stepSize = 0.001) {
-    try{
+    try {
       if (parts <= 0) {
         return [];
       }
@@ -214,18 +214,17 @@ class PriceUtils {
       const roundedQuantity = this.roundQuantity(quantity, stepSize);
       const baseQty = this.roundQuantity(roundedQuantity / parts, stepSize);
       const quantities = Array(parts).fill(baseQty);
-      let remaining = this.roundQuantity(roundedQuantity - baseQty * parts, stepSize);
-      for (let i = 0; i < parts && remaining >= stepSize; i++) {
-        quantities[i] = this.roundQuantity(quantities[i] + stepSize, stepSize);
-        remaining = this.roundQuantity(remaining - stepSize, stepSize);
+      const remaining = roundedQuantity - baseQty * parts;
+
+      if (remaining > 0 && parts > 0) {
+        quantities[parts - 1] = this.roundQuantity(quantities[parts - 1] + remaining, stepSize);
       }
 
       return quantities;
-    }catch(e){
-      console.error('Error splitting quantity:', e);  
+    } catch (e) {
+      logger.error('Error splitting quantity:', e);
       throw e;
     }
-
   }
 
   static isValidPrice(price) {

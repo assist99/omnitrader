@@ -10,3 +10,8 @@
 /.env
 /src/engine/cli/logs
 /cli/node_modules
+/prices_3years
+/prices_5year_180
+/prices_5years
+/prices_30_5year
+/prices_60_5year

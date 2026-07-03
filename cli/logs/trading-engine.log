@@ -210,3 +210,12 @@
 {"level":"info","message":"SuperTrend check: lastST=62481.580272173014, lastClose=62620, wasBullish=true, isBullish=true, signal=none","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
 {"level":"info","message":"EMA swing price for long: $62574, sections: 29, last type: bearish, target section: [497-499]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
 {"level":"info","message":"EMA swing price for short: $63060.4, sections: 29, last type: bearish, target section: [488-496]","service":"trading-engine","timestamp":"2026-06-24 10:14:20"}
+{"level":"info","message":"ExchangeService initialized for bybit - key_len=18, secret_len=36, testnet=false","service":"trading-engine","timestamp":"2026-06-24 10:50:25"}
+{"level":"info","message":"Fetched 500 candles for BTC/USDT:USDT (BTC/USDT:USDT) m15 on bybit","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
+{"level":"info","message":"MACD swing price for long: $62574, sections: 41, last type: negative, target section: [491-499]","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
+{"level":"info","message":"MACD swing price for short: $63060.4, sections: 41, last type: negative, target section: [486-490]","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
+{"level":"info","message":"SuperTrend swing price for long: $61878.4, sections: 10, last type: bullish, target section: [337-423]","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
+{"level":"info","message":"SuperTrend swing price for short: $63113.4, sections: 10, last type: bullish, target section: [424-499]","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
+{"level":"info","message":"SuperTrend check: lastST=62481.580272173014, lastClose=62731.7, wasBullish=true, isBullish=true, signal=none","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
+{"level":"info","message":"EMA swing price for long: $62574, sections: 29, last type: bearish, target section: [494-499]","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
+{"level":"info","message":"EMA swing price for short: $63060.4, sections: 29, last type: bearish, target section: [485-493]","service":"trading-engine","timestamp":"2026-06-24 10:50:32"}
