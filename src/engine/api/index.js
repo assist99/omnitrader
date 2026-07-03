@@ -10,5 +10,6 @@ router.use('/users', require('./routes/users'));
 router.use('/system', require('./routes/system'));
 router.use('/screener', require('./routes/screener'));
 router.use('/supply-demand', require('./routes/supplyDemand'));
+router.use('/webhook', require('./routes/webhook'));
 
 module.exports = router;

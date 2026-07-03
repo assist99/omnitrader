@@ -239,6 +239,195 @@ class EntryService {
     return new ExchangeService(setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
   }
 
+  static async webhookPlaceOrder(payload, db, telegramService) {
+    try {
+      const Config = require('../config');
+      const ExchangeService = require('./ExchangeService');
+
+      const riskAmount = Config.getWebhookRiskAmount();
+      const rrList = Config.getWebhookRRList();
+      const accountIndex = Config.getWebhookExchangeAccountIndex();
+
+      const exchangeAccount = await db.getExchangeAccountByIndex(accountIndex - 1);
+      if (!exchangeAccount) {
+        throw new Error(`No exchange account found at index ${accountIndex}`);
+      }
+
+      const side = payload.side === 1 ? 'long' : 'short';
+      const symbol = payload.asset;
+      const timeframe = payload.timeframe || 'm15';
+      const entryPrice = payload.entry_price;
+      const slOverride = payload.sl;
+
+      const exchangeService = new ExchangeService(
+        exchangeAccount.exchange,
+        exchangeAccount.api_key_enc,
+        exchangeAccount.api_secret_enc,
+        exchangeAccount.is_testnet
+      );
+
+      const symbolInfo = await exchangeService.getSymbolInfo(symbol);
+      const tickSize = parseFloat(symbolInfo.tickSize) || 0.01;
+      const qtyStepSize = parseFloat(symbolInfo.qtyStep) || 0.001;
+
+      let slPrice = slOverride && slOverride > 0 ? slOverride : null;
+      if (!slPrice) {
+        const candles = await exchangeService.getCandles(symbol, timeframe, 50);
+        const parsedCandles = CandleUtils.parseExchangeCandles(candles);
+        slPrice = PriceUtils.calculateSLPrice(
+          entryPrice,
+          0,
+          0,
+          side,
+          'supertrend',
+          parsedCandles,
+          { period: 10, multiplier: 3 }
+        );
+      }
+      slPrice = PriceUtils.roundToTickSize(slPrice, tickSize);
+
+      const accountBalance = await exchangeService.getAccountBalance();
+      const positionSize = PriceUtils.calculatePositionSize(
+        riskAmount,
+        accountBalance,
+        entryPrice,
+        slPrice,
+        side,
+        'fixed'
+      );
+      const roundedPositionSize = PriceUtils.roundQuantity(positionSize, qtyStepSize);
+      if (roundedPositionSize <= 0) {
+        throw new Error(`Calculated position size for webhook signal is too small after rounding`);
+      }
+
+      const tpPrices = PriceUtils.calculateTPPrices(entryPrice, slPrice, rrList)
+        .map(price => PriceUtils.roundToTickSize(price, tickSize));
+      const tpQtys = PriceUtils.splitQuantity(roundedPositionSize, tpPrices.length, qtyStepSize);
+
+      const setupResult = await db.run(`
+        INSERT INTO trading_setups (
+          user_id, exchange_account_id, symbol, side, status,
+          activation_price, ignore_box_upper, ignore_box_lower,
+          entry_indicator_type, entry_indicator_tf,
+          risk_type, risk_value, sl_price, tp_prices,
+          be_enabled, be_trigger_price,
+          entry_price, entry_qty,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 'triggered',
+          0, 0, 0,
+          'webhook', ?,
+          'fixed', ?, ?, ?,
+          1, 0,
+          ?, ?,
+          datetime('now'), datetime('now'))
+      `, [
+        exchangeAccount.user_id,
+        exchangeAccount.id,
+        symbol,
+        side,
+        timeframe,
+        riskAmount,
+        slPrice,
+        JSON.stringify(rrList),
+        entryPrice,
+        roundedPositionSize
+      ]);
+
+      const setupId = setupResult.lastID;
+
+      const entryOrder = await exchangeService.placeOrder({
+        symbol,
+        side: side === 'long' ? 'buy' : 'sell',
+        orderType: 'Market',
+        qty: roundedPositionSize,
+        price: entryPrice,
+        timeInForce: 'GTC'
+      });
+
+      await db.createOrder({
+        setup_id: setupId,
+        order_type: 'entry',
+        side: side === 'long' ? 'buy' : 'sell',
+        price: entryPrice,
+        qty: roundedPositionSize,
+        exchange_order_id: entryOrder.orderId,
+        status: 'pending'
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const slOrder = await exchangeService.placeOrder({
+        symbol,
+        side: side === 'long' ? 'sell' : 'buy',
+        orderType: 'Market',
+        qty: roundedPositionSize,
+        triggerPrice: slPrice,
+        triggerDirection: side === 'long' ? 'descending' : 'ascending',
+        triggerBy: 'MarkPrice',
+        reduceOnly: true
+      });
+
+      await db.createOrder({
+        setup_id: setupId,
+        order_type: 'sl',
+        side: side === 'long' ? 'sell' : 'buy',
+        price: slPrice,
+        qty: roundedPositionSize,
+        exchange_order_id: slOrder.orderId,
+        status: 'pending'
+      });
+
+      for (let i = 0; i < tpPrices.length; i++) {
+        const tpOrder = await exchangeService.exchange.createOrder(
+          symbol,
+          'limit',
+          side === 'long' ? 'sell' : 'buy',
+          tpQtys[i],
+          tpPrices[i],
+          { reduceOnly: true, positionIdx: 0 }
+        );
+        await db.createOrder({
+          setup_id: setupId,
+          order_type: `tp${i + 1}`,
+          side: side === 'long' ? 'sell' : 'buy',
+          price: tpPrices[i],
+          qty: tpQtys[i],
+          exchange_order_id: tpOrder.id,
+          status: 'pending'
+        });
+      }
+
+      await db.updateSetupStatus(setupId, 'active', {
+        entry_price: entryPrice,
+        entry_qty: roundedPositionSize,
+        sl_price: slPrice
+      });
+
+      this.stats.setupsActivated++;
+      this.stats.ordersPlaced += (2 + tpPrices.length);
+
+      if (telegramService) {
+        await telegramService.sendNotification(exchangeAccount.user_id, 'order_placed', {
+          setupId,
+          symbol,
+          orderType: 'entry',
+          side,
+          price: entryPrice,
+          quantity: roundedPositionSize,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      logger.orderPlaced(setupId, 'entry', symbol, entryPrice, roundedPositionSize);
+
+      return { setupId, entryPrice, slPrice, positionSize: roundedPositionSize, tpPrices };
+    } catch (error) {
+      logger.error(`Error in webhook place order:`, error);
+      this.stats.errors++;
+      throw error;
+    }
+  }
+
   static async placeEntryOrder(ctx, setup, exchangeService, candles) {
     try {
       const lastCandle = candles[candles.length - 1];

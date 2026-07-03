@@ -27,6 +27,22 @@ class Config {
     return process.env.TELEGRAM_USER_ID;
   }
 
+  static getWebhookRiskAmount() {
+    return parseFloat(process.env.WEBHOOK_RISK_AMOUNT || '20');
+  }
+
+  static getWebhookRRList() {
+    try {
+      return JSON.parse(process.env.WEBHOOK_RR_LIST || '[1,2,3,4,5,6,7,8]');
+    } catch {
+      return [1, 2, 3, 4, 5, 6, 7, 8];
+    }
+  }
+
+  static getWebhookExchangeAccountIndex() {
+    return parseInt(process.env.WEBHOOK_EXCHANGE_ACCOUNT_INDEX || '3', 10);
+  }
+
   static getBybitApiUrl(isTestnet = true) {
     return isTestnet 
       ? process.env.BYBIT_TESTNET_API_URL || 'https://api-testnet.bybit.com'

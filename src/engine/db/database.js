@@ -618,6 +618,16 @@ async getScreenerItems(userId, enabledOnly = true) {
     
     return this.all(sql, params);
   }
+async getExchangeAccountByIndex(index) {
+    const sql = `
+      SELECT ea.*, u.id as user_id
+      FROM exchange_accounts ea
+      JOIN users u ON ea.user_id = u.id
+      ORDER BY ea.id ASC
+      LIMIT 1 OFFSET ?
+    `;
+    return this.get(sql, [index]);
+  }
 }
 
 module.exports = Database;
