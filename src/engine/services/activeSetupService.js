@@ -61,6 +61,15 @@ class ActiveSetupService {
           return;
         }
 
+        const isInProfit = setup.side === 'long'
+          ? currentPrice > setup.entry_price
+          : currentPrice < setup.entry_price;
+
+        if (!isInProfit) {
+          logger.info(`Exit signal triggered but trade is not in profit for setup #${setup.id}: side=${setup.side}, entry=${setup.entry_price}, current=${currentPrice}`);
+          return;
+        }
+
         logger.info(`Exit condition met for setup #${setup.id}`);
         await this.closePosition(ctx, setup, exchangeService, 'exit_condition');
       }
