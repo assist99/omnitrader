@@ -62,6 +62,9 @@ export default function SetupFormPage() {
 
   const [rawNums, setRawNums] = useState<Record<string, string>>({});
   const [rawTp, setRawTp] = useState<Record<number, string>>({});
+  const [startRr, setStartRr] = useState('0.6');
+  const [endRr, setEndRr] = useState('3');
+  const [tpLength, setTpLength] = useState('20');
 
   function updateField<K extends keyof SetupFormData>(key: K, value: SetupFormData[K]) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -92,8 +95,8 @@ export default function SetupFormPage() {
   }
 
   function addTpLevel() {
-    if (formData.tp_prices.length < 8) {
-      const nextRr = formData.tp_prices.length + 1;
+    if (formData.tp_prices.length < 100) {
+      const nextRr = formData.tp_prices.length > 0 ? +(Math.max(...formData.tp_prices) + 1).toFixed(1) : 1;
       updateField('tp_prices', [...formData.tp_prices, nextRr]);
     }
   }
@@ -118,6 +121,16 @@ export default function SetupFormPage() {
 
   function tpVal(index: number): string | number {
     return rawTp[index] !== undefined ? rawTp[index] : formData.tp_prices[index];
+  }
+
+  function generateTpList() {
+    const start = parseFloat(startRr);
+    const end = parseFloat(endRr);
+    const len = parseInt(tpLength, 10);
+    if (isNaN(start) || isNaN(end) || isNaN(len) || len < 1) return;
+    const step = (end - start) / (len - 1);
+    const values = Array.from({ length: len }, (_, i) => +(start + step * i).toFixed(1));
+    updateField('tp_prices', values);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -389,6 +402,32 @@ type="number"
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">5</span>
             Take Profit Settings
           </h2>
+
+          <div className="mb-4 flex flex-wrap items-end gap-3 p-3 rounded-lg bg-slate-700/30 border border-slate-600/50">
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Start RR</label>
+              <input type="number" step="0.1" min="0.1" value={startRr}
+                onChange={(e) => setStartRr(e.target.value)}
+                className="w-20 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-2 text-sm text-white outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">End RR</label>
+              <input type="number" step="0.1" min="0.1" value={endRr}
+                onChange={(e) => setEndRr(e.target.value)}
+                className="w-20 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-2 text-sm text-white outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Length</label>
+              <input type="number" min="1" max="100" value={tpLength}
+                onChange={(e) => setTpLength(e.target.value)}
+                className="w-20 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-2 text-sm text-white outline-none focus:border-blue-500" />
+            </div>
+            <button type="button" onClick={generateTpList}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+              Generate
+            </button>
+          </div>
+
           <div className="space-y-3">
             {formData.tp_prices.map((rr, index) => (
               <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -421,7 +460,7 @@ type="number"
                 </div>
               </div>
             ))}
-            {formData.tp_prices.length < 8 && (
+            {formData.tp_prices.length < 100 && (
               <button
                 type="button"
                 onClick={addTpLevel}
