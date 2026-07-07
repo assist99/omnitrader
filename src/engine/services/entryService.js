@@ -5,6 +5,8 @@ const TimeUtils = require('../utils/timeUtils');
 const PendingSetupService = require('./pendingSetupService');
 const logger = require('../logger');
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 class EntryService {
   static db = null;
   static telegramService = null;
@@ -205,6 +207,7 @@ class EntryService {
           exchange_order_id: tpOrder.id,
           status: 'pending'
         });
+        await sleep(200);
       }
 
       await this.db.updateSetupStatus(setup.id, 'active', {
