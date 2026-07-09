@@ -78,7 +78,7 @@ class ActiveSetupService {
     }
   }
 
-  static async checkBreakEven(ctx, setup, exchangeService) {
+static async checkBreakEven(ctx, setup, exchangeService) {
     try {
       if (!setup.be_enabled) return;
 
@@ -88,6 +88,22 @@ class ActiveSetupService {
 
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder.price === setup.entry_price) return;
+
+      // Check if we should trigger BE based on be_trigger_price
+      if (setup.be_trigger_price > 0) {
+        const ticker = await exchangeService.getTicker(setup.symbol);
+        const currentPrice = parseFloat(ticker.lastPrice);
+        
+        const shouldTriggerBE = setup.side === 'long' 
+          ? currentPrice >= setup.be_trigger_price
+          : currentPrice <= setup.be_trigger_price;
+        
+        if (!shouldTriggerBE) {
+          logger.info(`BE trigger price not reached for setup #${setup.id}: side=${setup.side}, current=${currentPrice}, trigger=${setup.be_trigger_price}`);
+          return;
+        }
+      }
+
       await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol, { 'trigger': true });
 
       const newSlOrder = await exchangeService.placeOrder({
@@ -119,7 +135,7 @@ class ActiveSetupService {
         timestamp: new Date().toISOString()
       });
 
-      logger.beActivated(setup.id);
+logger.beActivated(setup.id);
     } catch (error) {
       logger.error(`Error checking break-even for setup #${setup.id}:`, error);
     }
