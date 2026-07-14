@@ -25,10 +25,6 @@ router.post('/trade', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: asset, entry_price, side' });
     }
 
-    if (!payload.features || !payload.features.signal_count || payload.features.signal_count <= 0) {
-      return res.status(400).json({ error: 'signal_count must be > 0' });
-    }
-
     if (payload.side !== 1 && payload.side !== -1) {
       return res.status(400).json({ error: 'side must be 1 (long) or -1 (short)' });
     }
