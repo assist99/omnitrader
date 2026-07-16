@@ -77,14 +77,14 @@ class ScreenerCandleProvider {
           // Optional: log candle updates
           //logger.debug(`Candle closed for screener: ${symbol} ${timeframe}`);
         },
-        onScreenerUpdate: (symbol, timeframe, closedBars) => {
+        onScreenerUpdate: async (symbol, timeframe, closedBars) => {
           // Query database for screener items matching this symbol/timeframe
           ScreenerService.processItemFromCandle(symbol, timeframe, closedBars);
           // Also process supply/demand items
           SupplyDemandService.processItemFromCandle(symbol, timeframe, closedBars);
-          // Process pending setups
-          PendingSetupService.processItemFromCandle(symbol, timeframe, closedBars);
-          // Process triggered setups
+          // Process pending setups (must complete before processing entries)
+          await PendingSetupService.processItemFromCandle(symbol, timeframe, closedBars);
+          // Process triggered setups (runs after pending setups complete)
           EntryService.processItemFromCandle(symbol, timeframe, closedBars);
         },
         isTestnet: false
