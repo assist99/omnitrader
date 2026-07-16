@@ -84,7 +84,7 @@ static async checkBreakEven(ctx, setup, exchangeService) {
 
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
       const tp1Order = orders.find(o => o.order_type === 'tp1');
-      if (!tp1Order || tp1Order.status !== 'filled') return;
+      
 
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder.price === setup.entry_price) return;
@@ -102,6 +102,8 @@ static async checkBreakEven(ctx, setup, exchangeService) {
           logger.info(`BE trigger price not reached for setup #${setup.id}: side=${setup.side}, current=${currentPrice}, trigger=${setup.be_trigger_price}`);
           return;
         }
+      }else{
+        if (!tp1Order || tp1Order.status !== 'filled') return;
       }
 
       await exchangeService.cancelOrder(slOrder.exchange_order_id, setup.symbol, { 'trigger': true });
