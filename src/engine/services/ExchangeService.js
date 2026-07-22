@@ -51,13 +51,15 @@ async getSymbolInfo(symbol) {
       const market = markets.find(m => m.symbol === symbol);
       
       if (market) {
+        const tickSize = market.precision?.price ?? market.info?.priceFilter?.tickSize ?? market.info?.tickSize;
+        const qtyStep = market.precision?.amount ?? market.info?.lotSizeFilter?.qtyStep ?? market.info?.qtyStep;
         const info = {
           symbol: market.symbol,
           minOrderQty: market.limits?.amount?.min,
           maxOrderQty: market.limits?.amount?.max,
-          qtyStep: market.precision?.amount,
-          priceScale: market.precision?.price,
-          tickSize: market.precision?.price,
+          qtyStep,
+          priceScale: tickSize,
+          tickSize,
           contractType: market.type,
           active: market.active,
           trading: market.info?.status === 'Trading',
@@ -228,8 +230,16 @@ async getSymbolInfo(symbol) {
       logger.info('getOrderStatus', error);
       throw error;
     }
+}
+
+  roundPrice(symbol, price) {
+    return parseFloat(this.exchange.priceToPrecision(symbol, price));
   }
-  
+
+  roundAmount(symbol, amount) {
+    return parseFloat(this.exchange.amountToPrecision(symbol, amount));
+  }
+
   // Cancel order
   async cancelOrder(orderId, symbol, params = {}) {
     try {

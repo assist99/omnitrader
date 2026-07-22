@@ -116,10 +116,9 @@ class EntryService {
       
       const exchangeService = await this._getExchangeServiceForSetup(setup);
       const symbolInfo = await exchangeService.getSymbolInfo(setup.symbol);
-      const tickSize = parseFloat(symbolInfo.priceFilter?.tickSize) || 0.01;
-      const qtyStepSize = parseFloat(symbolInfo.lotSizeFilter?.qtyStep) || 0.001;
+      const qtyStepSize = parseFloat(symbolInfo.qtyStep) || 0.001;
 
-      slPrice = PriceUtils.roundToTickSize(slPrice, tickSize);
+      slPrice = exchangeService.roundPrice(setup.symbol, slPrice);
 
       const accountBalance = await exchangeService.getAccountBalance();
       const riskType = setup.risk_type || 'percent';
@@ -131,13 +130,13 @@ class EntryService {
         setup.side,
         riskType
       );
-      const roundedPositionSize = PriceUtils.roundQuantity(positionSize, qtyStepSize);
+      const roundedPositionSize = exchangeService.roundAmount(setup.symbol, positionSize);
       if (roundedPositionSize <= 0) {
         throw new Error(`Calculated position size for setup #${setup.id} is too small after rounding`);
       }
       const rrRatios = PriceUtils.parseTpPricesJson(setup.tp_prices);
       const tpPrices = PriceUtils.calculateTPPrices(entryPrice, slPrice, rrRatios)
-        .map(price => PriceUtils.roundToTickSize(price, tickSize));
+        .map(price => exchangeService.roundPrice(setup.symbol, price));
       const tpQtys = PriceUtils.splitQuantity(
         roundedPositionSize,
         tpPrices.length,
@@ -270,7 +269,6 @@ class EntryService {
       );
 
       const symbolInfo = await exchangeService.getSymbolInfo(symbol);
-      const tickSize = parseFloat(symbolInfo.tickSize) || 0.01;
       const qtyStepSize = parseFloat(symbolInfo.qtyStep) || 0.001;
 
       let slPrice = slOverride && slOverride > 0 ? slOverride : null;
@@ -287,7 +285,7 @@ class EntryService {
           { period: 10, multiplier: 3 }
         );
       }
-      slPrice = PriceUtils.roundToTickSize(slPrice, tickSize);
+      slPrice = exchangeService.roundPrice(symbol, slPrice);
 
       const accountBalance = await exchangeService.getAccountBalance();
       const positionSize = PriceUtils.calculatePositionSize(
@@ -298,13 +296,13 @@ class EntryService {
         side,
         'fixed'
       );
-      const roundedPositionSize = PriceUtils.roundQuantity(positionSize, qtyStepSize);
+      const roundedPositionSize = exchangeService.roundAmount(symbol, positionSize);
       if (roundedPositionSize <= 0) {
         throw new Error(`Calculated position size for webhook signal is too small after rounding`);
       }
 
       const tpPrices = PriceUtils.calculateTPPrices(entryPrice, slPrice, rrList)
-        .map(price => PriceUtils.roundToTickSize(price, tickSize));
+        .map(price => exchangeService.roundPrice(symbol, price));
       const tpQtys = PriceUtils.splitQuantity(roundedPositionSize, tpPrices.length, qtyStepSize);
 
       const setupResult = await db.run(`
@@ -451,10 +449,9 @@ class EntryService {
         );
       }
       const symbolInfo = await exchangeService.getSymbolInfo(setup.symbol);
-      const tickSize = parseFloat(symbolInfo.priceFilter?.tickSize) || 0.01;
-      const qtyStepSize = parseFloat(symbolInfo.lotSizeFilter?.qtyStep) || 0.001;
+      const qtyStepSize = parseFloat(symbolInfo.qtyStep) || 0.001;
 
-      slPrice = PriceUtils.roundToTickSize(slPrice, tickSize);
+      slPrice = exchangeService.roundPrice(setup.symbol, slPrice);
 
       const accountBalance = await exchangeService.getAccountBalance();
       const riskType = setup.risk_type || 'percent';
@@ -466,13 +463,13 @@ class EntryService {
         setup.side,
         riskType
       );
-      const roundedPositionSize = PriceUtils.roundQuantity(positionSize, qtyStepSize);
+      const roundedPositionSize = exchangeService.roundAmount(setup.symbol, positionSize);
       if (roundedPositionSize <= 0) {
         throw new Error(`Calculated position size for setup #${setup.id} is too small after rounding`);
       }
       const rrRatios = PriceUtils.parseTpPricesJson(setup.tp_prices);
       const tpPrices = PriceUtils.calculateTPPrices(entryPrice, slPrice, rrRatios)
-        .map(price => PriceUtils.roundToTickSize(price, tickSize));
+        .map(price => exchangeService.roundPrice(setup.symbol, price));
       const tpQtys = PriceUtils.splitQuantity(
         roundedPositionSize,
         tpPrices.length,
