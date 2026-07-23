@@ -25,7 +25,7 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const router = useRouter();
 
-  const [setup, setSetup] = useState<(TradingSetup & { account_label?: string }) | null>(null);
+  const [setup, setSetup] = useState<TradingSetup | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,7 +95,7 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 mt-1">
-            <span>{setup.account_label || `Account #${setup.exchange_account_id}`}</span>
+            <span>{setup.account_label ? `${setup.account_label} (${setup.exchange})` : `Account #${setup.exchange_account_id}`}</span>
             <span>&bull;</span>
             <span>Created {new Date(setup.created_at).toLocaleString()}</span>
             {(setup.status === 'active' || setup.status === 'closed' || setup.status === 'cancelled') && (
@@ -108,10 +108,10 @@ export default function SetupDetailPage({ params }: { params: Promise<{ id: stri
         <div className="flex gap-2 flex-wrap">
           {(setup.status === 'pending' || setup.status === 'triggered' || setup.status === 'active') && (
             <>
-              <button onClick={() => router.push(`/dashboard/setups/${id}/edit${setup.status === 'active' ? '?mode=be' : ''}`)}
+              <button onClick={() => router.push(`/dashboard/setups/${id}/edit`)}
                 className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600">
                 <Edit3 className="h-4 w-4" />
-                {setup.status === 'active' ? 'Edit BE' : 'Edit'}
+                Edit
               </button>
               <button onClick={handleCancel}
                 className="flex items-center gap-1.5 rounded-lg bg-red-900/30 px-3 py-2 text-sm text-red-400 hover:bg-red-900/50">

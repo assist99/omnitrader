@@ -160,7 +160,7 @@ class Database {
   async getSetupsByStatus(statuses) {
     const placeholders = statuses.map(() => '?').join(',');
     const sql = `
-      SELECT ts.*, ea.exchange, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet
+      SELECT ts.*, ea.exchange, ea.label as account_label, ea.api_key_enc, ea.api_secret_enc, ea.is_testnet
       FROM trading_setups ts
       JOIN exchange_accounts ea ON ts.exchange_account_id = ea.id
       WHERE ts.status IN (${placeholders})

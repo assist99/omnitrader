@@ -247,10 +247,13 @@ export default function EditSetupPage({ params }: { params: Promise<{ id: string
         <span className="inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-medium text-yellow-400 bg-yellow-900/20 border-yellow-700/30">
           {STATUS_LABELS[status] || status}
         </span>
+        <span className="text-xs text-slate-500">
+          {originalSetup.account_label ? `${originalSetup.account_label} (${originalSetup.exchange})` : `Account #${originalSetup.exchange_account_id}`}
+        </span>
       </div>
 
       {isBeOnly && <p className="text-sm text-slate-400 mb-6">Only BE trigger price can be adjusted for active setups.</p>}
-      {isActive && <p className="text-sm text-slate-400 mb-6">BE trigger price and exit conditions can be adjusted for active setups.</p>}
+      {isActive && <p className="text-sm text-slate-400 mb-6">BE trigger price and exit conditions can be adjusted.</p>}
       {isTriggered && <p className="text-sm text-slate-400 mb-6">Activation price cannot be changed for triggered setups. Ignore box upper and lower can still be edited.</p>}
 
       <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 max-w-3xl">

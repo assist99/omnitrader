@@ -31,6 +31,8 @@ export interface TradingSetup {
   id: number;
   user_id: number;
   exchange_account_id: number;
+  exchange?: string;
+  account_label?: string;
   symbol: string;
   side: Side;
   status: SetupStatus;

@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 };
 
 function SetupCardRaw({ setup, onCancel, onDelete }: {
-  setup: TradingSetup & { account_label?: string };
+  setup: TradingSetup;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
 }) {
@@ -31,7 +31,7 @@ function SetupCardRaw({ setup, onCancel, onDelete }: {
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-white">{setup.symbol}</h3>
-            <span className="text-xs text-slate-500">{setup.account_label || `Account #${setup.exchange_account_id}`}</span>
+            <span className="text-xs text-slate-500">{setup.account_label ? `${setup.account_label} (${setup.exchange})` : `Account #${setup.exchange_account_id}`}</span>
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusCfg.color} bg-slate-800/80`}>
@@ -118,7 +118,7 @@ const SetupCard = SetupCardRaw;
 
 export default function DashboardPage() {
   const [tab, setTab] = useState<TabType>('pending');
-  const [setups, setSetups] = useState<(TradingSetup & { account_label?: string })[]>([]);
+  const [setups, setSetups] = useState<TradingSetup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [closedPage, setClosedPage] = useState(1);
