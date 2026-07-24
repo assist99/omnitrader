@@ -49,6 +49,10 @@ class ScreenerCandleProvider {
       await this.db.connect();
       logger.info('Database connected');
       
+      // Preload exchange services (warm-up cache)
+      const ExchangeServiceManager = require('./services/exchangeServiceManager');
+      await ExchangeServiceManager.initialize(this.db);
+      
       // Initialize ScreenerService dependencies
       ScreenerService.setDeps(this.db, this.telegramService);
       
@@ -119,6 +123,8 @@ class ScreenerCandleProvider {
     }
     
     try {
+      const ExchangeServiceManager = require('./services/exchangeServiceManager');
+      ExchangeServiceManager.clear();
       await this.db.disconnect();
       logger.info('Database disconnected');
     } catch (error) {

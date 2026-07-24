@@ -143,6 +143,10 @@ class TradingEngineApp {
       const engine = new TradingEngine();
       
       await engine.initialize();
+
+      // Preload exchange services (warm-up cache)
+      const ExchangeServiceManager = require('./services/exchangeServiceManager');
+      await ExchangeServiceManager.initialize(engine.db);
       const stats = await engine.processAllSetups();
       await engine.cleanup();
       

@@ -1,5 +1,4 @@
 const { getDatabaseManager } = require('./db');
-const ExchangeService = require('./services/ExchangeService');
 const TelegramService = require('./services/telegramService');
 const ActiveSetupService = require('./services/activeSetupService');
 const logger = require('./logger');
@@ -8,7 +7,6 @@ class TradingEngine {
   constructor() {
     this.db = getDatabaseManager();
     this.telegramService = new TelegramService(this.db);
-    this.exchangeServices = new Map();
     this.isInitialized = false;
     this.stats = {
       activeSetupsProcessed: 0,
@@ -22,6 +20,8 @@ class TradingEngine {
   async initialize() {
     try {
       await this.db.connect();
+      const ExchangeServiceManager = require('./services/exchangeServiceManager');
+      await ExchangeServiceManager.initialize(this.db);
       logger.info('Trading engine initialized');
 
       // CandleProvider runs as independent standalone service
@@ -88,14 +88,8 @@ class TradingEngine {
   }
 
   async getExchangeService(accountId, exchange, apiKeyEnc, apiSecretEnc, isTestnet) {
-    const cacheKey = `${accountId}_${exchange}_${isTestnet ? 'test' : 'main'}`;
-
-    if (!this.exchangeServices.has(cacheKey)) {
-      const service = new ExchangeService(exchange, apiKeyEnc, apiSecretEnc, isTestnet);
-      this.exchangeServices.set(cacheKey, service);
-    }
-
-    return this.exchangeServices.get(cacheKey);
+    const ExchangeServiceManager = require('./services/exchangeServiceManager');
+    return ExchangeServiceManager.getOrCreate(accountId, exchange, apiKeyEnc, apiSecretEnc, isTestnet);
   }
 
   async sendErrorNotification(userId, errorData) {
@@ -110,7 +104,7 @@ class TradingEngine {
     return {
       isInitialized: this.isInitialized,
       stats: this.stats,
-      exchangeServicesCount: this.exchangeServices.size,
+      exchangeServicesCount: require('./services/exchangeServiceManager').size(),
       telegramAvailable: this.telegramService.isAvailable()
     };
   }
@@ -119,7 +113,7 @@ class TradingEngine {
     try {
       await this.telegramService.flush();
       await this.db.disconnect();
-      this.exchangeServices.clear();
+      require('./services/exchangeServiceManager').clear();
       this.isInitialized = false;
       logger.info('Trading engine cleaned up');
     } catch (error) {

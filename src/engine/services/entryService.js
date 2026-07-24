@@ -237,14 +237,20 @@ class EntryService {
   }
 
   static async _getExchangeServiceForSetup(setup) {
-    const ExchangeService = require('./ExchangeService');
-    return new ExchangeService(setup.exchange, setup.api_key_enc, setup.api_secret_enc, setup.is_testnet);
+    const ExchangeServiceManager = require('./exchangeServiceManager');
+    return ExchangeServiceManager.getOrCreate(
+      setup.exchange_account_id,
+      setup.exchange,
+      setup.api_key_enc,
+      setup.api_secret_enc,
+      setup.is_testnet
+    );
   }
 
   static async webhookPlaceOrder(payload, db, telegramService) {
     try {
       const Config = require('../config');
-      const ExchangeService = require('./ExchangeService');
+      const ExchangeServiceManager = require('./exchangeServiceManager');
 
       const riskAmount = Config.getWebhookRiskAmount();
       const rrList = Config.getWebhookRRList();
@@ -261,7 +267,8 @@ class EntryService {
       const entryPrice = payload.entry_price;
       const slOverride = payload.sl;
 
-      const exchangeService = new ExchangeService(
+      const exchangeService = await ExchangeServiceManager.getOrCreate(
+        exchangeAccount.id,
         exchangeAccount.exchange,
         exchangeAccount.api_key_enc,
         exchangeAccount.api_secret_enc,

@@ -21,6 +21,10 @@ class Scheduler {
       
       // Initialize trading engine
       await this.tradingEngine.initialize();
+
+      // Preload exchange services (warm-up cache)
+      const ExchangeServiceManager = require('./services/exchangeServiceManager');
+      await ExchangeServiceManager.initialize(this.tradingEngine.db);
       
       // Schedule the job
       this.scheduleJob();
