@@ -18,7 +18,7 @@ async function getOrCreate(accountId, exchange, apiKeyEnc, apiSecretEnc, isTestn
   const service = new ExchangeService(exchange, apiKeyEnc, apiSecretEnc, isTestnet);
 
   try {
-    await service.exchange.fetchMarkets();
+    await service.exchange.loadMarkets();
     logger.info(`Markets loaded for ${exchange} account #${accountId}`);
   } catch (error) {
     logger.error(`Failed to load markets for ${exchange} account #${accountId}: ${error.message}`);

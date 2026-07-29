@@ -47,8 +47,8 @@ async getSymbolInfo(symbol) {
     }
     
     try {
-      const markets = await this.exchange.fetchMarkets();
-      const market = markets.find(m => m.symbol === symbol);
+      const markets = await this.exchange.loadMarkets();
+      const market = markets[symbol];
       
       if (market) {
         const tickSize = market.precision?.price ?? market.info?.priceFilter?.tickSize ?? market.info?.tickSize;
