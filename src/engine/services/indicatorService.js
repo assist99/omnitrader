@@ -38,105 +38,30 @@ class IndicatorService {
     }
   }
 
+  static buildSyntheticCandles(candles, rollingPeriod) {
+    const result = [];
+    for (let i = rollingPeriod - 1; i < candles.length; i++) {
+      const group = candles.slice(i - rollingPeriod + 1, i + 1);
+      result.push({
+        open: group[0].open,
+        high: Math.max(...group.map(c => c.high)),
+        low: Math.min(...group.map(c => c.low)),
+        close: candles[i].close,
+      });
+    }
+    return result;
+  }
+
   static checkRollingSuperTrend(candles, params = {}) {
     try {
-      const period = params.period || 10;
-      const multiplier = params.multiplier || 3;
       const rollingPeriod = params.rollingPeriod || 4;
 
-      const highs = candles.map(c => c.high);
-      const lows = candles.map(c => c.low);
-      const closes = candles.map(c => c.close);
-      const length = candles.length;
-
-      if (length < rollingPeriod + period) {
+      if (candles.length < rollingPeriod + 1) {
         return { met: false, error: 'Insufficient data for Rolling SuperTrend calculation' };
       }
 
-      const synthTR = [];
-      const synthHL2 = [];
-      const synthCloses = [];
-
-      for (let i = rollingPeriod - 1; i < length; i++) {
-        let rh = -Infinity;
-        let rl = Infinity;
-        for (let j = i - rollingPeriod + 1; j <= i; j++) {
-          rh = Math.max(rh, highs[j]);
-          rl = Math.min(rl, lows[j]);
-        }
-
-        const prevClose = closes[i - rollingPeriod];
-        const tr = Math.max(
-          rh - rl,
-          Math.abs(rh - prevClose),
-          Math.abs(rl - prevClose)
-        );
-
-        synthTR.push(tr);
-        synthHL2.push((rh + rl) / 2);
-        synthCloses.push(closes[i]);
-      }
-
-      const atr = this.calculateRMA(synthTR, period);
-
-      const stValues = [];
-      const stCloses = [];
-
-      let prevDir = 1;
-      let prevST = null;
-
-      for (let i = 0; i < atr.length; i++) {
-        if (atr[i] === null) continue;
-
-        const hl2 = synthHL2[i];
-        const close = synthCloses[i];
-
-        const upBand = hl2 - multiplier * atr[i];
-        const dnBand = hl2 + multiplier * atr[i];
-
-        let finalUpBand = upBand;
-        let finalDnBand = dnBand;
-
-        if (prevST !== null) {
-          if (synthCloses[i - 1] > prevST) {
-            finalUpBand = Math.max(upBand, prevST);
-          }
-          if (synthCloses[i - 1] < prevST) {
-            finalDnBand = Math.min(dnBand, prevST);
-          }
-        }
-
-        let dir = prevST === null ? 1 : prevDir;
-
-        if (dir === 1 && close > finalDnBand) {
-          dir = -1;
-        } else if (dir === -1 && close < finalUpBand) {
-          dir = 1;
-        }
-
-        const stValue = dir === -1 ? finalUpBand : finalDnBand;
-
-        stValues.push(stValue);
-        stCloses.push(close);
-        prevDir = dir;
-        prevST = stValue;
-      }
-
-      if (stValues.length < 2) {
-        return { met: false, error: 'Insufficient data for Rolling SuperTrend calculation' };
-      }
-
-      const result = this.detectSuperTrendCrossover(stValues, stCloses, 'Rolling SuperTrend');
-
-      return {
-        ...result,
-        details: {
-          period,
-          multiplier,
-          rollingPeriod,
-          trend: result.isBullish ? 'bullish' : 'bearish'
-        }
-      };
+      const syntheticCandles = this.buildSyntheticCandles(candles, rollingPeriod);
+      return this.checkSuperTrend(syntheticCandles, params);
     } catch (error) {
       logger.error('Error checking Rolling SuperTrend:', error);
       return { met: false, error: error.message };
@@ -683,8 +608,9 @@ class IndicatorService {
         case 'macd':
           return this.getMACDSwingPrice(candles, side, params);
         case 'supertrend':
-        case 'rollingsupertrend':
           return this.getSuperTrendSwingPrice(candles, side, params);
+        case 'rollingsupertrend':
+          return this.getRollingSuperTrendSwingPrice(candles, side, params);
         case 'ema':
           return this.getEMASwingPrice(candles, side, params);
         default:
@@ -692,6 +618,17 @@ class IndicatorService {
       }
     } catch (error) {
       logger.error(`Error getting swing price for ${indicatorType}:`, error);
+      return { price: null, error: error.message };
+    }
+  }
+
+  static getRollingSuperTrendSwingPrice(candles, side, params = {}) {
+    try {
+      const rollingPeriod = params.rollingPeriod || 4;
+      const syntheticCandles = this.buildSyntheticCandles(candles, rollingPeriod);
+      return this.getSuperTrendSwingPrice(syntheticCandles, side, params);
+    } catch (error) {
+      logger.error('Error getting rolling SuperTrend swing price:', error);
       return { price: null, error: error.message };
     }
   }
