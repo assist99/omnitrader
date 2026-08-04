@@ -364,7 +364,7 @@ if (require.main === module) {
     exchange: 'bybit',
     symbols,
     timeframes: symbolsConfig.intervals,
-    limit: 100,
+    limit: 1000,
     onUpdate: (symbol, timeframe, candle) => {
       console.log(`[CLOSED] ${symbol} ${timeframe} | O:${candle[1]} H:${candle[2]} L:${candle[3]} C:${candle[4]} V:${candle[5]}`);
     },
