@@ -76,7 +76,7 @@ class ScreenerCandleProvider {
         exchange: 'bybit',
         symbols,
         timeframes,
-        limit: 100,
+        limit: 1000,
         onUpdate: (symbol, timeframe, candle) => {
           // Optional: log candle updates
           //logger.debug(`Candle closed for screener: ${symbol} ${timeframe}`);
