@@ -21,6 +21,8 @@ class IndicatorService {
       switch (indicatorType.toLowerCase()) {
         case 'supertrend':
           return this.checkSuperTrend(candles, params);
+        case 'rollingsupertrend':
+          return this.checkRollingSuperTrend(candles, params);
         case 'macd':
           return this.checkMACD(candles, params);
         case 'ema':
@@ -36,6 +38,84 @@ class IndicatorService {
     }
   }
 
+  static checkRollingSuperTrend(candles, params = {}) {
+    try {
+      const period = params.period || 10;
+      const multiplier = params.multiplier || 3;
+      const rollingPeriod = params.rollingPeriod || 4;
+
+      const aggregated = this.aggregateCandles(candles, rollingPeriod);
+
+      const highs = aggregated.map(c => c.high);
+      const lows = aggregated.map(c => c.low);
+      const closes = aggregated.map(c => c.close);
+
+      const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
+      if (superTrend.length < 2) {
+        return { met: false, error: 'Insufficient data for Rolling SuperTrend calculation' };
+      }
+
+      const result = this.detectSuperTrendCrossover(superTrend, closes, 'Rolling SuperTrend');
+
+      return {
+        ...result,
+        details: {
+          period,
+          multiplier,
+          rollingPeriod,
+          trend: result.isBullish ? 'bullish' : 'bearish'
+        }
+      };
+    } catch (error) {
+      logger.error('Error checking Rolling SuperTrend:', error);
+      return { met: false, error: error.message };
+    }
+  }
+
+  static detectSuperTrendCrossover(superTrend, closes, label) {
+    const lastST = superTrend[superTrend.length - 1];
+    const prevST = superTrend[superTrend.length - 2];
+    const lastClose = closes[closes.length - 1];
+    const prevClose = closes[closes.length - 2];
+
+    const wasBullish = prevClose > prevST;
+    const isBullish = lastClose > lastST;
+
+    let signal = 'none';
+    let met = false;
+
+    if (!wasBullish && isBullish) {
+      signal = 'bullish_crossover';
+      met = true;
+      logger.info(`${label} bullish crossover detected at $${lastClose}`);
+    } else if (wasBullish && !isBullish) {
+      signal = 'bearish_crossover';
+      met = true;
+      logger.info(`${label} bearish crossover detected at $${lastClose}`);
+    }
+
+    return { met, signal, value: lastST, price: lastClose, wasBullish, isBullish };
+  }
+
+  static aggregateCandles(candles, rollingPeriod) {
+    const result = [];
+    const remainder = candles.length % rollingPeriod;
+    if (remainder > 0) {
+      logger.debug(`aggregateCandles: discarded ${remainder} trailing candle(s) (rollingPeriod=${rollingPeriod})`);
+    }
+    for (let i = 0; i < candles.length; i += rollingPeriod) {
+      const group = candles.slice(i, i + rollingPeriod);
+      if (group.length < rollingPeriod) continue;
+      result.push({
+        open: group[0].open,
+        high: Math.max(...group.map(c => c.high)),
+        low: Math.min(...group.map(c => c.low)),
+        close: group[group.length - 1].close,
+      });
+    }
+    return result;
+  }
+
   static checkSuperTrend(candles, params = {}) {
     try {
       const period = params.period || 10;
@@ -49,38 +129,16 @@ class IndicatorService {
       if (superTrend.length < 2) {
         return { met: false, error: 'Insufficient data for SuperTrend calculation' };
       }
-      // Get last two SuperTrend values
-      const lastST = superTrend[superTrend.length - 1];
-      const prevST = superTrend[superTrend.length - 2];
-      const lastClose = closes[closes.length - 1];
-      logger.debug(`SuperTrend values: last=${lastST}, previous=${prevST}, close=${lastClose}`);
-      
-// Check for trend change (price > ST = bullish uptrend, price < ST = bearish downtrend)
-       const wasBullish = closes[closes.length - 2] > prevST;
-       const isBullish = lastClose > lastST;
-      
-      let signal = 'none';
-      let met = false;
-      
-      if (!wasBullish && isBullish) {
-        signal = 'bullish_crossover';
-        met = true;
-        logger.info(`SuperTrend bullish crossover detected at $${lastClose}`);
-      } else if (wasBullish && !isBullish) {
-        signal = 'bearish_crossover';
-        met = true;
-        logger.info(`SuperTrend bearish crossover detected at $${lastClose}`);
-      }
-      logger.info(`SuperTrend check: lastST=${lastST}, lastClose=${lastClose}, wasBullish=${wasBullish}, isBullish=${isBullish}, signal=${signal}`);
+
+      const result = this.detectSuperTrendCrossover(superTrend, closes, 'SuperTrend');
+      logger.info(`SuperTrend check: lastST=${result.value}, lastClose=${result.price}, wasBullish=${result.wasBullish}, isBullish=${result.isBullish}, signal=${result.signal}`);
+
        return {
-        met: met,
-        signal: signal,
-        value: lastST,
-        price: lastClose,
+        ...result,
         details: {
           period: period,
           multiplier: multiplier,
-          trend: isBullish ? 'bullish' : 'bearish'
+          trend: result.isBullish ? 'bullish' : 'bearish'
         }
       };
     } catch (error) {
@@ -536,6 +594,7 @@ class IndicatorService {
   static getIndicatorParameters(indicatorType) {
     const defaultParams = {
       'supertrend': { period: 10, multiplier: 3 },
+      'rollingsupertrend': { period: 10, multiplier: 3, rollingPeriod: 4 },
       'macd': { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
       'ema': { fastPeriod: 9, slowPeriod: 21 },
       'ema_cross': { fastPeriod: 9, slowPeriod: 21 },
@@ -546,7 +605,7 @@ class IndicatorService {
   }
 
   static validateIndicatorConfig(indicatorType, timeframe) {
-    const validIndicators = ['supertrend', 'macd', 'ema', 'supply_demand'];
+    const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'supply_demand'];
     const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1'];
     
     if (!validIndicators.includes(indicatorType.toLowerCase())) {
@@ -572,6 +631,7 @@ class IndicatorService {
         case 'macd':
           return this.getMACDSwingPrice(candles, side, params);
         case 'supertrend':
+        case 'rollingsupertrend':
           return this.getSuperTrendSwingPrice(candles, side, params);
         case 'ema':
           return this.getEMASwingPrice(candles, side, params);
