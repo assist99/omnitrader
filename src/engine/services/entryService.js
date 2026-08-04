@@ -63,7 +63,7 @@ class EntryService {
       logger.info(`Entry condition met for setup #${setup.id}: ${indicatorResult.signal}`);
       await this.placeEntryOrderModern(setup, closedBars);
     } else {
-      logger.info(`Entry condition not met for setup #${setup.id}: ${indicatorResult.error || 'No signal'}`);
+      logger.info(`Entry condition not met for setup #${setup.id}: ${indicatorResult.error || 'No signal'}`,indicatorResult);
     }
   }
 
