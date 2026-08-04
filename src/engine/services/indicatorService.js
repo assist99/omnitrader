@@ -44,18 +44,89 @@ class IndicatorService {
       const multiplier = params.multiplier || 3;
       const rollingPeriod = params.rollingPeriod || 4;
 
-      const aggregated = this.aggregateCandles(candles, rollingPeriod);
+      const highs = candles.map(c => c.high);
+      const lows = candles.map(c => c.low);
+      const closes = candles.map(c => c.close);
+      const length = candles.length;
 
-      const highs = aggregated.map(c => c.high);
-      const lows = aggregated.map(c => c.low);
-      const closes = aggregated.map(c => c.close);
-
-      const superTrend = this.calculateSuperTrend(highs, lows, closes, period, multiplier);
-      if (superTrend.length < 2) {
+      if (length < rollingPeriod + period) {
         return { met: false, error: 'Insufficient data for Rolling SuperTrend calculation' };
       }
 
-      const result = this.detectSuperTrendCrossover(superTrend, closes, 'Rolling SuperTrend');
+      const synthTR = [];
+      const synthHL2 = [];
+      const synthCloses = [];
+
+      for (let i = rollingPeriod - 1; i < length; i++) {
+        let rh = -Infinity;
+        let rl = Infinity;
+        for (let j = i - rollingPeriod + 1; j <= i; j++) {
+          rh = Math.max(rh, highs[j]);
+          rl = Math.min(rl, lows[j]);
+        }
+
+        const prevClose = closes[i - rollingPeriod];
+        const tr = Math.max(
+          rh - rl,
+          Math.abs(rh - prevClose),
+          Math.abs(rl - prevClose)
+        );
+
+        synthTR.push(tr);
+        synthHL2.push((rh + rl) / 2);
+        synthCloses.push(closes[i]);
+      }
+
+      const atr = this.calculateRMA(synthTR, period);
+
+      const stValues = [];
+      const stCloses = [];
+
+      let prevDir = 1;
+      let prevST = null;
+
+      for (let i = 0; i < atr.length; i++) {
+        if (atr[i] === null) continue;
+
+        const hl2 = synthHL2[i];
+        const close = synthCloses[i];
+
+        const upBand = hl2 - multiplier * atr[i];
+        const dnBand = hl2 + multiplier * atr[i];
+
+        let finalUpBand = upBand;
+        let finalDnBand = dnBand;
+
+        if (prevST !== null) {
+          if (synthCloses[i - 1] > prevST) {
+            finalUpBand = Math.max(upBand, prevST);
+          }
+          if (synthCloses[i - 1] < prevST) {
+            finalDnBand = Math.min(dnBand, prevST);
+          }
+        }
+
+        let dir = prevST === null ? 1 : prevDir;
+
+        if (dir === 1 && close > finalDnBand) {
+          dir = -1;
+        } else if (dir === -1 && close < finalUpBand) {
+          dir = 1;
+        }
+
+        const stValue = dir === -1 ? finalUpBand : finalDnBand;
+
+        stValues.push(stValue);
+        stCloses.push(close);
+        prevDir = dir;
+        prevST = stValue;
+      }
+
+      if (stValues.length < 2) {
+        return { met: false, error: 'Insufficient data for Rolling SuperTrend calculation' };
+      }
+
+      const result = this.detectSuperTrendCrossover(stValues, stCloses, 'Rolling SuperTrend');
 
       return {
         ...result,
@@ -95,25 +166,6 @@ class IndicatorService {
     }
 
     return { met, signal, value: lastST, price: lastClose, wasBullish, isBullish };
-  }
-
-  static aggregateCandles(candles, rollingPeriod) {
-    const result = [];
-    const remainder = candles.length % rollingPeriod;
-    if (remainder > 0) {
-      logger.debug(`aggregateCandles: discarded ${remainder} trailing candle(s) (rollingPeriod=${rollingPeriod})`);
-    }
-    for (let i = 0; i < candles.length; i += rollingPeriod) {
-      const group = candles.slice(i, i + rollingPeriod);
-      if (group.length < rollingPeriod) continue;
-      result.push({
-        open: group[0].open,
-        high: Math.max(...group.map(c => c.high)),
-        low: Math.min(...group.map(c => c.low)),
-        close: group[group.length - 1].close,
-      });
-    }
-    return result;
   }
 
   static checkSuperTrend(candles, params = {}) {
