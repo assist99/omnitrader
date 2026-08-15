@@ -18,7 +18,9 @@ class IndicatorService {
         return { met: false, error: validation.error };
       }
 
-      switch (indicatorType.toLowerCase()) {
+      const normalizedType = indicatorType.toLowerCase().replace('ewtrading', 'ewt');
+
+      switch (normalizedType) {
         case 'supertrend':
           return this.checkSuperTrend(candles, params);
         case 'rollingsupertrend':
@@ -596,14 +598,18 @@ class IndicatorService {
       }
     };
     
-    return defaultParams[indicatorType.toLowerCase()] || {};
+    return defaultParams[this._normalizeType(indicatorType)] || {};
+  }
+
+  static _normalizeType(type) {
+    return type.toLowerCase().replace('ewtrading', 'ewt');
   }
 
   static validateIndicatorConfig(indicatorType, timeframe) {
     const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'supply_demand', 'ewt'];
     const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1'];
     
-    if (!validIndicators.includes(indicatorType.toLowerCase())) {
+    if (!validIndicators.includes(this._normalizeType(indicatorType))) {
       return { valid: false, error: `Invalid indicator type: ${indicatorType}` };
     }
     
@@ -622,7 +628,7 @@ class IndicatorService {
         return { price: null, error: validation.error };
       }
 
-      switch (indicatorType.toLowerCase()) {
+      switch (this._normalizeType(indicatorType)) {
         case 'macd':
           return this.getMACDSwingPrice(candles, side, params);
         case 'supertrend':

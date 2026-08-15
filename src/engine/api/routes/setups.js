@@ -6,6 +6,11 @@ const auth = require('../middleware/auth');
 const db = new Database();
 db.connect().catch(() => {});
 
+function normalizeIndicatorType(type) {
+  if (!type) return type;
+  return type.toLowerCase().replace('ewtrading', 'ewt');
+}
+
 // List setups with optional status, pagination, search
 router.get('/', auth, async (req, res) => {
   try {
@@ -64,7 +69,7 @@ router.post('/', auth, async (req, res) => {
       payload.activation_price || 0,
       payload.ignore_box_upper || 0,
       payload.ignore_box_lower || 0,
-      payload.entry_indicator_type || null,
+      normalizeIndicatorType(payload.entry_indicator_type) || null,
       payload.entry_indicator_tf || null,
       payload.risk_type || null,
       payload.risk_value || 0,
@@ -72,7 +77,7 @@ router.post('/', auth, async (req, res) => {
       JSON.stringify(payload.tp_prices || []),
       payload.be_enabled ? 1 : 0,
       payload.be_trigger_price || 0,
-      payload.exit_indicator_type || null,
+      normalizeIndicatorType(payload.exit_indicator_type) || null,
       payload.exit_indicator_tf || null,
       payload.status || 'pending'
     ];
@@ -112,7 +117,7 @@ router.put('/:id', auth, async (req, res) => {
     Object.entries(req.body || {}).forEach(([k, v]) => {
       if (['exchange_account_id','symbol','side','memo','activation_price','ignore_box_upper','ignore_box_lower','entry_indicator_type','entry_indicator_tf','risk_type','risk_value','sl_price','tp_prices','be_enabled','be_trigger_price','exit_indicator_type','exit_indicator_tf','status'].includes(k)) {
         updates.push(`${k} = ?`);
-        params.push(k === 'tp_prices' ? JSON.stringify(v) : v);
+        params.push(k === 'tp_prices' ? JSON.stringify(v) : (k === 'entry_indicator_type' || k === 'exit_indicator_type') ? normalizeIndicatorType(v) : v);
       }
     });
 

@@ -6,6 +6,11 @@ const auth = require('../middleware/auth');
 const db = new Database();
 db.connect().catch(() => {});
 
+function normalizeIndicatorType(type) {
+  if (!type) return type;
+  return type.toLowerCase().replace('ewtrading', 'ewt');
+}
+
 router.get('/', auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -33,7 +38,7 @@ router.post('/', auth, async (req, res) => {
       exchange_account_id,
       symbol,
       timeframe,
-      indicator_type,
+indicator_type: normalizeIndicatorType(indicator_type),
       indicator_params: params
     });
 
@@ -66,7 +71,11 @@ router.put('/:id', auth, async (req, res) => {
     const allowed = ['symbol', 'timeframe', 'indicator_type', 'indicator_params', 'enabled'];
     for (const [k, v] of Object.entries(req.body || {})) {
       if (allowed.includes(k)) {
-        updates[k] = v;
+        if (k === 'indicator_type') {
+          updates[k] = normalizeIndicatorType(v);
+        } else {
+          updates[k] = v;
+        }
       }
     }
 
