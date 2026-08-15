@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const timeframeEnum = z.enum(['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1']);
-const indicatorEnum = z.enum(['superTrend', 'rollingSuperTrend', 'macd', 'ema']);
+const indicatorEnum = z.enum(['superTrend', 'rollingSuperTrend', 'macd', 'ema', 'ewTrading']);
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),

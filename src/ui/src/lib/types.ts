@@ -1,7 +1,7 @@
 export type Side = 'long' | 'short';
 export type SetupStatus = 'pending' | 'triggered' | 'active' | 'closed' | 'cancelled';
-export type EntryIndicatorType = 'superTrend' | 'rollingSuperTrend' | 'macd' | 'ema';
-export type ScreenerIndicatorType = 'supertrend' | 'rollingsupertrend' | 'macd' | 'ema';
+export type EntryIndicatorType = 'superTrend' | 'rollingSuperTrend' | 'macd' | 'ema' | 'ewTrading';
+export type ScreenerIndicatorType = 'supertrend' | 'rollingsupertrend' | 'macd' | 'ema' | 'ewt';
 export type Timeframe = 'm1' | 'm5' | 'm15' | 'm30' | 'h1' | 'h2' | 'h4' | 'd1';
 export type RiskType = 'percent' | 'fixed';
 export type OrderType = 'entry' | 'tp1' | 'tp2' | 'tp3' | 'tp4' | 'sl';
@@ -100,7 +100,7 @@ export interface ScreenerItem {
   exchange_account_label?: string;
   symbol: string;
   timeframe: string;
-  indicator_type: 'supertrend' | 'macd' | 'ema';
+  indicator_type: 'supertrend' | 'rollingsupertrend' | 'macd' | 'ema' | 'ewt';
   indicator_params?: Record<string, unknown>;
   enabled: number;
   last_signal: 'bullish_crossover' | 'bearish_crossover' | null;

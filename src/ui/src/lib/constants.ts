@@ -14,6 +14,7 @@ export const INDICATORS = [
   { value: 'rollingSuperTrend', label: 'Rolling SuperTrend' },
   { value: 'macd', label: 'MACD' },
   { value: 'ema', label: 'EMA Cross' },
+  { value: 'ewTrading', label: 'EW Trading' },
 ] as const;
 
 export const DEFAULT_TP_RATIOS = [1, 2, 3, 4];

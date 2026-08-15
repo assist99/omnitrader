@@ -23,6 +23,8 @@ class IndicatorService {
           return this.checkSuperTrend(candles, params);
         case 'rollingsupertrend':
           return this.checkRollingSuperTrend(candles, params);
+        case 'ewt':
+          return this.checkEWT(candles, params);
         case 'macd':
           return this.checkMACD(candles, params);
         case 'ema':
@@ -575,14 +577,30 @@ class IndicatorService {
       'macd': { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
       'ema': { fastPeriod: 9, slowPeriod: 21 },
       'ema_cross': { fastPeriod: 9, slowPeriod: 21 },
-      'supply_demand': { bodyTolerance: 0.5, minWickOverlapRate: 0.1, checkCandle0Dir: true }
+      'supply_demand': { bodyTolerance: 0.5, minWickOverlapRate: 0.1, checkCandle0Dir: true },
+      'ewt': {
+        barsPerHour: 4,
+        barsPerHour2: 16,
+        macroAtrLen: 10,
+        macroMult: 3.0,
+        localAtrLen: 10,
+        localMult: 3.0,
+        zscoreLength: 500,
+        zscoreMin: 1.8,
+        zscoreMax: 10.0,
+        useWickFilter: true,
+        maxWickRatio: 0.3,
+        maxLegsAllowed: 5,
+        useExtFilter: true,
+        extMultiplier: 1.27
+      }
     };
     
     return defaultParams[indicatorType.toLowerCase()] || {};
   }
 
   static validateIndicatorConfig(indicatorType, timeframe) {
-    const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'supply_demand'];
+    const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'supply_demand', 'ewt'];
     const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1'];
     
     if (!validIndicators.includes(indicatorType.toLowerCase())) {
@@ -613,6 +631,8 @@ class IndicatorService {
           return this.getRollingSuperTrendSwingPrice(candles, side, params);
         case 'ema':
           return this.getEMASwingPrice(candles, side, params);
+        case 'ewt':
+          return this.getEWTSwingPrice(candles, side, params);
         default:
           return { price: null, error: `Unsupported indicator type for swing detection: ${indicatorType}` };
       }
@@ -988,6 +1008,431 @@ class IndicatorService {
       };
     } catch (error) {
       logger.error('Error getting EMA swing price:', error);
+      return { price: null, error: error.message };
+    }
+  }
+
+  // ─── EWT (Elliott Wave Trading) ──────────────────────────────────────────
+
+  static _calculateSMA(values, period) {
+    const result = new Array(values.length).fill(null);
+    for (let i = period - 1; i < values.length; i++) {
+      let sum = 0;
+      for (let j = 0; j < period; j++) {
+        sum += values[i - period + 1 + j];
+      }
+      result[i] = sum / period;
+    }
+    return result;
+  }
+
+  static _calculateStdDev(values, period) {
+    const mean = this._calculateSMA(values, period);
+    const result = new Array(values.length).fill(null);
+    for (let i = period - 1; i < values.length; i++) {
+      let sumSq = 0;
+      for (let j = 0; j < period; j++) {
+        const diff = values[i - period + 1 + j] - mean[i];
+        sumSq += diff * diff;
+      }
+      result[i] = Math.sqrt(sumSq / period);
+    }
+    return result;
+  }
+
+  static _calculateSuperTrendAligned(highs, lows, closes, period, multiplier) {
+    const atr = this.calculateATR(highs, lows, closes, period);
+    const length = closes.length;
+    const superTrend = new Array(length).fill(null);
+    const direction = new Array(length).fill(0);
+
+    let prevUpperBand = null;
+    let prevLowerBand = null;
+    let prevSuperTrend = null;
+
+    for (let i = 0; i < length; i++) {
+      if (atr[i] === null) {
+        superTrend[i] = null;
+        direction[i] = 0;
+        continue;
+      }
+
+      const src = (highs[i] + lows[i]) / 2;
+      const upperBand = src + multiplier * atr[i];
+      const lowerBand = src - multiplier * atr[i];
+
+      let finalUpperBand = upperBand;
+      if (prevUpperBand !== null && (upperBand < prevUpperBand || closes[i - 1] > prevUpperBand)) {
+        finalUpperBand = upperBand;
+      } else if (prevUpperBand !== null) {
+        finalUpperBand = prevUpperBand;
+      }
+
+      let finalLowerBand = lowerBand;
+      if (prevLowerBand !== null && (lowerBand > prevLowerBand || closes[i - 1] < prevLowerBand)) {
+        finalLowerBand = lowerBand;
+      } else if (prevLowerBand !== null) {
+        finalLowerBand = prevLowerBand;
+      }
+
+      let _direction = 0;
+      if (i === 0 || atr[i - 1] === null) {
+        _direction = 1;
+      } else if (prevSuperTrend === prevUpperBand) {
+        _direction = closes[i] > finalUpperBand ? -1 : 1;
+      } else {
+        _direction = closes[i] < finalLowerBand ? 1 : -1;
+      }
+
+      superTrend[i] = _direction === -1 ? finalLowerBand : finalUpperBand;
+      direction[i] = _direction;
+
+      prevUpperBand = finalUpperBand;
+      prevLowerBand = finalLowerBand;
+      prevSuperTrend = superTrend[i];
+    }
+
+    return { superTrend, direction };
+  }
+
+  static checkEWT(candles, params = {}) {
+    try {
+      const {
+        barsPerHour = 4,
+        macroAtrLen = 10,
+        macroMult = 3.0,
+        localAtrLen = 10,
+        localMult = 3.0,
+        zscoreLength = 500,
+        zscoreMin = 1.8,
+        zscoreMax = 10.0,
+        useWickFilter = true,
+        maxWickRatio = 0.3
+      } = params;
+
+      const minRequired = Math.max(zscoreLength, barsPerHour + macroAtrLen, localAtrLen + 2);
+      if (candles.length < minRequired) {
+        return { met: false, error: `Insufficient data for EWT calculation, need ${minRequired} bars` };
+      }
+
+      const length = candles.length;
+      const opens = candles.map(c => c.open);
+      const highs = candles.map(c => c.high);
+      const lows = candles.map(c => c.low);
+      const closes = candles.map(c => c.close);
+
+      // ── Step A: Z-Score & Wick Filter ──────────────────────────────────
+      const absReturns = new Array(length);
+      for (let i = 0; i < length; i++) {
+        absReturns[i] = Math.abs(closes[i] - opens[i]);
+      }
+
+      const meanReturn = this._calculateSMA(absReturns, zscoreLength);
+      const stdReturn = this._calculateStdDev(absReturns, zscoreLength);
+
+      const isHighReturnBars = new Array(length).fill(false);
+      for (let i = 0; i < length; i++) {
+        let zScore = 0;
+        if (meanReturn[i] !== null && stdReturn[i] !== null && stdReturn[i] !== 0) {
+          zScore = (absReturns[i] - meanReturn[i]) / stdReturn[i];
+        }
+        const isZScoreHigh = zScore >= zscoreMin && zScore < zscoreMax;
+        const barBody = Math.abs(closes[i] - opens[i]);
+        const directionalWick = closes[i] >= opens[i] ? (highs[i] - closes[i]) : (opens[i] - lows[i]);
+        const wickRatio = barBody > 0 ? directionalWick / barBody : 0;
+        const passWickFilter = !useWickFilter || wickRatio < maxWickRatio;
+        isHighReturnBars[i] = isZScoreHigh && passWickFilter;
+      }
+      const isHighReturnBar = isHighReturnBars[length - 1];
+
+      // ── Step B: Synthetic Macro SuperTrend (HTF) ──────────────────────
+      const rollingHighs = new Array(length).fill(null);
+      const rollingLows = new Array(length).fill(null);
+      const prevRollingCloses = new Array(length).fill(null);
+
+      for (let i = barsPerHour - 1; i < length; i++) {
+        let maxH = -Infinity, minL = Infinity;
+        const start = i - barsPerHour + 1;
+        for (let j = start; j <= i; j++) {
+          if (highs[j] > maxH) maxH = highs[j];
+          if (lows[j] < minL) minL = lows[j];
+        }
+        rollingHighs[i] = maxH;
+        rollingLows[i] = minL;
+        if (i >= barsPerHour) {
+          prevRollingCloses[i] = closes[i - barsPerHour];
+        }
+      }
+
+      const syntheticTR = new Array(length).fill(null);
+      for (let i = barsPerHour - 1; i < length; i++) {
+        if (prevRollingCloses[i] !== null) {
+          syntheticTR[i] = Math.max(
+            rollingHighs[i] - rollingLows[i],
+            Math.abs(rollingHighs[i] - prevRollingCloses[i]),
+            Math.abs(rollingLows[i] - prevRollingCloses[i])
+          );
+        }
+      }
+
+      const syntheticATR = this.calculateRMA(syntheticTR, macroAtrLen);
+
+      let prevSynthUpper = null, prevSynthLower = null, prevSynthST = null;
+      let synthDir = 0, prevSynthDir = 0;
+      let synthStLine = null, lastSynthStLine = null;
+      let htfChanged = false;
+
+      for (let i = 0; i < length; i++) {
+        if (syntheticATR[i] === null || rollingHighs[i] === null) continue;
+
+        const hl2 = (rollingHighs[i] + rollingLows[i]) / 2;
+        const upperBand = hl2 + macroMult * syntheticATR[i];
+        const lowerBand = hl2 - macroMult * syntheticATR[i];
+
+        let finalUpper = upperBand;
+        if (prevSynthUpper !== null) {
+          if (upperBand < prevSynthUpper || (i > 0 && closes[i - 1] > prevSynthUpper)) {
+            finalUpper = upperBand;
+          } else {
+            finalUpper = prevSynthUpper;
+          }
+        }
+
+        let finalLower = lowerBand;
+        if (prevSynthLower !== null) {
+          if (lowerBand > prevSynthLower || (i > 0 && closes[i - 1] < prevSynthLower)) {
+            finalLower = lowerBand;
+          } else {
+            finalLower = prevSynthLower;
+          }
+        }
+
+        let dir = 0;
+        if (prevSynthST === null) {
+          dir = 1;
+        } else if (prevSynthST === prevSynthUpper) {
+          dir = closes[i] > finalUpper ? -1 : 1;
+        } else {
+          dir = closes[i] < finalLower ? 1 : -1;
+        }
+
+        const stVal = dir === -1 ? finalLower : finalUpper;
+
+        if (i === length - 1) {
+          synthDir = dir;
+          synthStLine = stVal;
+          lastSynthStLine = stVal;
+        }
+
+        if (prevSynthDir !== 0 && dir !== prevSynthDir) {
+          if (i === length - 1) htfChanged = true;
+        }
+
+        prevSynthDir = dir;
+        prevSynthUpper = finalUpper;
+        prevSynthLower = finalLower;
+        prevSynthST = stVal;
+      }
+
+      if (prevSynthST !== null && lastSynthStLine === null) {
+        lastSynthStLine = prevSynthST;
+      }
+
+      const isSynthBullish = synthDir === -1;
+
+      // ── Step C: Local SuperTrend ──────────────────────────────────────
+      const { superTrend: localSTArr, direction: localDirArr } =
+        this._calculateSuperTrendAligned(highs, lows, closes, localAtrLen, localMult);
+
+      let localDir = 0, localStLine = null, prevLocalDir = 0;
+      let prevExtremePrice = null, curExtremePrice = null;
+
+      for (let i = 0; i < length; i++) {
+        if (localDirArr[i] === 0 || localDirArr[i] === null) continue;
+
+        const isBull = localDirArr[i] === -1;
+
+        if (i === 0) {
+          curExtremePrice = isBull ? highs[i] : lows[i];
+        }
+
+        if (prevLocalDir !== 0 && localDirArr[i] !== prevLocalDir) {
+          prevExtremePrice = curExtremePrice;
+          curExtremePrice = isBull ? highs[i] : lows[i];
+        } else {
+          if (isBull && (curExtremePrice === null || highs[i] >= curExtremePrice)) {
+            curExtremePrice = highs[i];
+          } else if (!isBull && (curExtremePrice === null || lows[i] <= curExtremePrice)) {
+            curExtremePrice = lows[i];
+          }
+        }
+
+        if (i === length - 1) {
+          localDir = localDirArr[i];
+          localStLine = localSTArr[i];
+        }
+
+        prevLocalDir = localDirArr[i];
+      }
+
+      const isLocalBullish = localDir === -1;
+      const localDirChanged = prevLocalDir !== 0 && localDir !== 0 && localDir !== (length > 1 && localDirArr[length - 2] !== null ? localDirArr[length - 2] : localDir);
+      let localDirChangedBool = false;
+      if (length >= 2) {
+        let lastValid = null, secondLastValid = null;
+        for (let i = length - 1; i >= 0; i--) {
+          if (localDirArr[i] !== null && localDirArr[i] !== 0) {
+            if (lastValid === null) {
+              lastValid = localDirArr[i];
+            } else if (secondLastValid === null) {
+              secondLastValid = localDirArr[i];
+              break;
+            }
+          }
+        }
+        localDirChangedBool = secondLastValid !== null && lastValid !== secondLastValid;
+      }
+
+      // ── Step D: Signal Combination ────────────────────────────────────
+      const primaryLong = localDirChangedBool && isLocalBullish && isSynthBullish && isHighReturnBar;
+      const primaryShort = localDirChangedBool && !isLocalBullish && !isSynthBullish && isHighReturnBar;
+      const additionalLong = htfChanged && isSynthBullish && isHighReturnBar;
+      const additionalShort = htfChanged && !isSynthBullish && isHighReturnBar;
+
+      let signal = 'none';
+      let met = false;
+      let sl_price = null;
+
+      if (primaryLong || primaryShort || additionalLong || additionalShort) {
+        met = true;
+      }
+
+      if (primaryLong) {
+        signal = 'bullish_crossover';
+        sl_price = localStLine;
+      } else if (primaryShort) {
+        signal = 'bearish_crossover';
+        sl_price = localStLine;
+      } else if (additionalLong) {
+        signal = 'bullish_crossover';
+        sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
+      } else if (additionalShort) {
+        signal = 'bearish_crossover';
+        sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
+      }
+
+      const result = {
+        met,
+        signal,
+        price: closes[length - 1],
+        sl_price,
+        details: {
+          zScore: meanReturn[length - 1] !== null && stdReturn[length - 1] !== null
+            ? (absReturns[length - 1] - meanReturn[length - 1]) / stdReturn[length - 1] : 0,
+          isHighReturnBar,
+          synthDir,
+          localDir,
+          htfChanged,
+          localDirChanged: localDirChangedBool,
+          isSynthBullish,
+          isLocalBullish,
+          primaryLong,
+          primaryShort,
+          additionalLong,
+          additionalShort,
+          prevExtremePrice
+        }
+      };
+
+      logger.info(`EWT check: signal=${signal}, met=${met}, price=${result.price}, sl=${sl_price}`);
+      return result;
+
+    } catch (error) {
+      logger.error('Error checking EWT:', error);
+      return { met: false, error: error.message };
+    }
+  }
+
+  static getEWTSwingPrice(candles, side, params = {}) {
+    try {
+      const localAtrLen = params.localAtrLen || 10;
+      const localMult = params.localMult || 3.0;
+
+      const highs = candles.map(c => c.high);
+      const lows = candles.map(c => c.low);
+      const closes = candles.map(c => c.close);
+
+      const { direction } = this._calculateSuperTrendAligned(highs, lows, closes, localAtrLen, localMult);
+
+      const length = direction.length;
+      const sections = [];
+      let currentSection = null;
+
+      for (let i = 0; i < length; i++) {
+        if (direction[i] === null || direction[i] === 0) continue;
+        const type = direction[i] === -1 ? 'bullish' : 'bearish';
+
+        if (currentSection === null) {
+          currentSection = { type, startCandle: i, endCandle: i };
+        } else if (type !== currentSection.type) {
+          currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
+          sections.push({ ...currentSection });
+          currentSection = { type, startCandle: i, endCandle: i };
+        } else {
+          currentSection.endCandle = i;
+        }
+      }
+
+      if (currentSection !== null) {
+        currentSection.duration = currentSection.endCandle - currentSection.startCandle + 1;
+        sections.push({ ...currentSection });
+      }
+
+      if (sections.length < 2) {
+        return { price: null, error: 'Not enough EWT sections for swing detection' };
+      }
+
+      const lastSection = sections[sections.length - 1];
+      const prevSection = sections[sections.length - 2];
+
+      let swingPrice = null;
+      let targetSection = null;
+
+      if (side === 'long') {
+        targetSection = lastSection.type === 'bearish'
+          ? lastSection
+          : prevSection.type === 'bearish' ? prevSection : null;
+        if (targetSection) {
+          const sectionLows = lows.slice(targetSection.startCandle, targetSection.endCandle + 1);
+          swingPrice = Math.min(...sectionLows);
+        }
+      } else if (side === 'short') {
+        targetSection = lastSection.type === 'bullish'
+          ? lastSection
+          : prevSection.type === 'bullish' ? prevSection : null;
+        if (targetSection) {
+          const sectionHighs = highs.slice(targetSection.startCandle, targetSection.endCandle + 1);
+          swingPrice = Math.max(...sectionHighs);
+        }
+      }
+
+      if (swingPrice === null || swingPrice <= 0) {
+        return { price: null, error: 'Could not determine swing price from EWT sections' };
+      }
+
+      logger.info(`EWT swing price for ${side}: $${swingPrice}`);
+      return {
+        price: swingPrice,
+        sections: sections.length,
+        sectionType: lastSection.type,
+        details: {
+          lastSection,
+          prevSection,
+          targetSection
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting EWT swing price:', error);
       return { price: null, error: error.message };
     }
   }
