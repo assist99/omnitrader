@@ -1113,10 +1113,15 @@ class IndicatorService {
         zscoreMin = 1.8,
         zscoreMax = 10.0,
         useWickFilter = true,
-        maxWickRatio = 0.3
+        maxWickRatio = 0.3,
+        maxLegsAllowed = 5,
+        useExtFilter = true,
+        extMultiplier = 1.27,
+        chochLen = 50,
+        shortLen = 3
       } = params;
 
-      const minRequired = Math.max(zscoreLength, barsPerHour + macroAtrLen, localAtrLen + 2);
+      const minRequired = Math.max(zscoreLength, barsPerHour + macroAtrLen, localAtrLen + 2, chochLen + 2);
       if (candles.length < minRequired) {
         return { met: false, error: `Insufficient data for EWT calculation, need ${minRequired} bars` };
       }
@@ -1127,7 +1132,7 @@ class IndicatorService {
       const lows = candles.map(c => c.low);
       const closes = candles.map(c => c.close);
 
-      // ── Step A: Z-Score & Wick Filter ──────────────────────────────────
+      // ── Step A: Z-Score & Wick Filter (per-bar series) ─────────────────
       const absReturns = new Array(length);
       for (let i = 0; i < length; i++) {
         absReturns[i] = Math.abs(closes[i] - opens[i]);
@@ -1149,9 +1154,8 @@ class IndicatorService {
         const passWickFilter = !useWickFilter || wickRatio < maxWickRatio;
         isHighReturnBars[i] = isZScoreHigh && passWickFilter;
       }
-      const isHighReturnBar = isHighReturnBars[length - 1];
 
-      // ── Step B: Synthetic Macro SuperTrend (HTF) ──────────────────────
+      // ── Step B: Synthetic Macro SuperTrend (HTF) with per-bar tracking ─
       const rollingHighs = new Array(length).fill(null);
       const rollingLows = new Array(length).fill(null);
       const prevRollingCloses = new Array(length).fill(null);
@@ -1183,168 +1187,342 @@ class IndicatorService {
 
       const syntheticATR = this.calculateRMA(syntheticTR, macroAtrLen);
 
-      let prevSynthUpper = null, prevSynthLower = null, prevSynthST = null;
-      let synthDir = 0, prevSynthDir = 0;
-      let lastSynthStLine = null;
-      let htfChanged = false;
+      // Per-bar synthetic ST arrays — align with candle indices
+      const synthDirArr = new Array(length).fill(0);
+      const synthStLineArr = new Array(length).fill(null);
+      const htfChangedArr = new Array(length).fill(false);
+      let lastStLine = null;
 
       for (let i = 0; i < length; i++) {
         if (syntheticATR[i] === null || rollingHighs[i] === null) continue;
 
         const hl2 = (rollingHighs[i] + rollingLows[i]) / 2;
-        const upperBand = hl2 + macroMult * syntheticATR[i];
-        const lowerBand = hl2 - macroMult * syntheticATR[i];
+        const rawLower = hl2 - macroMult * syntheticATR[i];
+        const rawUpper = hl2 + macroMult * syntheticATR[i];
 
-        let finalUpper = upperBand;
-        if (prevSynthUpper !== null) {
-          if (upperBand < prevSynthUpper || (i > 0 && closes[i - 1] > prevSynthUpper)) {
-            finalUpper = upperBand;
-          } else {
-            finalUpper = prevSynthUpper;
+        let finalLower = rawLower;
+        let finalUpper = rawUpper;
+
+        // PineScript band continuity (uses prev ST line value, not prev band):
+        // up_band  := (rolling_close[1] > synth_st_line[1]) ? math.max(up_band,  synth_st_line[1]) : up_band
+        // dn_band  := (rolling_close[1] < synth_st_line[1]) ? math.min(dn_band, synth_st_line[1]) : dn_band
+        const prevStLine = i > 0 ? synthStLineArr[i - 1] : null;
+        if (prevStLine !== null) {
+          if (i > 0 && closes[i - 1] > prevStLine) {
+            finalLower = Math.max(rawLower, prevStLine);
+          }
+          if (i > 0 && closes[i - 1] < prevStLine) {
+            finalUpper = Math.min(rawUpper, prevStLine);
           }
         }
 
-        let finalLower = lowerBand;
-        if (prevSynthLower !== null) {
-          if (lowerBand > prevSynthLower || (i > 0 && closes[i - 1] < prevSynthLower)) {
-            finalLower = lowerBand;
-          } else {
-            finalLower = prevSynthLower;
-          }
-        }
-
+        // Direction flip (matches PineScript exactly):
+        // if synth_dir == 1 and rolling_close > dn_band → synth_dir = -1
+        // if synth_dir == -1 and rolling_close < up_band → synth_dir = 1
         let dir = 0;
-        if (prevSynthST === null) {
+        const prevDir = i > 0 && synthDirArr[i - 1] !== 0 ? synthDirArr[i - 1] : 1;
+        if (prevDir === 1 && closes[i] > finalUpper) {
+          dir = -1;
+        } else if (prevDir === -1 && closes[i] < finalLower) {
           dir = 1;
-        } else if (prevSynthST === prevSynthUpper) {
-          dir = closes[i] > finalUpper ? -1 : 1;
         } else {
-          dir = closes[i] < finalLower ? 1 : -1;
+          dir = prevDir;
         }
 
         const stVal = dir === -1 ? finalLower : finalUpper;
 
-        if (i === length - 1) {
-          synthDir = dir;
-          lastSynthStLine = stVal;
+        synthDirArr[i] = dir;
+        synthStLineArr[i] = stVal;
+
+        if (i > 0 && synthDirArr[i - 1] !== 0 && dir !== synthDirArr[i - 1]) {
+          htfChangedArr[i] = true;
         }
 
-        if (prevSynthDir !== 0 && dir !== prevSynthDir) {
-          if (i === length - 1) htfChanged = true;
-        }
-
-        prevSynthDir = dir;
-        prevSynthUpper = finalUpper;
-        prevSynthLower = finalLower;
-        prevSynthST = stVal;
+        lastStLine = stVal;
       }
-
-      if (prevSynthST !== null && lastSynthStLine === null) {
-        lastSynthStLine = prevSynthST;
-      }
-
-      const isSynthBullish = synthDir === -1;
 
       // ── Step C: Local SuperTrend ──────────────────────────────────────
       const { superTrend: localSTArr, direction: localDirArr } =
         this._calculateSuperTrendAligned(highs, lows, closes, localAtrLen, localMult);
 
-      let localDir = 0, localStLine = null, prevLocalDir = 0;
+      // ── Step D: Combined per-bar loop (legs, SMC, signals) ────────────
+      const legRefs = [];
       let prevExtremePrice = null, curExtremePrice = null;
+      let prevLocalDir = 0, localDir = 0, localStLine = null;
+      let activeLineX1 = null;
+      let activeIsBull = true;
+
+      let choch_os_val = 0;
+      let choch_topy = null, choch_btmy = null;
+      let short_os_val = 0;
+
+      let trend_dir = 0;
+      let top_crossed = false, btm_crossed = false;
+
+      let first_leg_ext_target = null;
+      let targetHtfStartBar = null;
+      let htfLongTaken = false, htfShortTaken = false;
 
       for (let i = 0; i < length; i++) {
-        if (localDirArr[i] === 0 || localDirArr[i] === null) continue;
+        const h = highs[i], l = lows[i], c = closes[i];
 
-        const isBull = localDirArr[i] === -1;
+        // ── HTF change side effects ──
+        if (htfChangedArr[i]) {
+          htfLongTaken = false;
+          htfShortTaken = false;
+          first_leg_ext_target = null;
+          targetHtfStartBar = i;
 
-        if (i === 0) {
-          curExtremePrice = isBull ? highs[i] : lows[i];
-        }
-
-        if (prevLocalDir !== 0 && localDirArr[i] !== prevLocalDir) {
-          prevExtremePrice = curExtremePrice;
-          curExtremePrice = isBull ? highs[i] : lows[i];
-        } else {
-          if (isBull && (curExtremePrice === null || highs[i] >= curExtremePrice)) {
-            curExtremePrice = highs[i];
-          } else if (!isBull && (curExtremePrice === null || lows[i] <= curExtremePrice)) {
-            curExtremePrice = lows[i];
+          // Find 1st local leg in new HTF section (oldest-first, matching Pine)
+          const extRatio = extMultiplier - 1.0;
+          const newSynthBullish = synthDirArr[i] === -1;
+          let foundLeg = false;
+          for (let li = 0; li < legRefs.length && !foundLeg; li++) {
+            const leg = legRefs[li];
+            if (leg.x1 >= targetHtfStartBar) {
+              const legLen = Math.abs(leg.y2 - leg.y1);
+              if (newSynthBullish) {
+                first_leg_ext_target = Math.max(leg.y1, leg.y2) + (legLen * extRatio);
+              } else {
+                first_leg_ext_target = Math.min(leg.y1, leg.y2) - (legLen * extRatio);
+              }
+              foundLeg = true;
+            }
+          }
+          // Fallback: active leg if no completed leg qualifies (matching Pine L324)
+          if (!foundLeg && activeLineX1 !== null && activeLineX1 >= targetHtfStartBar) {
+            const legLen = Math.abs(curExtremePrice - prevExtremePrice);
+            if (newSynthBullish) {
+              first_leg_ext_target = Math.max(prevExtremePrice, curExtremePrice) + (legLen * extRatio);
+            } else {
+              first_leg_ext_target = Math.min(prevExtremePrice, curExtremePrice) - (legLen * extRatio);
+            }
           }
         }
 
-        if (i === length - 1) {
-          localDir = localDirArr[i];
-          localStLine = localSTArr[i];
+        // ── Local ST Leg Tracking ──
+        if (localDirArr[i] !== null && localDirArr[i] !== 0) {
+          const isBull = localDirArr[i] === -1;
+
+          if (curExtremePrice === null) {
+            curExtremePrice = isBull ? h : l;
+          }
+
+          if (prevLocalDir !== 0 && localDirArr[i] !== prevLocalDir) {
+            legRefs.push({
+              x1: activeLineX1,
+              x2: i,
+              y1: prevExtremePrice,
+              y2: curExtremePrice,
+              isBull: activeIsBull
+            });
+
+            prevExtremePrice = curExtremePrice;
+            curExtremePrice = isBull ? h : l;
+            activeIsBull = isBull;
+            activeLineX1 = i;
+          } else {
+            if (isBull && (curExtremePrice === null || h >= curExtremePrice)) {
+              curExtremePrice = h;
+            } else if (!isBull && (curExtremePrice === null || l <= curExtremePrice)) {
+              curExtremePrice = l;
+            }
+          }
+
+          if (i === length - 1) {
+            localDir = localDirArr[i];
+            localStLine = localSTArr[i];
+          }
+
+          prevLocalDir = localDirArr[i];
         }
 
-        prevLocalDir = localDirArr[i];
+        // ── SMC Structure (Swings for CHoCH len) ──
+        if (i >= chochLen) {
+          const upper = Math.max(...highs.slice(i - chochLen + 1, i + 1));
+          const lower = Math.min(...lows.slice(i - chochLen + 1, i + 1));
+
+          const prevOs = choch_os_val;
+          if (highs[i - chochLen] > upper) {
+            choch_os_val = 0;
+          } else if (lows[i - chochLen] < lower) {
+            choch_os_val = 1;
+          }
+
+          if (choch_os_val === 0 && prevOs !== 0) {
+            choch_topy = highs[i - chochLen];
+            top_crossed = false;
+          }
+
+          if (choch_os_val === 1 && prevOs !== 1) {
+            choch_btmy = lows[i - chochLen];
+            btm_crossed = false;
+          }
+        }
+
+        // ── SMC Structure (Swings for shortLen) ──
+        if (i >= shortLen) {
+          const upperS = Math.max(...highs.slice(i - shortLen + 1, i + 1));
+          const lowerS = Math.min(...lows.slice(i - shortLen + 1, i + 1));
+
+          const prevShortOs = short_os_val;
+          if (highs[i - shortLen] > upperS) {
+            short_os_val = 0;
+          } else if (lows[i - shortLen] < lowerS) {
+            short_os_val = 1;
+          }
+        }
+
+        // ── CHoCH/BOS Detection ──
+        const is_bull_break = choch_topy !== null && c > choch_topy && !top_crossed;
+        const is_bear_break = choch_btmy !== null && c < choch_btmy && !btm_crossed;
+
+        if (is_bull_break) {
+          top_crossed = true;
+          trend_dir = 1;
+        }
+
+        if (is_bear_break) {
+          btm_crossed = true;
+          trend_dir = -1;
+        }
       }
 
+      // ── Post-loop: Signal Generation (last bar only) ──────────────────
+      const lastIdx = length - 1;
+      const isSynthBullish = synthDirArr[lastIdx] === -1;
+      const isSynthBearish = synthDirArr[lastIdx] === 1;
       const isLocalBullish = localDir === -1;
+      const isLocalBearish = !isLocalBullish;
+      const lastSynthStLine = synthStLineArr[lastIdx] !== null ? synthStLineArr[lastIdx] : lastStLine;
+      const htfChanged = htfChangedArr[lastIdx];
+
+      // localDirChanged: same as ta.change(m15_dir) != 0
       let localDirChanged = false;
-      if (length >= 2) {
-        let lastValid = null, secondLastValid = null;
-        for (let i = length - 1; i >= 0; i--) {
-          if (localDirArr[i] !== null && localDirArr[i] !== 0) {
-            if (lastValid === null) {
-              lastValid = localDirArr[i];
-            } else if (secondLastValid === null) {
-              secondLastValid = localDirArr[i];
+      if (lastIdx >= 1) {
+        const lastDir = localDirArr[lastIdx];
+        const prevDir = localDirArr[lastIdx - 1];
+        if (lastDir !== null && lastDir !== 0 && prevDir !== null && prevDir !== 0) {
+          localDirChanged = lastDir !== prevDir;
+        }
+      }
+
+      // ── Filters ──
+      const currentHtfLegCount = (() => {
+        let count = 1;
+        if (targetHtfStartBar !== null) {
+          for (let li = legRefs.length - 1; li >= 0; li--) {
+            const leg = legRefs[li];
+            if (leg.x1 >= targetHtfStartBar) {
+              count += 1;
+            } else {
               break;
             }
           }
         }
-        localDirChanged = secondLastValid !== null && lastValid !== secondLastValid;
+        return count;
+      })();
+      const passLegCountFilter = currentHtfLegCount <= maxLegsAllowed;
+
+      let passExtFilter = true;
+      if (useExtFilter && first_leg_ext_target !== null) {
+        if (isSynthBullish) {
+          passExtFilter = opens[lastIdx] <= first_leg_ext_target;
+        } else {
+          passExtFilter = opens[lastIdx] >= first_leg_ext_target;
+        }
       }
 
-      // ── Step D: Signal Combination ────────────────────────────────────
-      const primaryLong = localDirChanged && isLocalBullish && isSynthBullish && isHighReturnBar;
-      const primaryShort = localDirChanged && !isLocalBullish && !isSynthBullish && isHighReturnBar;
-      const additionalLong = htfChanged && isSynthBullish && isHighReturnBar;
-      const additionalShort = htfChanged && !isSynthBullish && isHighReturnBar;
+      const signalsAllowed = passLegCountFilter && passExtFilter;
+      const longAllowed = !htfLongTaken;
+      const shortAllowed = !htfShortTaken;
+      const isHighReturnBar = isHighReturnBars[lastIdx];
 
+      // ── CHoCH signals (from tracked state at last bar) ──
+      const isBullBreak = choch_topy !== null && closes[lastIdx] > choch_topy && !top_crossed;
+      const isBearBreak = choch_btmy !== null && closes[lastIdx] < choch_btmy && !btm_crossed;
+      const isChochBull = isBullBreak && trend_dir !== 1;
+      const isChochBear = isBearBreak && trend_dir !== -1;
+
+      const chochLongSignal = isChochBull && isLocalBullish && isSynthBullish && isHighReturnBar && longAllowed && signalsAllowed;
+      const chochShortSignal = isChochBear && isLocalBearish && isSynthBearish && isHighReturnBar && shortAllowed && signalsAllowed;
+
+      // ── Primary signals ──
+      const m15BullSignal = localDirChanged && isLocalBullish;
+      const m15BearSignal = localDirChanged && isLocalBearish;
+      const synthBullSignal = htfChanged && isSynthBullish;
+      const synthBearSignal = htfChanged && isSynthBearish;
+
+      const rawPrimaryLong = m15BullSignal && isSynthBullish && longAllowed && signalsAllowed;
+      const rawPrimaryShort = m15BearSignal && isSynthBearish && shortAllowed && signalsAllowed;
+
+      const entryLongPrimary = rawPrimaryLong && isHighReturnBar;
+      const entryShortPrimary = rawPrimaryShort && isHighReturnBar;
+
+      const entryLongAdditional = synthBullSignal && isHighReturnBar && signalsAllowed;
+      const entryShortAdditional = synthBearSignal && isHighReturnBar && signalsAllowed;
+
+      const finalEntryLong = entryLongPrimary || entryLongAdditional || chochLongSignal;
+      const finalEntryShort = entryShortPrimary || entryShortAdditional || chochShortSignal;
+
+      if (finalEntryLong) htfLongTaken = true;
+      if (finalEntryShort) htfShortTaken = true;
+
+      // ── Stop Loss Assignment ──
       let signal = 'none';
       let met = false;
       let sl_price = null;
 
-      if (primaryLong || primaryShort || additionalLong || additionalShort) {
+      if (finalEntryLong || finalEntryShort) {
         met = true;
       }
 
-      if (primaryLong) {
+      if (finalEntryLong) {
         signal = 'bullish_crossover';
-        sl_price = localStLine;
-      } else if (primaryShort) {
+        if (chochLongSignal) {
+          sl_price = lastSynthStLine;
+        } else if (entryLongAdditional) {
+          sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
+        } else if (entryLongPrimary) {
+          sl_price = localStLine;
+        }
+      } else if (finalEntryShort) {
         signal = 'bearish_crossover';
-        sl_price = localStLine;
-      } else if (additionalLong) {
-        signal = 'bullish_crossover';
-        sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
-      } else if (additionalShort) {
-        signal = 'bearish_crossover';
-        sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
+        if (chochShortSignal) {
+          sl_price = lastSynthStLine;
+        } else if (entryShortAdditional) {
+          sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
+        } else if (entryShortPrimary) {
+          sl_price = localStLine;
+        }
       }
 
       const result = {
         met,
         signal,
-        price: closes[length - 1],
+        price: closes[lastIdx],
         sl_price,
         details: {
-          zScore: meanReturn[length - 1] !== null && stdReturn[length - 1] !== null
-            ? (absReturns[length - 1] - meanReturn[length - 1]) / stdReturn[length - 1] : 0,
+          zScore: meanReturn[lastIdx] !== null && stdReturn[lastIdx] !== null
+            ? (absReturns[lastIdx] - meanReturn[lastIdx]) / stdReturn[lastIdx] : 0,
           isHighReturnBar,
-          synthDir,
+          synthDir: synthDirArr[lastIdx],
           localDir,
           htfChanged,
           localDirChanged,
           isSynthBullish,
           isLocalBullish,
-          primaryLong,
-          primaryShort,
-          additionalLong,
-          additionalShort,
-          prevExtremePrice
+          primaryLong: entryLongPrimary,
+          primaryShort: entryShortPrimary,
+          additionalLong: entryLongAdditional,
+          additionalShort: entryShortAdditional,
+          chochLong: chochLongSignal,
+          chochShort: chochShortSignal,
+          prevExtremePrice,
+          passLegCountFilter,
+          passExtFilter,
+          currentHtfLegCount,
+          first_leg_ext_target
         }
       };
 
