@@ -1026,13 +1026,13 @@ class IndicatorService {
     return result;
   }
 
-  static _calculateStdDev(values, period) {
-    const mean = this._calculateSMA(values, period);
+  static _calculateStdDev(values, period, mean) {
+    const meanArr = mean || this._calculateSMA(values, period);
     const result = new Array(values.length).fill(null);
     for (let i = period - 1; i < values.length; i++) {
       let sumSq = 0;
       for (let j = 0; j < period; j++) {
-        const diff = values[i - period + 1 + j] - mean[i];
+        const diff = values[i - period + 1 + j] - meanArr[i];
         sumSq += diff * diff;
       }
       result[i] = Math.sqrt(sumSq / period);
@@ -1128,7 +1128,7 @@ class IndicatorService {
       }
 
       const meanReturn = this._calculateSMA(absReturns, zscoreLength);
-      const stdReturn = this._calculateStdDev(absReturns, zscoreLength);
+      const stdReturn = this._calculateStdDev(absReturns, zscoreLength, meanReturn);
 
       const isHighReturnBars = new Array(length).fill(false);
       for (let i = 0; i < length; i++) {
@@ -1179,7 +1179,7 @@ class IndicatorService {
 
       let prevSynthUpper = null, prevSynthLower = null, prevSynthST = null;
       let synthDir = 0, prevSynthDir = 0;
-      let synthStLine = null, lastSynthStLine = null;
+      let lastSynthStLine = null;
       let htfChanged = false;
 
       for (let i = 0; i < length; i++) {
@@ -1220,7 +1220,6 @@ class IndicatorService {
 
         if (i === length - 1) {
           synthDir = dir;
-          synthStLine = stVal;
           lastSynthStLine = stVal;
         }
 
@@ -1276,8 +1275,7 @@ class IndicatorService {
       }
 
       const isLocalBullish = localDir === -1;
-      const localDirChanged = prevLocalDir !== 0 && localDir !== 0 && localDir !== (length > 1 && localDirArr[length - 2] !== null ? localDirArr[length - 2] : localDir);
-      let localDirChangedBool = false;
+      let localDirChanged = false;
       if (length >= 2) {
         let lastValid = null, secondLastValid = null;
         for (let i = length - 1; i >= 0; i--) {
@@ -1290,12 +1288,12 @@ class IndicatorService {
             }
           }
         }
-        localDirChangedBool = secondLastValid !== null && lastValid !== secondLastValid;
+        localDirChanged = secondLastValid !== null && lastValid !== secondLastValid;
       }
 
       // ── Step D: Signal Combination ────────────────────────────────────
-      const primaryLong = localDirChangedBool && isLocalBullish && isSynthBullish && isHighReturnBar;
-      const primaryShort = localDirChangedBool && !isLocalBullish && !isSynthBullish && isHighReturnBar;
+      const primaryLong = localDirChanged && isLocalBullish && isSynthBullish && isHighReturnBar;
+      const primaryShort = localDirChanged && !isLocalBullish && !isSynthBullish && isHighReturnBar;
       const additionalLong = htfChanged && isSynthBullish && isHighReturnBar;
       const additionalShort = htfChanged && !isSynthBullish && isHighReturnBar;
 
@@ -1333,7 +1331,7 @@ class IndicatorService {
           synthDir,
           localDir,
           htfChanged,
-          localDirChanged: localDirChangedBool,
+          localDirChanged,
           isSynthBullish,
           isLocalBullish,
           primaryLong,
