@@ -25,7 +25,7 @@ function buildDedupMap(items: ScreenerItem[]): Map<string, ScreenerItem> {
   for (const item of items) {
     if (!isWhitelistedTf(item.timeframe)) continue;
     if (item.enabled !== 1) continue;
-    if (item.indicator_type !== 'macd' && item.indicator_type !== 'supertrend') continue;
+    if (item.indicator_type !== 'ewt' && item.indicator_type !== 'supertrend') continue;
 
     const key = `${item.symbol}|${item.timeframe}|${item.indicator_type}`;
     const existing = map.get(key);
@@ -80,7 +80,7 @@ export function MarketReversalTable({ items }: { items: ScreenerItem[] }) {
             <th className="sticky left-0 z-10 bg-slate-900 px-2 py-0.5" />
             {tfs.map((tf) => (
               <React.Fragment key={tf}>
-                <th className="px-1 py-0.5 text-center font-normal">M</th>
+                <th className="px-1 py-0.5 text-center font-normal">EW</th>
                 <th className="px-1 py-0.5 text-center font-normal">ST</th>
               </React.Fragment>
             ))}
@@ -93,11 +93,11 @@ export function MarketReversalTable({ items }: { items: ScreenerItem[] }) {
                 {symbol}
               </td>
               {tfs.map((tf) => {
-                const macdItem = dedupMap.get(`${symbol}|${tf}|macd`);
+                const ewtItem = dedupMap.get(`${symbol}|${tf}|ewt`);
                 const stItem = dedupMap.get(`${symbol}|${tf}|supertrend`);
                 return (
                   <React.Fragment key={tf}>
-                    <td className="px-2 py-1 text-center"><SignalDot signal={macdItem?.last_signal ?? null} /></td>
+                    <td className="px-2 py-1 text-center"><SignalDot signal={ewtItem?.last_signal ?? null} /></td>
                     <td className="px-2 py-1 text-center"><SignalDot signal={stItem?.last_signal ?? null} /></td>
                   </React.Fragment>
                 );
