@@ -1481,19 +1481,15 @@ class IndicatorService {
         signal = 'bullish_crossover';
         if (chochLongSignal) {
           sl_price = lastSynthStLine;
-        } else if (entryLongAdditional) {
+        } else if (entryLongAdditional || entryLongPrimary) {
           sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
-        } else if (entryLongPrimary) {
-          sl_price = localStLine;
         }
       } else if (finalEntryShort) {
         signal = 'bearish_crossover';
         if (chochShortSignal) {
           sl_price = lastSynthStLine;
-        } else if (entryShortAdditional) {
+        } else if (entryShortAdditional || entryShortPrimary) {
           sl_price = prevExtremePrice !== null ? prevExtremePrice : lastSynthStLine;
-        } else if (entryShortPrimary) {
-          sl_price = localStLine;
         }
       }
 

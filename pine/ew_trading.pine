@@ -179,7 +179,7 @@ else
 
     if show_synth_legs and not na(activeSynthLine) and not na(synthPrevExtremeBar)
         line.set_x1(activeSynthLine, synthPrevExtremeBar)
-        line.set_y1(activeSynthLine, synthPrevExtremePrice)
+        line.set_y1(activeSynthLine, synthCurExtremePrice)
         line.set_x2(activeSynthLine, synthCurExtremeBar)
         line.set_y2(activeSynthLine, synthCurExtremePrice)
 
@@ -195,7 +195,7 @@ var bool last_m15_break_is_hr = false
 if m15_dir_changed
     last_m15_break_is_hr := isHighReturnBar
 
-// --- Local SuperTrend Leg Section Tracking Engine with History Array ---
+// --- Local SuperTrend Leg Section Tracking Engine with Fixed Extreme Detection ---
 type LegRef
     line   l
     int    x1
@@ -211,6 +211,8 @@ var float prevExtremePrice = na
 var int   curExtremeBar    = na
 var float curExtremePrice  = na
 
+var int   legStartBar      = na
+
 var line  activeLine       = na
 var int   activeLineX1     = na
 var int   activeLineX2     = na
@@ -219,12 +221,17 @@ var bool  activeIsBull     = true
 if barstate.isfirst
     curExtremeBar   := bar_index
     curExtremePrice := is_local_bullish ? high : low
+    legStartBar     := bar_index
 
 if m15_dir_changed
+    // Lock in final vertex for the completed leg
     array.push(legRefs, LegRef.new(activeLine, activeLineX1, curExtremeBar, prevExtremePrice, curExtremePrice, activeIsBull))
 
     prevExtremeBar   := curExtremeBar
     prevExtremePrice := curExtremePrice
+    
+    // Reset trackers for the NEW directional leg
+    legStartBar     := bar_index
     curExtremeBar   := bar_index
     curExtremePrice := is_local_bullish ? high : low
 
@@ -245,12 +252,13 @@ if m15_dir_changed
     else
         activeLine := na
 else
+    // Continuously check for new extremes across the entire active leg length
     if is_local_bullish
-        if na(curExtremePrice) or high >= curExtremePrice
+        if high >= curExtremePrice or na(curExtremePrice)
             curExtremePrice := high
             curExtremeBar   := bar_index
     else
-        if na(curExtremePrice) or low <= curExtremePrice
+        if low <= curExtremePrice or na(curExtremePrice)
             curExtremePrice := low
             curExtremeBar   := bar_index
 
@@ -586,18 +594,14 @@ var float sl_price = na
 if final_entry_long
     if choch_long_signal
         sl_price := synth_st_line      // Signal by breaking CHoCH: SL set to Synthetic SuperTrend line
-    else if entry_long_additional
-        sl_price := prevExtremePrice   // Reversal signal: Lock SL to circled local swing low vertex
-    else if entry_long_primary
-        sl_price := m15_st             // Primary entry: Local ST
+    else if entry_long_additional or entry_long_primary
+        sl_price := prevExtremePrice   // Set SL to previous M15 ST leg edge (swing vertex)
 
 if final_entry_short
     if choch_short_signal
         sl_price := synth_st_line      // Signal by breaking CHoCH: SL set to Synthetic SuperTrend line
-    else if entry_short_additional
-        sl_price := prevExtremePrice   // Reversal signal: Lock SL to circled local swing high vertex
-    else if entry_short_primary
-        sl_price := m15_st             // Primary entry: Local ST
+    else if entry_short_additional or entry_short_primary
+        sl_price := prevExtremePrice   // Set SL to previous M15 ST leg edge (swing vertex)
 
 
 // ==========================================
