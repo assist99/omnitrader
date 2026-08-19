@@ -224,6 +224,7 @@ class Database {
       WHERE ts.status = 'triggered' 
         AND ts.symbol LIKE ? 
         AND ts.entry_indicator_tf = ?
+        AND ts.entry_indicator_type != 'manual'
       ORDER BY ts.created_at ASC
     `;
     return this.all(sql, [symbolPattern, timeframe]);

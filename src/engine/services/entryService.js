@@ -436,6 +436,132 @@ class EntryService {
     }
   }
 
+  static async placeManualOrder(setup) {
+    try {
+      const exchangeService = await this._getExchangeServiceForSetup(setup);
+      const ticker = await exchangeService.getTicker(setup.symbol);
+      const entryPrice = parseFloat(ticker.lastPrice);
+
+      const slPrice = exchangeService.roundPrice(setup.symbol, setup.sl_price);
+      const symbolInfo = await exchangeService.getSymbolInfo(setup.symbol);
+      const qtyStepSize = parseFloat(symbolInfo.qtyStep) || 0.001;
+
+      const accountBalance = await exchangeService.getAccountBalance();
+      const riskType = setup.risk_type || 'percent';
+      const positionSize = PriceUtils.calculatePositionSize(
+        setup.risk_value,
+        accountBalance,
+        entryPrice,
+        slPrice,
+        setup.side,
+        riskType
+      );
+      const roundedPositionSize = exchangeService.roundAmount(setup.symbol, positionSize);
+      if (roundedPositionSize <= 0) {
+        throw new Error(`Calculated position size for manual order #${setup.id} is too small after rounding`);
+      }
+
+      const rrRatios = PriceUtils.parseTpPricesJson(setup.tp_prices);
+      const tpPrices = PriceUtils.calculateTPPrices(entryPrice, slPrice, rrRatios)
+        .map(price => exchangeService.roundPrice(setup.symbol, price));
+      const tpQtys = PriceUtils.splitQuantity(
+        roundedPositionSize,
+        tpPrices.length,
+        qtyStepSize
+      );
+
+      const entryOrder = await exchangeService.placeOrder({
+        symbol: setup.symbol,
+        side: setup.side === 'long' ? 'buy' : 'sell',
+        orderType: 'Market',
+        qty: roundedPositionSize,
+        price: entryPrice,
+        timeInForce: 'GTC'
+      });
+
+      await this.db.createOrder({
+        setup_id: setup.id,
+        order_type: 'entry',
+        side: setup.side === 'long' ? 'buy' : 'sell',
+        price: entryPrice,
+        qty: roundedPositionSize,
+        exchange_order_id: entryOrder.orderId,
+        status: 'pending'
+      });
+
+      await sleep(500);
+
+      const slOrder = await exchangeService.placeOrder({
+        symbol: setup.symbol,
+        side: setup.side === 'long' ? 'sell' : 'buy',
+        orderType: 'Market',
+        qty: roundedPositionSize,
+        triggerPrice: slPrice,
+        triggerDirection: setup.side === 'long' ? 'descending' : 'ascending',
+        triggerBy: 'MarkPrice',
+        reduceOnly: true
+      });
+
+      await this.db.createOrder({
+        setup_id: setup.id,
+        order_type: 'sl',
+        side: setup.side === 'long' ? 'sell' : 'buy',
+        price: slPrice,
+        qty: roundedPositionSize,
+        exchange_order_id: slOrder.orderId,
+        status: 'pending'
+      });
+
+      for (let i = 0; i < tpPrices.length; i++) {
+        const tpOrder = await exchangeService.exchange.createOrder(
+          setup.symbol,
+          'limit',
+          setup.side === 'long' ? 'sell' : 'buy',
+          tpQtys[i],
+          tpPrices[i],
+          { reduceOnly: true, positionIdx: 0 }
+        );
+        await this.db.createOrder({
+          setup_id: setup.id,
+          order_type: `tp${i + 1}`,
+          side: setup.side === 'long' ? 'sell' : 'buy',
+          price: tpPrices[i],
+          qty: tpQtys[i],
+          exchange_order_id: tpOrder.id,
+          status: 'pending'
+        });
+        await sleep(200);
+      }
+
+      await this.db.updateSetupStatus(setup.id, 'active', {
+        entry_price: entryPrice,
+        entry_qty: roundedPositionSize,
+        sl_price: slPrice
+      });
+
+      this.stats.setupsActivated++;
+      this.stats.ordersPlaced += (2 + tpPrices.length);
+
+      await this.telegramService.sendNotification(setup.user_id, 'order_placed', {
+        setupId: setup.id,
+        symbol: setup.symbol,
+        orderType: 'entry',
+        side: setup.side,
+        price: entryPrice,
+        quantity: roundedPositionSize,
+        timestamp: new Date().toISOString()
+      });
+
+      logger.orderPlaced(setup.id, 'entry', setup.symbol, entryPrice, roundedPositionSize);
+
+      return { entryPrice, slPrice, positionSize: roundedPositionSize, tpPrices };
+    } catch (error) {
+      logger.error(`Error placing manual order for setup #${setup.id}:`, error);
+      this.stats.errors++;
+      throw error;
+    }
+  }
+
   static async placeEntryOrder(ctx, setup, exchangeService, candles) {
     try {
       const lastCandle = candles[candles.length - 1];

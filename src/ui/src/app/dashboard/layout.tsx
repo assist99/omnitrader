@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, Menu, X, ChevronDown, Search } from 'lucide-react';
+import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, ShoppingCart, Menu, X, ChevronDown, Search } from 'lucide-react';
 import engineFetch from '@/lib/api';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -66,6 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/screener', label: 'Reversal', icon: Search },
     { href: '/dashboard/supply-demand-screener', label: 'Supply/Demand', icon: Search },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+    { href: '/dashboard/orders/new', label: 'Place Order', icon: ShoppingCart },
     { href: '/dashboard/setups/new', label: 'New Trade', icon: PlusCircle },
   ];
 
@@ -188,6 +189,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }`}>
             <Search className="h-4 w-4" />
             Supply/Demand
+          </Link>
+          <Link href="/dashboard/orders/new"
+            className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              pathname.includes('/orders/new') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            <ShoppingCart className="h-4 w-4" />
+            Place Order
           </Link>
           <Link href="/dashboard/setups/new"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
