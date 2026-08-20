@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Database = require('../../db/database');
 const EntryService = require('../../services/entryService');
+const TelegramService = require('../../services/telegramService');
 const auth = require('../middleware/auth');
 
 const db = new Database();
 db.connect().catch(() => {});
+const telegramService = new TelegramService(db);
+
+EntryService.setDeps(db, telegramService);
 
 // Get orders by setup id (or all for user)
 router.get('/', auth, async (req, res) => {
