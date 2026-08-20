@@ -29,7 +29,7 @@ export default function SetupFormPage() {
     ignore_box_lower: 0,
     entry_indicator_type: 'superTrend',
     entry_indicator_tf: 'h1',
-    risk_type: 'percent',
+    risk_type: 'fixed',
     risk_value: 0,
     sl_price: 0,
     tp_prices: [...DEFAULT_TP_RATIOS],

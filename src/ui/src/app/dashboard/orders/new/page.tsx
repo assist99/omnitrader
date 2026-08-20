@@ -22,7 +22,7 @@ export default function ManualOrderFormPage() {
     symbol: '',
     side: 'long' as Side,
     memo: '',
-    risk_type: 'percent' as RiskType,
+    risk_type: 'fixed' as RiskType,
     risk_value: 0,
     sl_price: 0,
     tp_prices: [...DEFAULT_TP_RATIOS],
