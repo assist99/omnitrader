@@ -149,12 +149,10 @@ logger.beActivated(setup.id);
 
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (slOrder && slOrder.status === 'pending') {
-        if (setup.entry_indicator_tf && TimeUtils.isTriggerTime(setup.entry_indicator_tf)) {
-          const slHit = await this.checkSlCandleHit(ctx, setup, exchangeService, orders);
-          if (slHit) {
-            await this.processSlHit(ctx, setup, exchangeService, orders, slOrder);
-            return;
-          }
+        const slHit = await this.checkSlCandleHit(ctx, setup, exchangeService, orders);
+        if (slHit) {
+          await this.processSlHit(ctx, setup, exchangeService, orders, slOrder);
+          return;
         }
       }
 
