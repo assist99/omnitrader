@@ -231,9 +231,9 @@ logger.beActivated(setup.id);
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (!slOrder) return null;
 
-      const candles = await exchangeService.getCandles(setup.symbol, setup.entry_indicator_tf, 100);
+      const candles = await exchangeService.getCandles(setup.symbol, 'm5', 100);
       const parsedCandles = CandleUtils.parseExchangeCandles(candles);
-      const closedBars = CandleUtils.filterClosedBars(parsedCandles, setup.entry_indicator_tf);
+      const closedBars = CandleUtils.filterClosedBars(parsedCandles, 'm5');
 
       if (closedBars.length === 0) return null;
 
