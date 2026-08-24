@@ -1105,6 +1105,7 @@ class IndicatorService {
     try {
       const {
         barsPerHour = 4,
+        barsPerHour2 = 16,
         macroAtrLen = 10,
         macroMult = 3.0,
         localAtrLen = 10,
@@ -1118,7 +1119,8 @@ class IndicatorService {
         useExtFilter = true,
         extMultiplier = 1.27,
         chochLen = 50,
-        shortLen = 3
+        shortLen = 3,
+        tradeMode = 'first_change_only'
       } = params;
 
       const minRequired = Math.max(zscoreLength, barsPerHour + macroAtrLen, localAtrLen + 2, chochLen + 2);
@@ -1393,7 +1395,7 @@ class IndicatorService {
       const isSynthBullish = synthDirArr[lastIdx] === -1;
       const isSynthBearish = synthDirArr[lastIdx] === 1;
       const isLocalBullish = localDir === -1;
-      const isLocalBearish = !isLocalBullish;
+      const isLocalBearish = localDir === 1;
       const lastSynthStLine = synthStLineArr[lastIdx] !== null ? synthStLineArr[lastIdx] : lastStLine;
       const htfChanged = htfChangedArr[lastIdx];
 
@@ -1434,8 +1436,8 @@ class IndicatorService {
       }
 
       const signalsAllowed = passLegCountFilter && passExtFilter;
-      const longAllowed = !htfLongTaken;
-      const shortAllowed = !htfShortTaken;
+      const longAllowed = tradeMode === 'continuous_entries' || !htfLongTaken;
+      const shortAllowed = tradeMode === 'continuous_entries' || !htfShortTaken;
       const isHighReturnBar = isHighReturnBars[lastIdx];
 
       // ── CHoCH signals (from tracked state at last bar) ──
@@ -1453,11 +1455,11 @@ class IndicatorService {
       const synthBullSignal = htfChanged && isSynthBullish;
       const synthBearSignal = htfChanged && isSynthBearish;
 
-      const rawPrimaryLong = m15BullSignal && isSynthBullish && longAllowed && signalsAllowed;
-      const rawPrimaryShort = m15BearSignal && isSynthBearish && shortAllowed && signalsAllowed;
+      const rawPrimaryLong = m15BullSignal && isSynthBullish && isHighReturnBar && longAllowed && signalsAllowed;
+      const rawPrimaryShort = m15BearSignal && isSynthBearish && isHighReturnBar && shortAllowed && signalsAllowed;
 
-      const entryLongPrimary = rawPrimaryLong && isHighReturnBar;
-      const entryShortPrimary = rawPrimaryShort && isHighReturnBar;
+      const entryLongPrimary = rawPrimaryLong;
+      const entryShortPrimary = rawPrimaryShort;
 
       const entryLongAdditional = synthBullSignal && isHighReturnBar && signalsAllowed;
       const entryShortAdditional = synthBearSignal && isHighReturnBar && signalsAllowed;
