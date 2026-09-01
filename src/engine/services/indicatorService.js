@@ -1293,11 +1293,13 @@ class IndicatorService {
           }
           // Fallback: active leg if no completed leg qualifies (matching Pine L324)
           if (!foundLeg && activeLineX1 !== null && activeLineX1 >= targetHtfStartBar) {
-            const legLen = Math.abs(curExtremePrice - prevExtremePrice);
-            if (newSynthBullish) {
-              first_leg_ext_target = Math.max(prevExtremePrice, curExtremePrice) + (legLen * extRatio);
-            } else {
-              first_leg_ext_target = Math.min(prevExtremePrice, curExtremePrice) - (legLen * extRatio);
+            if (prevExtremePrice !== null && curExtremePrice !== null) {
+              const legLen = Math.abs(curExtremePrice - prevExtremePrice);
+              if (newSynthBullish) {
+                first_leg_ext_target = Math.max(prevExtremePrice, curExtremePrice) + (legLen * extRatio);
+              } else {
+                first_leg_ext_target = Math.min(prevExtremePrice, curExtremePrice) - (legLen * extRatio);
+              }
             }
           }
         }
@@ -1379,14 +1381,17 @@ class IndicatorService {
         const is_bull_break = choch_topy !== null && c > choch_topy && !top_crossed;
         const is_bear_break = choch_btmy !== null && c < choch_btmy && !btm_crossed;
 
-        if (is_bull_break) {
-          top_crossed = true;
-          trend_dir = 1;
-        }
-
-        if (is_bear_break) {
-          btm_crossed = true;
-          trend_dir = -1;
+        // Only consume break for non-last bars; the last bar is evaluated
+        // fresh in the post-loop signal generation section.
+        if (i < length - 1) {
+          if (is_bull_break) {
+            top_crossed = true;
+            trend_dir = 1;
+          }
+          if (is_bear_break) {
+            btm_crossed = true;
+            trend_dir = -1;
+          }
         }
       }
 
