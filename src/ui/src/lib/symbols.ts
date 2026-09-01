@@ -118,7 +118,8 @@ export const BYBIT_SYMBOLS: SymbolOption[] = [
     {"symbol":"EIGEN/USDT:USDT","display":"EIGENUSDT.P"},
     {"symbol":"DEEP/USDT:USDT","display":"DEEPUSDT.P"},
     {"symbol":"KAITO/USDT:USDT","display":"KAITOUSDT.P"},
-    {"symbol":"MORPHO/USDT:USDT","display":"MORPHOUSDT.P"}
+    {"symbol":"MORPHO/USDT:USDT","display":"MORPHOUSDT.P"},
+    {"symbol":"ALGO/USDT:USDT","display":"ALGOUSDT.P"}
 
 ];
 
