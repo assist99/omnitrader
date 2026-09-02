@@ -1,8 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 
-const bybitSymbols = require('../../../config/symbols/bybit.json');
-const hyperliquidSymbols = require('../../../config/symbols/hyperliquid.json');
+function loadSymbolsConfig(filename) {
+  const dir = __dirname;
+  // Dev: ../../../config/ → project_root/src/config/
+  // Docker: ../../../../config/ → /app/config/
+  try {
+    return require(path.resolve(dir, '../../../config/symbols', filename));
+  } catch {
+    return require(path.resolve(dir, '../../../../config/symbols', filename));
+  }
+}
+
+const bybitSymbols = loadSymbolsConfig('bybit.json');
+const hyperliquidSymbols = loadSymbolsConfig('hyperliquid.json');
 
 router.get('/', (req, res) => {
   res.json({
