@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
 import { getSymbols } from '@/lib/symbols';
+import type { SymbolOption } from '@/lib/symbols';
 
 interface SymbolPickerProps {
   value: string;
@@ -22,10 +23,13 @@ export default function SymbolPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [highlighted, setHighlighted] = useState(0);
+  const [options, setOptions] = useState<SymbolOption[]>([]);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const options = useMemo(() => getSymbols(exchange), [exchange]);
+  useEffect(() => {
+    getSymbols(exchange).then(setOptions);
+  }, [exchange]);
 
   const filtered = useMemo(
     () =>
