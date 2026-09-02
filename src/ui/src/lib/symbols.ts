@@ -16,9 +16,9 @@ let cachedSymbols: SymbolsMap | null = null;
 
 async function getSymbolsMap(): Promise<SymbolsMap> {
   if (!cachedSymbols) {
-    cachedSymbols = await engineFetch('/api/symbols');
+    cachedSymbols = await engineFetch('/api/symbols') as SymbolsMap;
   }
-  return cachedSymbols;
+  return cachedSymbols!;
 }
 
 export async function getSymbols(exchange: string): Promise<SymbolOption[]> {
