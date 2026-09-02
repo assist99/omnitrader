@@ -36,7 +36,7 @@ class ActiveSetupService {
 
   static async checkExitCondition(ctx, setup, exchangeService) {
     try {
-      const candles = await exchangeService.getCandles(setup.symbol, setup.exit_indicator_tf, 100);
+      const candles = await exchangeService.getCandles(setup.symbol, setup.exit_indicator_tf, 1500);
       const parsedCandles = CandleUtils.parseExchangeCandles(candles);
       const closedBars = CandleUtils.filterClosedBars(parsedCandles, setup.exit_indicator_tf);
 
@@ -231,7 +231,7 @@ logger.beActivated(setup.id);
       const slOrder = orders.find(o => o.order_type === 'sl');
       if (!slOrder) return null;
 
-      const candles = await exchangeService.getCandles(setup.symbol, 'm5', 100);
+      const candles = await exchangeService.getCandles(setup.symbol, 'm5', 1500);
       const parsedCandles = CandleUtils.parseExchangeCandles(candles);
       const closedBars = CandleUtils.filterClosedBars(parsedCandles, 'm5');
 
