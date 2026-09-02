@@ -2,9 +2,7 @@
  "intervals":[
       "m5",
       "m15",
-      "m30",
       "h1",
-      "h2",
       "h4",
       "d1",
       "w1"
@@ -247,28 +245,8 @@
             "display": "SPXUSDT.P"
         },
         {
-            "symbol": "POPCAT/USDT:USDT",
-            "display": "POPCATUSDT.P"
-        },
-        {
-            "symbol": "KAS/USDT:USDT",
-            "display": "KASUSDT.P"
-        },
-        {
             "symbol": "SAND/USDT:USDT",
             "display": "SANDUSDT.P"
-        },
-        {
-            "symbol": "APE/USDT:USDT",
-            "display": "APEUSDT.P"
-        },
-        {
-            "symbol": "DYDX/USDT:USDT",
-            "display": "DYDXUSDT.P"
-        },
-        {
-            "symbol": "S/USDT:USDT",
-            "display": "SUSDT.P"
         },
         {
             "symbol": "IMX/USDT:USDT",
@@ -277,10 +255,6 @@
         {
             "symbol": "GMT/USDT:USDT",
             "display": "GMTUSDT.P"
-        },
-        {
-            "symbol": "MOODENG/USDT:USDT",
-            "display": "MOODENGUSDT.P"
         },
         {
             "symbol": "AXS/USDT:USDT",
@@ -305,22 +279,6 @@
         {
             "symbol": "NEO/USDT:USDT",
             "display": "NEOUSDT.P"
-        },
-        {
-            "symbol": "CAKE/USDT:USDT",
-            "display": "CAKEUSDT.P"
-        },
-        {
-            "symbol": "PNUT/USDT:USDT",
-            "display": "PNUTUSDT.P"
-        },
-        {
-            "symbol": "CELO/USDT:USDT",
-            "display": "CELOUSDT.P"
-        },
-        {
-            "symbol": "MEME/USDT:USDT",
-            "display": "MEMEUSDT.P"
         }
     ]
 }
