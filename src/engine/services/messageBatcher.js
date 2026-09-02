@@ -14,8 +14,7 @@ class MessageBatcher {
   ]);
 
   static SCREENER_MESSAGE_TYPES = new Set([
-    'screener_reversal',
-    'supply_demand_zone'
+    'screener_reversal'
   ]);
 
   constructor(sendCallback, options = {}) {

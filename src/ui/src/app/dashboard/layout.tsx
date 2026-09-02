@@ -63,8 +63,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/screener', label: 'Reversal', icon: Search },
-    { href: '/dashboard/supply-demand-screener', label: 'Supply/Demand', icon: Search },
+    { href: '/dashboard/screener-supertrend', label: 'SuperTrend', icon: Search },
+    { href: '/dashboard/screener-ew', label: 'EW Signal', icon: Search },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/orders/new', label: 'Place Order', icon: ShoppingCart },
     { href: '/dashboard/setups/new', label: 'New Trade', icon: PlusCircle },
@@ -176,19 +176,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Link>
-          <Link href="/dashboard/screener"
+          <Link href="/dashboard/screener-supertrend"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-              pathname.startsWith('/dashboard/screener') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+              pathname.startsWith('/dashboard/screener-supertrend') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
             }`}>
             <Search className="h-4 w-4" />
-            Reversal
+            SuperTrend
           </Link>
-          <Link href="/dashboard/supply-demand-screener"
+          <Link href="/dashboard/screener-ew"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-              pathname.startsWith('/dashboard/supply-demand-screener') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+              pathname.startsWith('/dashboard/screener-ew') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
             }`}>
             <Search className="h-4 w-4" />
-            Supply/Demand
+            EW Signal
           </Link>
           <Link href="/dashboard/orders/new"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${

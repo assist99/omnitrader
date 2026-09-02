@@ -17,8 +17,7 @@ class TelegramService {
   ]);
 
   static SCREENER_MESSAGE_TYPES = new Set([
-    'screener_reversal',
-    'supply_demand_zone'
+    'screener_reversal'
   ]);
 
   constructor(db) {
@@ -105,11 +104,7 @@ class TelegramService {
       return this.formatBatchMessage(messageType, payload);
     }
 
-    if (messageType === 'screener_reversal' || messageType === 'supply_demand_zone') {
-      if (messageType === 'supply_demand_zone') {
-        const mapped = { ...payload, signal: payload.signal === 'demand' ? 'bullish' : 'bearish', indicatorType: payload.signal === 'demand' ? 'Demand' : 'Supply' };
-        return this.formatScreenerReversal(mapped);
-      }
+    if (messageType === 'screener_reversal') {
       return this.formatScreenerReversal(payload);
     }
 
@@ -161,15 +156,6 @@ class TelegramService {
 
   formatBatchMessage(messageType, data) {
     const payload = data || {};
-
-    if (messageType === 'supply_demand_zone') {
-      const mapped = {
-        ...payload,
-        signal: payload.signal === 'demand' ? 'bullish' : 'bearish',
-        indicatorType: payload.signal === 'demand' ? 'Demand' : 'Supply'
-      };
-      return this.formatScreenerReversal(mapped);
-    }
 
     if (this.constructor.SCREENER_MESSAGE_TYPES.has(messageType)) {
       return this.formatScreenerReversal(payload);

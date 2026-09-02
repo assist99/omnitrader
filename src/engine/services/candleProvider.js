@@ -6,13 +6,13 @@ const path = require('path');
 const WebSocket = require('ws');
 
 function getCcxtInterval(timeframe) {
-  const map = { m1: '1m', m5: '5m', m15: '15m', m30: '30m', h1: '1h', h2: '2h', h4: '4h', d1: '1d' };
+  const map = { m1: '1m', m5: '5m', m15: '15m', m30: '30m', h1: '1h', h2: '2h', h4: '4h', d1: '1d', w1: '1w' };
   if (!map[timeframe]) throw new Error(`Unsupported timeframe: ${timeframe}`);
   return map[timeframe];
 }
 
 function getBybitInterval(timeframe) {
-  const map = { m1: '1', m5: '5', m15: '15', m30: '30', h1: '60', h2: '120', h4: '240', d1: 'D' };
+  const map = { m1: '1', m5: '5', m15: '15', m30: '30', h1: '60', h2: '120', h4: '240', d1: 'D', w1: 'W' };
   if (!map[timeframe]) throw new Error(`Unsupported timeframe: ${timeframe}`);
   return map[timeframe];
 }

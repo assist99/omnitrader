@@ -130,3 +130,18 @@ CREATE TABLE IF NOT EXISTS supply_demand_items (
 
 CREATE INDEX IF NOT EXISTS idx_supply_demand_user_enabled ON supply_demand_items(user_id, enabled);
 CREATE INDEX IF NOT EXISTS idx_supply_demand_symbol_tf ON supply_demand_items(symbol, timeframe);
+
+-- Migration: remove old tables if they exist
+DROP TABLE IF EXISTS screener_items;
+DROP TABLE IF EXISTS supply_demand_items;
+
+-- Screener snapshot for all-assets real-time signals
+CREATE TABLE IF NOT EXISTS screener_snapshot (
+  symbol TEXT NOT NULL,
+  timeframe TEXT NOT NULL,
+  indicator_type TEXT NOT NULL,
+  signal TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (symbol, timeframe, indicator_type)
+);
+CREATE INDEX IF NOT EXISTS idx_screener_snapshot_type ON screener_snapshot(indicator_type);

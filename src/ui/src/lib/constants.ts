@@ -7,6 +7,7 @@ export const TIMEFRAMES = [
   { value: 'h2', label: '2 Hours' },
   { value: 'h4', label: '4 Hours' },
   { value: 'd1', label: '1 Day' },
+  { value: 'w1', label: '1 Week' },
 ] as const;
 
 export const INDICATORS = [

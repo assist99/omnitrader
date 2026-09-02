@@ -2,7 +2,6 @@ const CandleUtils = require('../utils/candleUtils');
 const logger = require('../logger');
 const SuperTrend = require('./indicators/superTrend');
 const MacdEma = require('./indicators/macdEma');
-const SupplyDemand = require('./indicators/supplyDemand');
 const Candlestick = require('./indicators/candlestick');
 const EWT = require('./indicators/ewt');
 const Helpers = require('./indicators/helpers');
@@ -29,8 +28,6 @@ class IndicatorService {
           return MacdEma.checkMACD(candles, params);
         case 'ema':
           return MacdEma.checkEMA(candles, params);
-        case 'supply_demand':
-          return SupplyDemand.checkSupplyDemand(candles, params);
         case 'candlestick':
           return Candlestick.checkCandlestickPattern(candles, params.patternType);
         default:
@@ -79,7 +76,6 @@ class IndicatorService {
       'macd': { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
       'ema': { fastPeriod: 9, slowPeriod: 21 },
       'ema_cross': { fastPeriod: 9, slowPeriod: 21 },
-      'supply_demand': { bodyTolerance: 0.5, minWickOverlapRate: 0.1, checkCandle0Dir: true },
       'ewt': {
         barsPerHour: 4,
         barsPerHour2: 16,
@@ -103,8 +99,8 @@ class IndicatorService {
   }
 
   static validateIndicatorConfig(indicatorType, timeframe) {
-    const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'supply_demand', 'ewt'];
-    const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1'];
+    const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'ewt'];
+    const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1'];
 
     if (!validIndicators.includes(this._normalizeType(indicatorType))) {
       return { valid: false, error: `Invalid indicator type: ${indicatorType}` };

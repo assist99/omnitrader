@@ -212,36 +212,6 @@ async createUser(email, passwordHash, timeoutMs) {
     }, timeoutMs);
   }
 
-  async createScreenerItem(data, timeoutMs) {
-    return this.runWriteOperation('createScreenerItem', async () => {
-      return this.db.createScreenerItem(data);
-    }, timeoutMs);
-  }
-
-  async updateScreenerItem(id, userId, updates, timeoutMs) {
-    return this.runWriteOperation('updateScreenerItem', async () => {
-      return this.db.updateScreenerItem(id, userId, updates);
-    }, timeoutMs);
-  }
-
-  async updateScreenerItemSignal(id, signal, checkedAt, timeoutMs) {
-    return this.runWriteOperation('updateScreenerItemSignal', async () => {
-      return this.db.updateScreenerItemSignal(id, signal, checkedAt);
-    }, timeoutMs);
-  }
-
-  async updateScreenerItemAlerted(id, alertedAt, timeoutMs) {
-    return this.runWriteOperation('updateScreenerItemAlerted', async () => {
-      return this.db.updateScreenerItemAlerted(id, alertedAt);
-    }, timeoutMs);
-  }
-
-  async deleteScreenerItem(id, userId, timeoutMs) {
-    return this.runWriteOperation('deleteScreenerItem', async () => {
-      return this.db.deleteScreenerItem(id, userId);
-    }, timeoutMs);
-  }
-
   async updateUserPassword(id, hash) {
     return this.runWriteOperation('updateUserPassword', async () => {
       return this.db.updateUserPassword(id, hash);
@@ -258,148 +228,14 @@ async createUser(email, passwordHash, timeoutMs) {
     return this.db.getSetupById(setupId);
   }
 
-  async getScreenerItems(userId, enabledOnly = true) {
-    return this.db.getScreenerItems(userId, enabledOnly);
-  }
-
-  async getScreenerItemById(id, userId) {
-    return this.db.getScreenerItemById(id, userId);
-  }
-
-  async createScreenerItem(data) {
-    return this.runWriteOperation('createScreenerItem', async () => {
-      return this.db.createScreenerItem(data);
-    });
-  }
-
-  async updateScreenerItem(id, userId, updates) {
-    return this.runWriteOperation('updateScreenerItem', async () => {
-      return this.db.updateScreenerItem(id, userId, updates);
-    });
-  }
-
-  async updateScreenerItemSignal(id, signal, checkedAt) {
-    return this.runWriteOperation('updateScreenerItemSignal', async () => {
-      return this.db.updateScreenerItemSignal(id, signal, checkedAt);
-    });
-  }
-
-  async updateScreenerItemAlerted(id, alertedAt) {
-    return this.runWriteOperation('updateScreenerItemAlerted', async () => {
-      return this.db.updateScreenerItemAlerted(id, alertedAt);
-    });
-  }
-
-  async deleteScreenerItem(id, userId) {
-    return this.runWriteOperation('deleteScreenerItem', async () => {
-      return this.db.deleteScreenerItem(id, userId);
-    });
-  }
-
-  async getScreenerItemsBySymbolTimeframe(symbol, timeframe, enabledOnly = true) {
-    return this.db.getScreenerItemsBySymbolTimeframe(symbol, timeframe, enabledOnly);
-  }
-
-  async getSupplyDemandItems(userId, enabledOnly = true) {
-    return this.db.getSupplyDemandItems(userId, enabledOnly);
-  }
-
-  async getSupplyDemandItemById(id, userId) {
-    return this.db.getSupplyDemandItemById(id, userId);
-  }
-
-async createSupplyDemandItem(data, timeoutMs) {
-    return this.runWriteOperation('createSupplyDemandItem', async () => {
-      return this.db.createSupplyDemandItem(data);
+  async upsertScreenerSnapshot(symbol, timeframe, indicatorType, signal, timeoutMs) {
+    return this.runWriteOperation('upsertScreenerSnapshot', async () => {
+      return this.db.upsertScreenerSnapshot(symbol, timeframe, indicatorType, signal);
     }, timeoutMs);
   }
 
-  async updateSupplyDemandItem(id, userId, updates, timeoutMs) {
-    return this.runWriteOperation('updateSupplyDemandItem', async () => {
-      return this.db.updateSupplyDemandItem(id, userId, updates);
-    }, timeoutMs);
-  }
-
-  async updateSupplyDemandItemSignal(id, signal, zonePrice, zoneTop, zoneBottom, zoneTf, checkedAt, timeoutMs) {
-    return this.runWriteOperation('updateSupplyDemandItemSignal', async () => {
-      return this.db.updateSupplyDemandItemSignal(id, signal, zonePrice, zoneTop, zoneBottom, zoneTf, checkedAt);
-    }, timeoutMs);
-  }
-
-  async updateSupplyDemandItemAlerted(id, alertedAt, timeoutMs) {
-    return this.runWriteOperation('updateSupplyDemandItemAlerted', async () => {
-      return this.db.updateSupplyDemandItemAlerted(id, alertedAt);
-    }, timeoutMs);
-  }
-
-  async deleteSupplyDemandItem(id, userId, timeoutMs) {
-    return this.runWriteOperation('deleteSupplyDemandItem', async () => {
-      return this.db.deleteSupplyDemandItem(id, userId);
-    }, timeoutMs);
-  }
-
-  async beginTransaction(timeoutMs) {
-    return this.runWriteOperation('beginTransaction', async () => {
-      return this.db.beginTransaction();
-    }, timeoutMs);
-  }
-
-  async commit(timeoutMs) {
-    return this.runWriteOperation('commit', async () => {
-      return this.db.commit();
-    }, timeoutMs);
-  }
-
-  async rollback(timeoutMs) {
-    return this.runWriteOperation('rollback', async () => {
-      return this.db.rollback();
-    }, timeoutMs);
-  }
-
-  async updateSupplyDemandItem(id, userId, updates) {
-    return this.runWriteOperation('updateSupplyDemandItem', async () => {
-      return this.db.updateSupplyDemandItem(id, userId, updates);
-    });
-  }
-
-  async updateSupplyDemandItemSignal(id, signal, zonePrice, zoneTop, zoneBottom, zoneTf, checkedAt) {
-    return this.runWriteOperation('updateSupplyDemandItemSignal', async () => {
-      return this.db.updateSupplyDemandItemSignal(id, signal, zonePrice, zoneTop, zoneBottom, zoneTf, checkedAt);
-    });
-  }
-
-  async updateSupplyDemandItemAlerted(id, alertedAt) {
-    return this.runWriteOperation('updateSupplyDemandItemAlerted', async () => {
-      return this.db.updateSupplyDemandItemAlerted(id, alertedAt);
-    });
-  }
-
-  async deleteSupplyDemandItem(id, userId) {
-    return this.runWriteOperation('deleteSupplyDemandItem', async () => {
-      return this.db.deleteSupplyDemandItem(id, userId);
-    });
-  }
-
-  async getSupplyDemandItemsBySymbolTimeframe(symbol, timeframe, enabledOnly = true) {
-    return this.db.getSupplyDemandItemsBySymbolTimeframe(symbol, timeframe, enabledOnly);
-  }
-
-  async beginTransaction() {
-    return this.runWriteOperation('beginTransaction', async () => {
-      return this.db.beginTransaction();
-    });
-  }
-
-  async commit() {
-    return this.runWriteOperation('commit', async () => {
-      return this.db.commit();
-    });
-  }
-
-  async rollback() {
-    return this.runWriteOperation('rollback', async () => {
-      return this.db.rollback();
-    });
+  async getScreenerSnapshots(indicatorType) {
+    return this.db.getScreenerSnapshots(indicatorType);
   }
 
   getQueueStats() {

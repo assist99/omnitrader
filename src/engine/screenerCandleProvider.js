@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 /**
- * Screener CandleProvider - Standalone service for screener candle updates
+ * Screener CandleProvider - Standalone service for real-time candle updates
  * 
  * This service runs independently from the TradingEngine and handles
- * real-time candle updates for screener items, supply/demand items,
+ * real-time candle updates for all-assets screeners (SuperTrend, EW),
  * pending setups, and triggered setups.
  */
 
 const { getDatabaseManager } = require('./db');
 const CandleProvider = require('./services/candleProvider');
-const ScreenerService = require('./services/screenerService');
-const SupplyDemandService = require('./services/supplyDemandService');
+const AllAssetsScreenerService = require('./services/allAssetsScreenerService');
 const PendingSetupService = require('./services/pendingSetupService');
 const EntryService = require('./services/entryService');
 const TelegramService = require('./services/telegramService');
@@ -53,12 +52,9 @@ class ScreenerCandleProvider {
       const ExchangeServiceManager = require('./services/exchangeServiceManager');
       await ExchangeServiceManager.initialize(this.db);
       
-      // Initialize ScreenerService dependencies
-      ScreenerService.setDeps(this.db, this.telegramService);
-      
-      // Initialize SupplyDemandService dependencies
-      SupplyDemandService.setDeps(this.db, this.telegramService);
-      
+      // Initialize AllAssetsScreenerService dependencies
+      AllAssetsScreenerService.setDeps(this.db, this.telegramService);
+
       // Initialize PendingSetupService dependencies
       PendingSetupService.setDeps(this.db, this.telegramService);
       
@@ -82,10 +78,8 @@ class ScreenerCandleProvider {
           //logger.debug(`Candle closed for screener: ${symbol} ${timeframe}`);
         },
         onScreenerUpdate: async (symbol, timeframe, closedBars) => {
-          // Query database for screener items matching this symbol/timeframe
-          ScreenerService.processItemFromCandle(symbol, timeframe, closedBars);
-          // Also process supply/demand items
-          SupplyDemandService.processItemFromCandle(symbol, timeframe, closedBars);
+          // Process all-assets screener (SuperTrend + EW)
+          AllAssetsScreenerService.processClosedCandle(symbol, timeframe, closedBars);
           // Process pending setups (must complete before processing entries)
           await PendingSetupService.processItemFromCandle(symbol, timeframe, closedBars);
           // Process triggered setups (runs after pending setups complete)
@@ -96,11 +90,14 @@ class ScreenerCandleProvider {
       
       await this.candleProvider.start();
       this.isRunning = true;
-      
+
       logger.info('✅ Screener CandleProvider service started successfully');
       logger.info(`📊 Monitoring ALL ${symbols.length} symbols from config`);
       logger.info(`⏱️  All timeframes: ${timeframes.join(', ')}`);
-      logger.info(`ℹ️  New screener items added via UI will be processed on next candle close`);
+      logger.info(`ℹ️  Populating initial screener snapshot...`);
+
+      // Populate initial snapshot so UI has data immediately
+      await AllAssetsScreenerService.populateInitialSnapshot();
       
     } catch (error) {
       logger.error('Failed to start Screener CandleProvider:', error);
