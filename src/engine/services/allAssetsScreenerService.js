@@ -14,6 +14,8 @@ class AllAssetsScreenerService {
     this.telegramService = telegramService;
   }
 
+  static _stMinTimeframes = new Set(['m15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1']);
+
   static async processClosedCandle(symbol, timeframe, closedBars) {
     if (closedBars.length < 20) return;
 
@@ -21,7 +23,9 @@ class AllAssetsScreenerService {
     if (parsedBars.length < 20) return;
 
     try {
-      await this._updateSTDirection(symbol, timeframe, parsedBars);
+      if (this._stMinTimeframes.has(timeframe)) {
+        await this._updateSTDirection(symbol, timeframe, parsedBars);
+      }
       setImmediate(() => {
         this._computeEW(symbol, timeframe, parsedBars).catch(err => {
           logger.error(`EW computation error for ${symbol} ${timeframe}:`, err.message);

@@ -44,7 +44,7 @@ export default function SuperTrendScreenerPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(fetchData, 120000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
