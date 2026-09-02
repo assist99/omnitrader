@@ -97,7 +97,8 @@ class ScreenerCandleProvider {
       logger.info(`ℹ️  Populating initial screener snapshot...`);
 
       // Populate initial snapshot so UI has data immediately
-      await AllAssetsScreenerService.populateInitialSnapshot();
+      // Initialize SuperTrend directions from historical data
+      await AllAssetsScreenerService.populateInitialSnapshot(this.candleProvider);
       
     } catch (error) {
       logger.error('Failed to start Screener CandleProvider:', error);

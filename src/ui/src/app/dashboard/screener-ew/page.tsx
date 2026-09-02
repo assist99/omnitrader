@@ -9,7 +9,7 @@ function SignalDot({ signal }: { signal: string | null }) {
   if (!signal) {
     return <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-700/50 text-slate-500 text-xs">—</span>;
   }
-  const isBullish = signal === 'bullish_crossover';
+  const isBullish = signal.startsWith('bullish');
   return (
     <span
       className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${isBullish ? 'bg-green-500' : 'bg-red-500'} shadow-sm`}

@@ -1,25 +1,41 @@
 const logger = require('../logger');
 const IndicatorService = require('./indicatorService');
+const CandleUtils = require('../utils/candleUtils');
 
 class AllAssetsScreenerService {
   static db = null;
   static telegramService = null;
   static lastEWSignals = new Map();
+  static lastSTDirection = new Map();
 
   static setDeps(db, telegramService) {
     this.db = db;
     this.telegramService = telegramService;
   }
 
+  static getSTDirection(symbol, timeframe) {
+    return this.lastSTDirection.get(`${symbol}:${timeframe}`) || null;
+  }
+
+  static getAllSTDirections() {
+    const result = [];
+    for (const [key, direction] of this.lastSTDirection.entries()) {
+      const [symbol, timeframe] = key.split(':');
+      result.push({ symbol, timeframe, signal: direction });
+    }
+    return result;
+  }
+
   static async processClosedCandle(symbol, timeframe, closedBars) {
     if (closedBars.length < 20) return;
 
+    const parsedBars = CandleUtils.parseExchangeCandles(closedBars);
+    if (parsedBars.length < 20) return;
+
     try {
-      await this._computeSuperTrend(symbol, timeframe, closedBars);
-      // Defer EWT to avoid blocking the WS message handler
-      // EWT is CPU-intensive (zscoreLength=500, multiple passes over all candles)
+      this._updateSTDirection(symbol, timeframe, parsedBars);
       setImmediate(() => {
-        this._computeEW(symbol, timeframe, closedBars).catch(err => {
+        this._computeEW(symbol, timeframe, parsedBars).catch(err => {
           logger.error(`EW computation error for ${symbol} ${timeframe}:`, err.message);
         });
       });
@@ -28,20 +44,16 @@ class AllAssetsScreenerService {
     }
   }
 
-  static async _computeSuperTrend(symbol, timeframe, closedBars) {
+  static _updateSTDirection(symbol, timeframe, bars) {
     const stParams = { period: 10, multiplier: 3 };
-    const stResult = IndicatorService.checkCondition('supertrend', closedBars, stParams);
+    const stResult = IndicatorService.checkCondition('supertrend', bars, stParams);
 
-    await this.db.upsertScreenerSnapshot(
-      symbol,
-      timeframe,
-      'supertrend',
-      stResult.signal || null
-    );
+    const direction = stResult.isBullish === true ? 'bullish' : stResult.isBullish === false ? 'bearish' : null;
+    this.lastSTDirection.set(`${symbol}:${timeframe}`, direction);
   }
 
-  static async _computeEW(symbol, timeframe, closedBars) {
-    if (closedBars.length < 500) return;
+  static async _computeEW(symbol, timeframe, bars) {
+    if (bars.length < 500) return;
 
     const ewParams = {
       barsPerHour: 4,
@@ -61,7 +73,7 @@ class AllAssetsScreenerService {
       tradeMode: 'First Change Only'
     };
 
-    const ewResult = IndicatorService.checkCondition('ewt', closedBars, ewParams);
+    const ewResult = IndicatorService.checkCondition('ewt', bars, ewParams);
 
     await this.db.upsertScreenerSnapshot(
       symbol,
@@ -75,7 +87,7 @@ class AllAssetsScreenerService {
       const lastEWSignal = this.lastEWSignals.get(key);
 
       if (ewResult.signal !== lastEWSignal) {
-        const lastBar = closedBars[closedBars.length - 1];
+        const lastBar = bars[bars.length - 1];
         const price = lastBar ? lastBar.close : 0;
 
         await this.telegramService.sendNotification(null, 'screener_reversal', {
@@ -93,39 +105,53 @@ class AllAssetsScreenerService {
     }
   }
 
-  static async populateInitialSnapshot() {
+  static async populateInitialSnapshot(candleProvider) {
+    const allCandles = candleProvider.getAllClosedCandles();
+    let count = 0;
+
+    for (const [key, candles] of allCandles.entries()) {
+      if (candles.length < 20) continue;
+      const parsed = CandleUtils.parseExchangeCandles(candles);
+      if (parsed.length < 20) continue;
+      const [symbol, timeframe] = key.split(':');
+      this._updateSTDirection(symbol, timeframe, parsed);
+      count++;
+    }
+
+    logger.info(`Initialized SuperTrend directions for ${count} symbol/timeframe combinations`);
+
+    await this.populateEWSnapshot();
+  }
+
+  static async populateEWSnapshot() {
     if (!this.db) return;
 
-    const { getDatabaseManager } = require('../db');
-    const db = getDatabaseManager();
-
     try {
-      const existing = await db.getScreenerSnapshots('supertrend');
+      const existing = await this.db.getScreenerSnapshots('ewt');
       if (existing && existing.length > 0) {
-        logger.info('Screener snapshot already populated, skipping initial population');
+        logger.info('EW snapshot already populated, skipping');
         return;
       }
 
-      const symbolsConfigPath = require('path').resolve(
-        require('../config').getProjectRoot(),
-        'config/symbols/bybit.json'
-      );
-      const symbolsConfig = JSON.parse(require('fs').readFileSync(symbolsConfigPath, 'utf8'));
+      const path = require('path');
+      const fs = require('fs');
+      const { getProjectRoot } = require('../config');
+      const symbolsConfigPath = path.resolve(getProjectRoot(), 'config/symbols/bybit.json');
+      const symbolsConfig = JSON.parse(fs.readFileSync(symbolsConfigPath, 'utf8'));
       const intervals = symbolsConfig.intervals;
       const symbols = symbolsConfig.symbols.map(s => s.symbol);
 
-      logger.info(`Populating initial screener snapshot for ${symbols.length} symbols x ${intervals.length} timeframes...`);
+      logger.info(`Populating initial EW snapshot for ${symbols.length} symbols x ${intervals.length} timeframes...`);
 
       for (const symbol of symbols) {
         for (const timeframe of intervals) {
-          await db.upsertScreenerSnapshot(symbol, timeframe, 'supertrend', null);
-          await db.upsertScreenerSnapshot(symbol, timeframe, 'ewt', null);
+          await this.db.upsertScreenerSnapshot(symbol, timeframe, 'ewt', null);
         }
       }
 
-      logger.info('Initial screener snapshot populated');
+      logger.info('Initial EW snapshot populated');
     } catch (error) {
-      logger.error('Failed to populate initial screener snapshot:', error.message);
+      logger.error('Failed to populate initial EW snapshot:', error.message);
     }
   }
 }
