@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
 import { getSymbols } from '@/lib/symbols';
 import type { SymbolOption } from '@/lib/symbols';
