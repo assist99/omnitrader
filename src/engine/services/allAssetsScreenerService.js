@@ -1,6 +1,16 @@
 const logger = require('../logger');
 const IndicatorService = require('./indicatorService');
 const CandleUtils = require('../utils/candleUtils');
+const { _calculateSuperTrendAligned } = require('./indicators/helpers');
+
+function mapKey(symbol, timeframe) {
+  return `${symbol}||${timeframe}`;
+}
+
+function parseKey(key) {
+  const idx = key.lastIndexOf('||');
+  return [key.slice(0, idx), key.slice(idx + 2)];
+}
 
 class AllAssetsScreenerService {
   static db = null;
@@ -14,13 +24,13 @@ class AllAssetsScreenerService {
   }
 
   static getSTDirection(symbol, timeframe) {
-    return this.lastSTDirection.get(`${symbol}:${timeframe}`) || null;
+    return this.lastSTDirection.get(mapKey(symbol, timeframe)) || null;
   }
 
   static getAllSTDirections() {
     const result = [];
     for (const [key, direction] of this.lastSTDirection.entries()) {
-      const [symbol, timeframe] = key.split(':');
+      const [symbol, timeframe] = parseKey(key);
       result.push({ symbol, timeframe, signal: direction });
     }
     return result;
@@ -45,11 +55,18 @@ class AllAssetsScreenerService {
   }
 
   static _updateSTDirection(symbol, timeframe, bars) {
-    const stParams = { period: 10, multiplier: 3 };
-    const stResult = IndicatorService.checkCondition('supertrend', bars, stParams);
+    const highs = bars.map(c => c.high);
+    const lows = bars.map(c => c.low);
+    const closes = bars.map(c => c.close);
 
-    const direction = stResult.isBullish === true ? 'bullish' : stResult.isBullish === false ? 'bearish' : null;
-    this.lastSTDirection.set(`${symbol}:${timeframe}`, direction);
+    const { direction } = _calculateSuperTrendAligned(highs, lows, closes, 10, 3);
+    let lastDir = 0;
+    for (let i = direction.length - 1; i >= 0; i--) {
+      if (direction[i] !== 0) { lastDir = direction[i]; break; }
+    }
+    const trend = lastDir === -1 ? 'bullish' : lastDir === 1 ? 'bearish' : null;
+
+    this.lastSTDirection.set(mapKey(symbol, timeframe), trend);
   }
 
   static async _computeEW(symbol, timeframe, bars) {
@@ -75,15 +92,15 @@ class AllAssetsScreenerService {
 
     const ewResult = IndicatorService.checkCondition('ewt', bars, ewParams);
 
-    await this.db.upsertScreenerSnapshot(
-      symbol,
-      timeframe,
-      'ewt',
-      ewResult.signal || null
-    );
+    if (ewResult.signal && ewResult.signal !== 'none' && ewResult.met === true) {
+      await this.db.upsertScreenerSnapshot(
+        symbol,
+        timeframe,
+        'ewt',
+        ewResult.signal
+      );
 
-    if (ewResult.signal) {
-      const key = `${symbol}:${timeframe}`;
+      const key = mapKey(symbol, timeframe);
       const lastEWSignal = this.lastEWSignals.get(key);
 
       if (ewResult.signal !== lastEWSignal) {
@@ -113,7 +130,12 @@ class AllAssetsScreenerService {
       if (candles.length < 20) continue;
       const parsed = CandleUtils.parseExchangeCandles(candles);
       if (parsed.length < 20) continue;
-      const [symbol, timeframe] = key.split(':');
+
+      // CandleProvider keys are "symbol:timeframe" (symbol contains : so split on last colon)
+      const colonIdx = key.lastIndexOf(':');
+      const symbol = key.slice(0, colonIdx);
+      const timeframe = key.slice(colonIdx + 1);
+
       this._updateSTDirection(symbol, timeframe, parsed);
       count++;
     }
