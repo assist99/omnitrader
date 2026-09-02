@@ -1,5 +1,5 @@
 //@version=6
-indicator("EW trading", overlay=true, max_lines_count=500)
+indicator("EW SuperTrend Signals", overlay=true, max_lines_count=500)
 
 // Force compiler historical buffer size allocation
 max_bars_back(high, 5000)
@@ -8,32 +8,27 @@ max_bars_back(close, 5000)
 max_bars_back(time, 5000)
 
 // ==========================================
-// 🎨 VISUAL TOGGLES & DISPLAY OPTIONS
+// VISUAL TOGGLES & DISPLAY OPTIONS
 // ==========================================
 var string G_VISUALS = "Display & Visual Toggles"
-show_table        = input.bool(true,   title="Show Screener Table",              group=G_VISUALS)
-table_mode        = input.string("Normal", title="Screener Table View Mode", options=["Normal", "Compact"], group=G_VISUALS)
-show_neely        = input.bool(true,   title="Show Neely Cash Data Baseline",    group=G_VISUALS)
-show_local_st     = input.bool(true,   title="Show Local SuperTrend Line",      group=G_VISUALS)
-show_legs         = input.bool(false,  title="Show Local ST Leg Section Lines", group=G_VISUALS)
-show_synth_legs   = input.bool(false,  title="Show Synth ST Leg Section Lines", group=G_VISUALS)
-show_first_leg_hl = input.bool(false,  title="Highlight 1st Local Leg in HTF",   group=G_VISUALS)
-show_synth_st     = input.bool(true,   title="Show Synthetic SuperTrend Lines",  group=G_VISUALS)
-show_signals      = input.bool(true,   title="Show Signal Arrows",              group=G_VISUALS)
-
+show_local_st     = input.bool(true,  title="Show Local SuperTrend Line",      group=G_VISUALS)
+show_synth_st     = input.bool(true,  title="Show Synthetic SuperTrend Lines",  group=G_VISUALS)
+show_legs         = input.bool(false, title="Show Local ST Leg Section Lines", group=G_VISUALS)
+show_synth_legs   = input.bool(false, title="Show Synth ST Leg Section Lines", group=G_VISUALS)
+show_first_leg_hl = input.bool(false, title="Highlight 1st Local Leg in HTF",   group=G_VISUALS)
+show_signals      = input.bool(true,  title="Show Signal Arrows",              group=G_VISUALS)
 
 // ==========================================
-// 1. Z-SCORE CALCULATIONS, WICK FILTER & BAR COLORING
+// 1. Z-SCORE CALCULATIONS & WICK FILTER
 // ==========================================
 var string G_ZSCORE = "Rolling Return Z-Score"
 i_length       = input.int(500, title="Rolling Window Length", minval=1, group=G_ZSCORE)
 i_minThreshold = input.float(1.8, title="Min Z-Score Threshold", minval=0.0, step=0.1, group=G_ZSCORE)
-i_maxThreshold = input.float(10.0, title="Max Z-Score Threshold", minval=0.0, step=0.1, group=G_ZSCORE)
+i_maxThreshold = input.float(9.0, title="Max Z-Score Threshold", minval=0.0, step=0.1, group=G_ZSCORE)
 
 i_colorUp   = input.color(color.new(color.lime, 0), title="Up Bar Color", group=G_ZSCORE)
 i_colorDown = input.color(color.new(color.red, 0), title="Down Bar Color", group=G_ZSCORE)
 
-// --- Wick-to-Body Rate Filter Settings ---
 var string G_WICK = "Wick Filter Settings"
 use_wick_filter = input.bool(true, title="Enable Wick / Body Rate Filter", group=G_WICK)
 max_wick_ratio  = input.float(0.3, title="Max Wick / Body Ratio Threshold", minval=0.0, maxval=5.0, step=0.05, group=G_WICK)
@@ -58,7 +53,6 @@ barCol = isHighReturnBar ? (close >= open ? i_colorUp : i_colorDown) : na
 barcolor(barCol)
 plotcandle(open, high, low, close, title="Colored Candles", color=barCol, wickcolor=barCol, bordercolor=barCol)
 
-
 // ==========================================
 // 2. ENGINE & SUPERTREND INPUTS & SETTINGS
 // ==========================================
@@ -80,7 +74,7 @@ max_legs_allowed = input.int(5, title="Filter 1: Max Local ST Legs Allowed in HT
 use_ext_filter   = input.bool(true, title="Filter 2: Enable Extension Target Filter", group=G_FILTERS)
 i_ext_mult       = input.float(1.27, title="Extension Multiplier Level (e.g. 1.27)", step=0.01, minval=0.0, group=G_FILTERS)
 
-// Line Display & Color Customization
+// Colors
 var string G_COLORS = "SuperTrend Color Customization"
 col_local_up     = input.color(color.new(color.green, 50), title="Local ST Up Color", group=G_COLORS)
 col_local_dn     = input.color(color.new(color.red, 50), title="Local ST Down Color", group=G_COLORS)
@@ -94,7 +88,6 @@ col_synth_up     = input.color(color.new(color.blue, 50), title="Synth ST 1 Up C
 col_synth_dn     = input.color(color.new(color.orange, 50), title="Synth ST 1 Down Color", group=G_COLORS)
 col_synth2_up    = input.color(color.new(color.teal, 50), title="Synth ST 2 Up Color", group=G_COLORS)
 col_synth2_dn    = input.color(color.new(color.purple, 50), title="Synth ST 2 Down Color", group=G_COLORS)
-
 
 // ==========================================
 // 3. SUPERTREND CALCULATIONS
@@ -183,7 +176,6 @@ else
         line.set_x2(activeSynthLine, synthCurExtremeBar)
         line.set_y2(activeSynthLine, synthCurExtremePrice)
 
-
 // --- Local Frame SuperTrend ---
 [m15_st, m15_dir] = ta.supertrend(local_mult, local_atr_len)
 m15_st := barstate.isfirst ? na : m15_st
@@ -195,7 +187,7 @@ var bool last_m15_break_is_hr = false
 if m15_dir_changed
     last_m15_break_is_hr := isHighReturnBar
 
-// --- Local SuperTrend Leg Section Tracking Engine with Fixed Extreme Detection ---
+// --- Local SuperTrend Leg Tracking ---
 type LegRef
     line   l
     int    x1
@@ -224,13 +216,11 @@ if barstate.isfirst
     legStartBar     := bar_index
 
 if m15_dir_changed
-    // Lock in final vertex for the completed leg
     array.push(legRefs, LegRef.new(activeLine, activeLineX1, curExtremeBar, prevExtremePrice, curExtremePrice, activeIsBull))
 
     prevExtremeBar   := curExtremeBar
     prevExtremePrice := curExtremePrice
     
-    // Reset trackers for the NEW directional leg
     legStartBar     := bar_index
     curExtremeBar   := bar_index
     curExtremePrice := is_local_bullish ? high : low
@@ -252,7 +242,6 @@ if m15_dir_changed
     else
         activeLine := na
 else
-    // Continuously check for new extremes across the entire active leg length
     if is_local_bullish
         if high >= curExtremePrice or na(curExtremePrice)
             curExtremePrice := high
@@ -269,7 +258,6 @@ else
         line.set_x2(activeLine, activeLineX2)
         line.set_y2(activeLine, curExtremePrice)
 
-// Dynamic helper function: Calculate EXACT local leg count within active HTF section
 get_current_htf_leg_count() =>
     int leg_count = 1  
     int sz = array.size(legRefs)
@@ -282,7 +270,6 @@ get_current_htf_leg_count() =>
                 break
     leg_count
 
-// Retroactively highlight ONLY the 1st Local Leg of the NEW HTF section & Calculate Extension Target
 if htf_changed
     if not na(target_htf_start_bar)
         bool highlight_done = false
@@ -348,10 +335,7 @@ if htf_changed
 if not na(ext_target_line) and show_first_leg_hl
     line.set_x2(ext_target_line, bar_index)
 
-
-// ==========================================
-// 4. SYNTHETIC MACRO FRAME SUPERTREND 2
-// ==========================================
+// --- Synthetic Macro Frame SuperTrend 2 ---
 rolling_high_2  = ta.highest(high, bars_per_hour_2)
 rolling_low_2   = ta.lowest(low, bars_per_hour_2)
 prev_rolling_close_2 = rolling_close[bars_per_hour_2]
@@ -377,157 +361,8 @@ else if synth_dir_2 == -1 and rolling_close < up_band_2
 synth_st_line_2 := (synth_dir_2 == -1) ? up_band_2 : dn_band_2
 synth_st_line_2 := barstate.isfirst ? na : synth_st_line_2
 
-
 // ==========================================
-// 5. SMC STRUCTURE CALCULATIONS (CHOCH/BOS)
-// ==========================================
-len = input.int(50, 'CHoCH Detection Period', group='SMC Structure')
-shortLen = input.int(3, 'IDM Detection Period', group='SMC Structure')
-
-bullCss = input.color(#089981, 'Bullish Elements', group = 'Style')
-bearCss = input.color(#ff5252, 'Bearish Elements', group = 'Style')
-
-showChoch   = input.bool(true, "Show CHoCH", group = 'Style')
-showBos     = input.bool(true, "Show BOS", group = 'Style')
-showIdm     = input.bool(true, "Show Inducements", inline = 'idm', group = 'Style')
-idmCss      = input.color(color.gray, "", inline = 'idm', group = 'Style')
-showSweeps  = input.bool(true, "Show Sweeps", inline = 'sweeps', group = 'Style')
-sweepsCss   = input.color(color.gray, "", inline = 'sweeps', group = 'Style')
-showCircles = input.bool(true, "Show Swings", group = 'Style')
-
-n = bar_index
-
-swings(int length) =>
-    var int os_val = 0
-    var int topx_val = na
-    var int btmx_val = na
-    
-    upper = ta.highest(length)
-    lower = ta.lowest(length)
-
-    os_val := high[length] > upper ? 0 : low[length] < lower ? 1 : os_val[1]
-
-    top_val = os_val == 0 and os_val[1] != 0 ? high[length] : na
-    topx_val := os_val == 0 and os_val[1] != 0 ? n[length] : topx_val
-
-    btm_val = os_val == 1 and os_val[1] != 1 ? low[length] : na
-    btmx_val := os_val == 1 and os_val[1] != 1 ? n[length] : btmx_val
-
-    [top_val, topx_val, btm_val, btmx_val]
-
-[top, topx, btm, btmx] = swings(len)
-[stop, stopx, sbtm, sbtmx] = swings(shortLen)
-
-var int trend_dir = 0
-var bool top_crossed = false
-var bool btm_crossed = false
-
-var float max = na
-var float min = na
-var int max_x1 = na
-var int min_x1 = na
-
-var float topy = na
-var float btmy = na
-var bool stop_crossed = false
-var bool sbtm_crossed = false    
-
-if not na(top)
-    topy := top
-    top_crossed := false
-if not na(btm)
-    btmy := btm
-    btm_crossed := false
-
-bool is_bull_break = close > topy and not top_crossed
-bool is_bear_break = close < btmy and not btm_crossed
-
-bool is_choch_bull = is_bull_break and trend_dir != 1
-bool is_bos_bull   = is_bull_break and trend_dir == 1
-
-bool is_choch_bear = is_bear_break and trend_dir != -1
-bool is_bos_bear   = is_bear_break and trend_dir == -1
-
-if is_bull_break
-    top_crossed := true
-    trend_dir   := 1
-    max         := high
-    min         := low
-    max_x1      := n
-    min_x1      := n
-    stop_crossed := false
-    sbtm_crossed := false
-
-    if is_choch_bull and showChoch
-        line.new(topx, topy, n, topy, color = bullCss, style = line.style_dashed)
-        label.new(int(math.avg(n, topx)), topy, 'CHoCH', color = color(na), style = label.style_label_down, textcolor = bullCss, size = size.tiny)
-    else if is_bos_bull and showBos
-        line.new(topx, topy, n, topy, color = bullCss, style = line.style_solid)
-        label.new(int(math.avg(n, topx)), topy, 'BOS', color = color(na), style = label.style_label_down, textcolor = bullCss, size = size.tiny)
-
-if is_bear_break
-    btm_crossed := true
-    trend_dir   := -1
-    max         := high
-    min         := low
-    max_x1      := n
-    min_x1      := n
-    stop_crossed := false
-    sbtm_crossed := false
-
-    if is_choch_bear and showChoch
-        line.new(btmx, btmy, n, btmy, color = bearCss, style = line.style_dashed)
-        label.new(int(math.avg(n, btmx)), btmy, 'CHoCH', color = color(na), style = label.style_label_up, textcolor = bearCss, size = size.tiny)
-    else if is_bos_bear and showBos
-        line.new(btmx, btmy, n, btmy, color = bearCss, style = line.style_solid)
-        label.new(int(math.avg(n, btmx)), btmy, 'BOS', color = color(na), style = label.style_label_up, textcolor = bearCss, size = size.tiny)
-
-stopy = fixnan(stop)
-sbtmy = fixnan(sbtm)
-
-if low < sbtmy and not sbtm_crossed and trend_dir == 1 and sbtmy != btmy
-    if showIdm
-        line.new(sbtmx, sbtmy, n, sbtmy, color = idmCss, style = line.style_dotted)
-        label.new(int(math.avg(n, sbtmx)), sbtmy, 'IDM', color = color(na), style = label.style_label_up, textcolor = idmCss, size = size.tiny)
-    sbtm_crossed := true
-
-if close > max and sbtm_crossed and trend_dir == 1
-    if showBos
-        line.new(max_x1, max, n, max, color = bullCss)
-        label.new(int(math.avg(n, max_x1)), max, 'BOS', color = color(na), style = label.style_label_down, textcolor = bullCss, size = size.tiny)
-    sbtm_crossed := false
-
-if high > stopy and not stop_crossed and trend_dir == -1 and stopy != topy
-    if showIdm
-        line.new(stopx, stopy, n, stopy, color = color.gray, style = line.style_dotted)
-        label.new(int(math.avg(n, stopx)), stopy, 'IDM', color = color(na), style = label.style_label_down, textcolor = color.gray, size = size.tiny)
-    stop_crossed := true
-
-if close < min and stop_crossed and trend_dir == -1
-    if showBos
-        line.new(min_x1, min, n, min, color = bearCss)
-        label.new(int(math.avg(n, min_x1)), min, 'BOS', color = color(na), style = label.style_label_up, textcolor = bearCss, size = size.tiny)
-    stop_crossed := false
-
-if high > max and close < max and trend_dir == 1 and n - max_x1 > 1 and showSweeps
-    line.new(max_x1, max, n, max, color = sweepsCss, style = line.style_dotted)
-    label.new(int(math.avg(n, max_x1)), max, 'x', color = color(na), style = label.style_label_down, textcolor = sweepsCss)
-
-if low < min and close > min and trend_dir == -1 and n - min_x1 > 1 and showSweeps
-    line.new(min_x1, min, n, min, color = sweepsCss, style = line.style_dotted)
-    label.new(int(math.avg(n, min_x1)), min, 'x', color = color(na), style = label.style_label_up, textcolor = sweepsCss)
-
-max := math.max(high, max)
-min := math.min(low, min)
-
-if max > max[1]
-    max_x1 := n
-if min < min[1]
-    min_x1 := n
-
-
-// ==========================================
-// 6. SIGNAL FILTERS & ENTRY LOGIC
+// 4. SIGNAL FILTERS & ENTRY LOGIC
 // ==========================================
 htf_bullish = synth_dir == -1
 htf_bearish = synth_dir == 1
@@ -551,19 +386,16 @@ synth_bear_signal = htf_changed and htf_bearish
 long_allowed  = (trade_mode == "Continuous Entries") or (trade_mode == "First Change Only" and not htf_long_taken)
 short_allowed = (trade_mode == "Continuous Entries") or (trade_mode == "First Change Only" and not htf_short_taken)
 
-// --- Dynamic Filter 1 Logic: Dynamic Leg Count Check ---
 current_htf_leg_count = get_current_htf_leg_count()
 pass_leg_count_filter = current_htf_leg_count <= max_legs_allowed
 
-// --- Filter 2 Logic: Dynamic Extension Target Filter ---
 bool pass_ext_filter = true
 if use_ext_filter and not na(first_leg_ext_target)
     if htf_bullish
-        pass_ext_filter := open <= first_leg_ext_target  // Avoid buying if already above extension level
+        pass_ext_filter := open <= first_leg_ext_target
     else if htf_bearish
-        pass_ext_filter := open >= first_leg_ext_target  // Avoid selling if already below extension level
+        pass_ext_filter := open >= first_leg_ext_target
 
-// Combine Filters
 bool signals_allowed = pass_leg_count_filter and pass_ext_filter
 
 raw_primary_long  = m15_bull_signal and htf_bullish and long_allowed and signals_allowed
@@ -577,346 +409,24 @@ synth_break_has_hr_context = isHighReturnBar
 entry_long_additional  = synth_bull_signal and synth_break_has_hr_context and signals_allowed
 entry_short_additional = synth_bear_signal and synth_break_has_hr_context and signals_allowed
 
-choch_long_signal  = is_choch_bull and local_bullish and htf_bullish and isHighReturnBar and long_allowed and signals_allowed
-choch_short_signal = is_choch_bear and local_bearish and htf_bearish and isHighReturnBar and short_allowed and signals_allowed
-
-final_entry_long  = entry_long_primary or entry_long_additional or choch_long_signal
-final_entry_short = entry_short_primary or entry_short_additional or choch_short_signal
+final_entry_long  = entry_long_primary or entry_long_additional
+final_entry_short = entry_short_primary or entry_short_additional
 
 if final_entry_long
     htf_long_taken := true
 if final_entry_short
     htf_short_taken := true
 
-// --- Dynamic Stop Loss Calculation Logic ---
 var float sl_price = na
 
-if final_entry_long
-    if choch_long_signal
-        sl_price := synth_st_line      // Signal by breaking CHoCH: SL set to Synthetic SuperTrend line
-    else if entry_long_additional or entry_long_primary
-        sl_price := prevExtremePrice   // Set SL to previous M15 ST leg edge (swing vertex)
+if final_entry_long and (entry_long_additional or entry_long_primary)
+    sl_price := prevExtremePrice
 
-if final_entry_short
-    if choch_short_signal
-        sl_price := synth_st_line      // Signal by breaking CHoCH: SL set to Synthetic SuperTrend line
-    else if entry_short_additional or entry_short_primary
-        sl_price := prevExtremePrice   // Set SL to previous M15 ST leg edge (swing vertex)
-
+if final_entry_short and (entry_short_additional or entry_short_primary)
+    sl_price := prevExtremePrice
 
 // ==========================================
-// 7. NEELY CASH DATA ADAPTIVE BASELINE
-// ==========================================
-var string G_NEELY = "Neely Cash Data Settings"
-useAutoTF_neely  = input.bool(true,     title="Auto Detect Period", group=G_NEELY)
-manualTF_neely   = input.timeframe("D", title="Manual Timeframe",   group=G_NEELY)
-neely_upColor    = input.color(color.lime, title="Fast Up Color",   group=G_NEELY)
-neely_downColor  = input.color(color.red,  title="Fast Down Color", group=G_NEELY)
-neely_slowColor  = input.color(color.blue, title="Slow Color",      group=G_NEELY)
-neely_lineWidth  = input.int(2,            title="Line Width",      group=G_NEELY)
-speedMaLen       = input.int(10,          title="Speed Moving Avg Length", minval=1, group=G_NEELY)
-speedMult        = input.float(0.2,       title="Speed Threshold Multiplier", minval=0.05, maxval=2.0, step=0.05, group=G_NEELY)
-
-int chartInMinutes = timeframe.isseconds ? 1 : timeframe.isminutes ? timeframe.multiplier : timeframe.isdaily ? 1440 : timeframe.isweekly ? 10080 : timeframe.ismonthly ? 43200 : 1440
-string autoTf_neely = chartInMinutes == 1 ? "15" : chartInMinutes <= 5 ? "60" : chartInMinutes < 60 ? "240" : chartInMinutes < 240 ? "1D" : chartInMinutes < 1440 ? "1W" : "1M"
-string activeTF_neely = useAutoTF_neely ? autoTf_neely : manualTF_neely
-
-f_calcSpeed(int x1, float y1, int x2, float y2) =>
-    int timeDiff = math.abs(x2 - x1)
-    float priceDiff = math.abs(y2 - y1)
-    float barsDiff = timeDiff / (timeframe.multiplier * 60 * 1000)
-    barsDiff > 0 ? (priceDiff / barsDiff) : 0.0
-
-bool isNewTF_neely = timeframe.change(activeTF_neely)
-
-var int   currHighTime = na
-var float currHighVal  = na
-var int   currLowTime  = na
-var float currLowVal   = na
-var int   lastPointTime = na
-var float lastPointVal  = na
-var float[] speedHistory = array.new_float()
-
-if show_neely
-    if isNewTF_neely
-        int   pHighTime = currHighTime
-        float pHighVal  = currHighVal
-        int   pLowTime  = currLowTime
-        float pLowVal   = currLowVal
-
-        currHighVal  := high
-        currHighTime := time
-        currLowVal   := low
-        currLowTime  := time
-
-        if not na(pHighTime) and not na(pLowTime)
-            if na(lastPointTime)
-                if pHighTime < pLowTime
-                    lastPointTime := pHighTime
-                    lastPointVal  := pHighVal
-                else
-                    lastPointTime := pLowTime
-                    lastPointVal  := pLowVal
-
-            int   firstTime  = pHighTime < pLowTime ? pHighTime : pLowTime
-            float firstVal   = pHighTime < pLowTime ? pHighVal  : pHighVal
-            int   secondTime = pHighTime < pLowTime ? pLowTime  : pHighTime
-            float secondVal  = pHighTime < pLowTime ? pLowVal   : pHighVal
-
-            int[]   xCoords = array.new_int()
-            float[] yCoords = array.new_float()
-            array.push(xCoords, lastPointTime)
-            array.push(yCoords, lastPointVal)
-            array.push(xCoords, firstTime)
-            array.push(yCoords, firstVal)
-            array.push(xCoords, secondTime)
-            array.push(yCoords, secondVal)
-
-            for s = 0 to 1
-                int x1 = array.get(xCoords, s)
-                float y1 = array.get(yCoords, s)
-                int x2 = array.get(xCoords, s + 1)
-                float y2 = array.get(yCoords, s + 1)
-
-                int segDir = y2 >= y1 ? 1 : -1
-                float segSpeed = f_calcSpeed(x1, y1, x2, y2)
-                float avgSpeed = array.size(speedHistory) > 0 ? array.avg(speedHistory) : 0.0
-                float speedThreshold = avgSpeed * speedMult
-
-                color lineColor = neely_slowColor
-                if array.size(speedHistory) == 0 or segSpeed >= speedThreshold
-                    lineColor := segDir == 1 ? neely_upColor : neely_downColor
-
-                line.new(x1 = x1, y1 = y1, x2 = x2, y2 = y2, xloc = xloc.bar_time, color = lineColor, width = neely_lineWidth)
-
-                array.push(speedHistory, segSpeed)
-                if array.size(speedHistory) > speedMaLen
-                    array.shift(speedHistory)
-
-            lastPointTime := secondTime
-            lastPointVal  := secondVal
-    else
-        if high >= currHighVal or na(currHighVal)
-            currHighVal  := high
-            currHighTime := time
-        if low <= currLowVal or na(currLowVal)
-            currLowVal  := low
-            currLowTime  := time
-
-
-// ==========================================
-// 8. SCREENER ENGINE & MULTI-TIMEFRAME TABLE
-// ==========================================
-var string G_TBL = "Screener Table UI Settings"
-tablePosInput = input.string("Bottom Right", "Table Position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group=G_TBL)
-
-var string G_CALC = "Screener Calculation Parameters"
-emaLength      = input.int(50, title="EMA Length", group=G_CALC)
-atrLength      = input.int(14, title="ATR Length", group=G_CALC)
-lookbackLength = input.int(200, title="Rolling Lookback Length", group=G_CALC)
-extremeLevel   = input.float(2.5, title="Extreme Threshold Level", group=G_CALC)
-
-var string G_CRYPTO = "Crypto Assets"
-c1 = input.symbol("BINANCE:BTCUSDT.P", "Crypto 1", group=G_CRYPTO)
-c2 = input.symbol("BINANCE:ETHUSDT.P", "Crypto 2", group=G_CRYPTO)
-c3 = input.symbol("BINANCE:BNBUSDT.P", "Crypto 3", group=G_CRYPTO)
-c4 = input.symbol("BINANCE:LINKUSDT.P", "Crypto 4", group=G_CRYPTO)
-c5 = input.symbol("BINANCE:XRPUSDT.P", "Crypto 5", group=G_CRYPTO)
-c6 = input.symbol("BINANCE:SOLUSDT.P", "Crypto 6", group=G_CRYPTO)
-c7 = input.symbol("BINANCE:AVAXUSDT.P", "Crypto 7", group=G_CRYPTO)
-c8 = input.symbol("BINANCE:NEARUSDT.P", "Crypto 8", group=G_CRYPTO)
-
-var string G_METALS = "Metal Assets"
-m1 = input.symbol("TVC:GOLD", "Metal 1 (Gold)", group=G_METALS)
-m2 = input.symbol("TVC:SILVER", "Metal 2 (Silver)", group=G_METALS)
-
-calcNormalizedIndex(int emaLen, int atrLen, int lookback) =>
-    float emaVal  = ta.ema(close, emaLen)
-    float atrVal  = ta.atr(atrLen)
-    float rawIdx  = atrVal != 0.0 ? (close - emaVal) / atrVal : 0.0
-    float meanIdx = ta.sma(rawIdx, lookback)
-    float stdIdx  = ta.stdev(rawIdx, lookback)
-    stdIdx != 0.0 ? (rawIdx - meanIdx) / stdIdx : 0.0
-
-fetchSymbolData(string sym) =>
-    float z1D  = request.security(sym, "1D",  calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
-    float z4H  = request.security(sym, "240", calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
-    float z1H  = request.security(sym, "60",  calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
-    float z15M = request.security(sym, "15",  calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
-    [z1D, z4H, z1H, z15M]
-
-getCellColor(float val) =>
-    float absVal = math.abs(val)
-    if absVal < 0.5
-        color.new(color.gray, 60)
-    else if absVal < 1.0
-        val > 0 ? color.new(color.green, 50) : color.new(color.red, 50)
-    else if absVal < extremeLevel
-        val > 0 ? color.new(color.green, 20) : color.new(color.red, 20)
-    else
-        val > 0 ? color.new(#008000, 0) : color.new(#cc0000, 0)
-
-cleanSymbolName(string sym) =>
-    string[] strArr = str.split(sym, ":")
-    array.size(strArr) > 1 ? array.get(strArr, 1) : sym
-
-// Fetch Screener Data
-[cz1D_0, cz4H_0, cz1H_0, cz15M_0] = fetchSymbolData(c1)
-[cz1D_1, cz4H_1, cz1H_1, cz15M_1] = fetchSymbolData(c2)
-[cz1D_2, cz4H_2, cz1H_2, cz15M_2] = fetchSymbolData(c3)
-[cz1D_3, cz4H_3, cz1H_3, cz15M_3] = fetchSymbolData(c4)
-[cz1D_4, cz4H_4, cz1H_4, cz15M_4] = fetchSymbolData(c5)
-[cz1D_5, cz4H_5, cz1H_5, cz15M_5] = fetchSymbolData(c6)
-[cz1D_6, cz4H_6, cz1H_6, cz15M_6] = fetchSymbolData(c7)
-[cz1D_7, cz4H_7, cz1H_7, cz15M_7] = fetchSymbolData(c8)
-
-[mz1D_0, mz4H_0, mz1H_0, mz15M_0] = fetchSymbolData(m1)
-[mz1D_1, mz4H_1, mz1H_1, mz15M_1] = fetchSymbolData(m2)
-
-float avgCrypto1D  = (cz1D_0 + cz1D_1 + cz1D_2 + cz1D_3 + cz1D_4 + cz1D_5 + cz1D_6 + cz1D_7) / 8.0
-float avgCrypto4H  = (cz4H_0 + cz4H_1 + cz4H_2 + cz4H_3 + cz4H_4 + cz4H_5 + cz4H_6 + cz4H_7) / 8.0
-float avgCrypto1H  = (cz1H_0 + cz1H_1 + cz1H_2 + cz1H_3 + cz1H_4 + cz1H_5 + cz1H_6 + cz1H_7) / 8.0
-float avgCrypto15M = (cz15M_0 + cz15M_1 + cz15M_2 + cz15M_3 + cz15M_4 + cz15M_5 + cz15M_6 + cz15M_7) / 8.0
-
-float avgMetal1D  = (mz1D_0 + mz1D_1) / 2.0
-float avgMetal4H  = (mz4H_0 + mz4H_1) / 2.0
-float avgMetal1H  = (mz1H_0 + mz1H_1) / 2.0
-float avgMetal15M = (mz15M_0 + mz15M_1) / 2.0
-
-string tablePos = tablePosInput == "Top Right" ? position.top_right : tablePosInput == "Top Left" ? position.top_left : tablePosInput == "Bottom Right" ? position.bottom_right : position.bottom_left
-
-int totalRows = table_mode == "Compact" ? 3 : 13
-var table screenerTable = table.new(tablePos, 5, totalRows, border_width=2, border_color=color.black)
-
-var string[] cSymbols = array.new_string(8)
-var float[]  c1D      = array.new_float(8)
-var float[]  c4H      = array.new_float(8)
-var float[]  c1H      = array.new_float(8)
-var float[]  c15M     = array.new_float(8)
-
-var string[] mSymbols = array.new_string(2)
-var float[]  m1D      = array.new_float(2)
-var float[]  m4H      = array.new_float(2)
-var float[]  m1H      = array.new_float(2)
-var float[]  m15M     = array.new_float(2)
-
-if show_table and barstate.islast
-    array.set(cSymbols, 0, c1), array.set(cSymbols, 1, c2), array.set(cSymbols, 2, c3), array.set(cSymbols, 3, c4)
-    array.set(cSymbols, 4, c5), array.set(cSymbols, 5, c6), array.set(cSymbols, 6, c7), array.set(cSymbols, 7, c8)
-    
-    array.set(c1D, 0, cz1D_0), array.set(c4H, 0, cz4H_0), array.set(c1H, 0, cz1H_0), array.set(c15M, 0, cz15M_0)
-    array.set(c1D, 1, cz1D_1), array.set(c4H, 1, cz4H_1), array.set(c1H, 1, cz1H_1), array.set(c15M, 1, cz15M_1)
-    array.set(c1D, 2, cz1D_2), array.set(c4H, 2, cz4H_2), array.set(c1H, 2, cz1H_2), array.set(c15M, 2, cz15M_2)
-    array.set(c1D, 3, cz1D_3), array.set(c4H, 3, cz4H_3), array.set(c1H, 3, cz1H_3), array.set(c15M, 3, cz15M_3)
-    array.set(c1D, 4, cz1D_4), array.set(c4H, 4, cz4H_4), array.set(c1H, 4, cz1H_4), array.set(c15M, 4, cz15M_4)
-    array.set(c1D, 5, cz1D_5), array.set(c4H, 5, cz4H_5), array.set(c1H, 5, cz1H_5), array.set(c15M, 5, cz15M_5)
-    array.set(c1D, 6, cz1D_6), array.set(c4H, 6, cz4H_6), array.set(c1H, 6, cz1H_6), array.set(c15M, 6, cz15M_6)
-    array.set(c1D, 7, cz1D_7), array.set(c4H, 7, cz4H_7), array.set(c1H, 7, cz1H_7), array.set(c15M, 7, cz15M_7)
-
-    array.set(mSymbols, 0, m1), array.set(mSymbols, 1, m2)
-    array.set(m1D, 0, mz1D_0), array.set(m4H, 0, mz4H_0), array.set(m1H, 0, mz1H_0), array.set(m15M, 0, mz15M_0)
-    array.set(m1D, 1, mz1D_1), array.set(m4H, 1, mz4H_1), array.set(m1H, 1, mz1H_1), array.set(m15M, 1, mz15M_1)
-
-    if table_mode == "Normal"
-        for i = 0 to 6
-            for j = 0 to 6 - i
-                if array.get(c1D, j) < array.get(c1D, j + 1)
-                    string tempSym = array.get(cSymbols, j)
-                    array.set(cSymbols, j, array.get(cSymbols, j + 1))
-                    array.set(cSymbols, j + 1, tempSym)
-
-                    float temp1D = array.get(c1D, j)
-                    array.set(c1D, j, array.get(c1D, j + 1))
-                    array.set(c1D, j + 1, temp1D)
-
-                    float temp4H = array.get(c4H, j)
-                    array.set(c4H, j, array.get(c4H, j + 1))
-                    array.set(c4H, j + 1, temp4H)
-
-                    float temp1H = array.get(c1H, j)
-                    array.set(c1H, j, array.get(c1H, j + 1))
-                    array.set(c1H, j + 1, temp1H)
-
-                    float temp15M = array.get(c15M, j)
-                    array.set(c15M, j, array.get(c15M, j + 1))
-                    array.set(c15M, j + 1, temp15M)
-
-        if array.get(m1D, 0) < array.get(m1D, 1)
-            string tempSym = array.get(mSymbols, 0)
-            array.set(mSymbols, 0, array.get(mSymbols, 1))
-            array.set(mSymbols, 1, tempSym)
-
-            float temp1D = array.get(m1D, 0)
-            array.set(m1D, 0, array.get(m1D, 1))
-            array.set(m1D, 1, temp1D)
-
-            float temp4H = array.get(m4H, 0)
-            array.set(m4H, 0, array.get(m4H, 1))
-            array.set(m4H, 1, temp4H)
-
-            float temp1H = array.get(m1H, 0)
-            array.set(m1H, 0, array.get(m1H, 1))
-            array.set(m1H, 1, temp1H)
-
-            float temp15M = array.get(m15M, 0)
-            array.set(m15M, 0, array.get(m15M, 1))
-            array.set(m15M, 1, temp15M)
-
-    int curRow = 0
-    table.cell(screenerTable, 0, curRow, "SYMBOL", bgcolor=color.navy, text_color=color.yellow, text_size=size.large)
-    table.cell(screenerTable, 1, curRow, "1D",     bgcolor=color.navy, text_color=color.white,  text_size=size.large)
-    table.cell(screenerTable, 2, curRow, "4H",     bgcolor=color.navy, text_color=color.white,  text_size=size.large)
-    table.cell(screenerTable, 3, curRow, "1H",     bgcolor=color.navy, text_color=color.white,  text_size=size.large)
-    table.cell(screenerTable, 4, curRow, "15M",    bgcolor=color.navy, text_color=color.white,  text_size=size.large)
-    curRow += 1
-
-    table.cell(screenerTable, 0, curRow, "-- CRYPTO --", bgcolor=color.orange, text_color=color.black, text_size=size.large)
-    table.cell(screenerTable, 1, curRow, str.tostring(avgCrypto1D, "#.##"),  bgcolor=getCellColor(avgCrypto1D),  text_color=color.white, text_size=size.large)
-    table.cell(screenerTable, 2, curRow, str.tostring(avgCrypto4H, "#.##"),  bgcolor=getCellColor(avgCrypto4H),  text_color=color.white, text_size=size.large)
-    table.cell(screenerTable, 3, curRow, str.tostring(avgCrypto1H, "#.##"),  bgcolor=getCellColor(avgCrypto1H),  text_color=color.white, text_size=size.large)
-    table.cell(screenerTable, 4, curRow, str.tostring(avgCrypto15M, "#.##"), bgcolor=getCellColor(avgCrypto15M), text_color=color.white, text_size=size.large)
-    curRow += 1
-
-    if table_mode == "Normal"
-        for i = 0 to 7
-            string symName = cleanSymbolName(array.get(cSymbols, i))
-            float v1D  = array.get(c1D, i)
-            float v4H  = array.get(c4H, i)
-            float v1H  = array.get(c1H, i)
-            float v15M = array.get(c15M, i)
-
-            table.cell(screenerTable, 0, curRow, symName, bgcolor=color.black, text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 1, curRow, str.tostring(v1D, "#.##"),  bgcolor=getCellColor(v1D),  text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 2, curRow, str.tostring(v4H, "#.##"),  bgcolor=getCellColor(v4H),  text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 3, curRow, str.tostring(v1H, "#.##"),  bgcolor=getCellColor(v1H),  text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 4, curRow, str.tostring(v15M, "#.##"), bgcolor=getCellColor(v15M), text_color=color.white, text_size=size.normal)
-            curRow += 1
-
-    table.cell(screenerTable, 0, curRow, "-- METALS --", bgcolor=color.teal, text_color=color.white, text_size=size.large)
-    table.cell(screenerTable, 1, curRow, str.tostring(avgMetal1D, "#.##"),  bgcolor=getCellColor(avgMetal1D),  text_color=color.white, text_size=size.large)
-    table.cell(screenerTable, 2, curRow, str.tostring(avgMetal4H, "#.##"),  bgcolor=getCellColor(avgMetal4H),  text_color=color.white, text_size=size.large)
-    table.cell(screenerTable, 3, curRow, str.tostring(avgMetal1H, "#.##"),  bgcolor=getCellColor(avgMetal1H),  text_color=color.white, text_size=size.large)
-    table.cell(screenerTable, 4, curRow, str.tostring(avgMetal15M, "#.##"), bgcolor=getCellColor(avgMetal15M), text_color=color.white, text_size=size.large)
-    curRow += 1
-
-    if table_mode == "Normal"
-        for i = 0 to 1
-            string symName = cleanSymbolName(array.get(mSymbols, i))
-            float v1D  = array.get(m1D, i)
-            float v4H  = array.get(m4H, i)
-            float v1H  = array.get(m1H, i)
-            float v15M = array.get(m15M, i)
-
-            table.cell(screenerTable, 0, curRow, symName, bgcolor=color.black, text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 1, curRow, str.tostring(v1D, "#.##"),  bgcolor=getCellColor(v1D),  text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 2, curRow, str.tostring(v4H, "#.##"),  bgcolor=getCellColor(v4H),  text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 3, curRow, str.tostring(v1H, "#.##"),  bgcolor=getCellColor(v1H),  text_color=color.white, text_size=size.normal)
-            table.cell(screenerTable, 4, curRow, str.tostring(v15M, "#.##"), bgcolor=getCellColor(v15M), text_color=color.white, text_size=size.normal)
-            curRow += 1
-
-
-// ==========================================
-// 9. PLOTS & VISUALIZATIONS
+// 5. PLOTS & VISUALIZATIONS
 // ==========================================
 plot(show_local_st and m15_dir == -1 ? m15_st : na, "Local Up Trend", color=col_local_up, style=plot.style_linebr, linewidth=1, linestyle=plot.linestyle_dotted)
 plot(show_local_st and m15_dir == 1  ? m15_st : na, "Local Down Trend", color=col_local_dn, style=plot.style_linebr, linewidth=1, linestyle=plot.linestyle_dotted)
@@ -927,85 +437,13 @@ plot(show_synth_st and synth_dir == 1  ? synth_st_line : na, "Synth 1 Down Trend
 plot(show_synth_st and show_htf_2 and synth_dir_2 == -1 ? synth_st_line_2 : na, "Synth 2 Up Trend", color=col_synth2_up, style=plot.style_linebr, linewidth=1, linestyle=plot.linestyle_dotted)
 plot(show_synth_st and show_htf_2 and synth_dir_2 == 1  ? synth_st_line_2 : na, "Synth 2 Down Trend", color=col_synth2_dn, style=plot.style_linebr, linewidth=1, linestyle=plot.linestyle_dotted)
 
-var line ext_choch = line.new(na, na, na, na, style = line.style_dashed)
-var line ext_bos   = line.new(na, na, na, na)
-var line ext_idm   = line.new(na, na, na, na, style = line.style_dotted, color = idmCss)
-
-var label ext_choch_lbl = label.new(na, na, 'CHoCH', color = color(na), size = size.tiny)
-var label ext_bos_lbl   = label.new(na, na, 'BOS'  , color = color(na), size = size.tiny)
-var label ext_idm_lbl   = label.new(na, na, 'IDM'  , color = color(na), size = size.tiny, textcolor = idmCss)
-
-if barstate.islast
-    if trend_dir == 1
-        if showChoch
-            ext_choch.set_xy1(btmx, btmy)
-            ext_choch.set_xy2(n, btmy)
-            ext_choch.set_color(bearCss)    
-            
-            ext_choch_lbl.set_xy(n, btmy)
-            ext_choch_lbl.set_style(label.style_label_up)
-            ext_choch_lbl.set_textcolor(bearCss)
-        
-        if showBos
-            ext_bos.set_xy1(max_x1, max)
-            ext_bos.set_xy2(n, max)
-            ext_bos.set_color(bullCss)    
-            
-            ext_bos_lbl.set_xy(n, max)
-            ext_bos_lbl.set_style(label.style_label_down)
-            ext_bos_lbl.set_textcolor(bullCss)
-        
-        if not sbtm_crossed and showIdm
-            ext_idm.set_xy1(sbtmx, sbtmy)
-            ext_idm.set_xy2(n+15, sbtmy)   
-            ext_idm_lbl.set_xy(n+15, sbtmy)
-            ext_idm_lbl.set_style(label.style_label_up)
-            ext_idm.set_color(idmCss)
-            ext_idm_lbl.set_textcolor(idmCss)
-        else
-            ext_idm.set_color(color(na))
-            ext_idm_lbl.set_textcolor(color(na))
-    else
-        if showChoch
-            ext_choch.set_xy1(topx, topy)
-            ext_choch.set_xy2(n, topy)
-            ext_choch.set_color(bullCss)    
-            
-            ext_choch_lbl.set_xy(n, topy)
-            ext_choch_lbl.set_style(label.style_label_down)
-            ext_choch_lbl.set_textcolor(bullCss)
-        
-        if showBos
-            ext_bos.set_xy1(min_x1, min)
-            ext_bos.set_xy2(n, min)
-            ext_bos.set_color(bearCss)    
-            
-            ext_bos_lbl.set_xy(n, min)
-            ext_bos_lbl.set_style(label.style_label_up)
-            ext_bos_lbl.set_textcolor(bearCss)
-
-        if not stop_crossed and showIdm
-            ext_idm.set_xy1(stopx, stopy)
-            ext_idm.set_xy2(n+15, stopy)   
-            ext_idm_lbl.set_xy(n+15, stopy)
-            ext_idm_lbl.set_style(label.style_label_down)
-            ext_idm.set_color(idmCss)
-            ext_idm_lbl.set_textcolor(idmCss)
-        else
-            ext_idm.set_color(color(na))
-            ext_idm_lbl.set_textcolor(color(na))
-
-plot(showCircles ? top : na, 'Swing High', color.new(bearCss, 50), 5, plot.style_circles, offset = -len)
-plot(showCircles ? btm : na, 'Swing Low', color.new(bullCss, 50), 5, plot.style_circles, offset = -len)
-
 plotshape(show_signals and final_entry_long,  title="Long Entry Signal",  style=shape.triangleup,   location=location.belowbar, color=color.green, size=size.small)
 plotshape(show_signals and final_entry_short, title="Short Entry Signal", style=shape.triangledown, location=location.abovebar, color=color.red,   size=size.small)
 
-// --- Stop Loss Line Drawing Engine ---
+// --- Stop Loss Line Engine ---
 var line active_sl_line = na
 var bool is_sl_active = false
 
-// Stop extending active Stop Loss line if Synthetic SuperTrend direction changes
 if htf_changed
     is_sl_active := false
 
@@ -1024,5 +462,5 @@ if show_signals
     else if not na(active_sl_line) and is_sl_active
         line.set_x2(active_sl_line, bar_index)
 
-alertcondition(final_entry_long,  title="Long Entry Alert",  message="Z-Score SuperTrend/CHoCH: Filtered Long Signal Triggered.")
-alertcondition(final_entry_short, title="Short Entry Alert", message="Z-Score SuperTrend/CHoCH: Filtered Short Signal Triggered.")
+alertcondition(final_entry_long,  title="Long Entry Alert",  message="Z-Score SuperTrend: Filtered Long Signal Triggered.")
+alertcondition(final_entry_short, title="Short Entry Alert", message="Z-Score SuperTrend: Filtered Short Signal Triggered.")

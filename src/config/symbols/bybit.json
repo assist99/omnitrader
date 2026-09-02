@@ -320,10 +320,6 @@
         {
             "symbol": "MEME/USDT:USDT",
             "display": "MEMEUSDT.P"
-        },
-        {
-            "symbol": "ALGO/USDT:USDT",
-            "display": "ALGOUSDT.P"
         }
     ]
 }

@@ -11,5 +11,6 @@ router.use('/system', require('./routes/system'));
 router.use('/screener', require('./routes/screener'));
 router.use('/supply-demand', require('./routes/supplyDemand'));
 router.use('/webhook', require('./routes/webhook'));
+router.use('/symbols', require('./routes/symbols'));
 
 module.exports = router;
