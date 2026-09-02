@@ -3,37 +3,15 @@ const IndicatorService = require('./indicatorService');
 const CandleUtils = require('../utils/candleUtils');
 const { _calculateSuperTrendAligned } = require('./indicators/helpers');
 
-function mapKey(symbol, timeframe) {
-  return `${symbol}||${timeframe}`;
-}
-
-function parseKey(key) {
-  const idx = key.lastIndexOf('||');
-  return [key.slice(0, idx), key.slice(idx + 2)];
-}
-
 class AllAssetsScreenerService {
   static db = null;
   static telegramService = null;
   static lastEWSignals = new Map();
-  static lastSTDirection = new Map();
+  static lastSTWritten = new Map();
 
   static setDeps(db, telegramService) {
     this.db = db;
     this.telegramService = telegramService;
-  }
-
-  static getSTDirection(symbol, timeframe) {
-    return this.lastSTDirection.get(mapKey(symbol, timeframe)) || null;
-  }
-
-  static getAllSTDirections() {
-    const result = [];
-    for (const [key, direction] of this.lastSTDirection.entries()) {
-      const [symbol, timeframe] = parseKey(key);
-      result.push({ symbol, timeframe, signal: direction });
-    }
-    return result;
   }
 
   static async processClosedCandle(symbol, timeframe, closedBars) {
@@ -43,7 +21,7 @@ class AllAssetsScreenerService {
     if (parsedBars.length < 20) return;
 
     try {
-      this._updateSTDirection(symbol, timeframe, parsedBars);
+      await this._updateSTDirection(symbol, timeframe, parsedBars);
       setImmediate(() => {
         this._computeEW(symbol, timeframe, parsedBars).catch(err => {
           logger.error(`EW computation error for ${symbol} ${timeframe}:`, err.message);
@@ -54,7 +32,7 @@ class AllAssetsScreenerService {
     }
   }
 
-  static _updateSTDirection(symbol, timeframe, bars) {
+  static async _updateSTDirection(symbol, timeframe, bars) {
     const highs = bars.map(c => c.high);
     const lows = bars.map(c => c.low);
     const closes = bars.map(c => c.close);
@@ -66,7 +44,13 @@ class AllAssetsScreenerService {
     }
     const trend = lastDir === -1 ? 'bullish' : lastDir === 1 ? 'bearish' : null;
 
-    this.lastSTDirection.set(mapKey(symbol, timeframe), trend);
+    const key = `${symbol}:${timeframe}`;
+    const lastWritten = this.lastSTWritten.get(key);
+
+    if (trend !== lastWritten) {
+      await this.db.upsertScreenerSnapshot(symbol, timeframe, 'supertrend', trend);
+      this.lastSTWritten.set(key, trend);
+    }
   }
 
   static async _computeEW(symbol, timeframe, bars) {
@@ -100,7 +84,7 @@ class AllAssetsScreenerService {
         ewResult.signal
       );
 
-      const key = mapKey(symbol, timeframe);
+      const key = `${symbol}:${timeframe}`;
       const lastEWSignal = this.lastEWSignals.get(key);
 
       if (ewResult.signal !== lastEWSignal) {
@@ -131,21 +115,20 @@ class AllAssetsScreenerService {
       const parsed = CandleUtils.parseExchangeCandles(candles);
       if (parsed.length < 20) continue;
 
-      // CandleProvider keys are "symbol:timeframe" (symbol contains : so split on last colon)
       const colonIdx = key.lastIndexOf(':');
       const symbol = key.slice(0, colonIdx);
       const timeframe = key.slice(colonIdx + 1);
 
-      this._updateSTDirection(symbol, timeframe, parsed);
+      await this._updateSTDirection(symbol, timeframe, parsed);
       count++;
     }
 
     logger.info(`Initialized SuperTrend directions for ${count} symbol/timeframe combinations`);
 
-    await this.populateEWSnapshot();
+    await this._populateEWNulls();
   }
 
-  static async populateEWSnapshot() {
+  static async _populateEWNulls() {
     if (!this.db) return;
 
     try {
