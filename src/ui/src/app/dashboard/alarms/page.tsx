@@ -4,18 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { Bell, Plus, Trash2, Check, X } from 'lucide-react';
 import engineFetch from '@/lib/api';
 import type { PriceAlarm, Timeframe } from '@/lib/types';
+import SymbolPicker from '@/components/SymbolPicker';
+import { getSymbols } from '@/lib/symbols';
 
 const TF_ORDER: Timeframe[] = ['m5', 'm15', 'h1', 'h4', 'd1', 'w1'];
-
-interface SymbolEntry {
-  symbol: string;
-  display?: string;
-}
-
-interface SymbolConfig {
-  intervals?: string[];
-  symbols: SymbolEntry[];
-}
 
 const emptyForm = {
   symbol: '',
@@ -28,8 +20,8 @@ export default function PriceAlarmsPage() {
   const [alarms, setAlarms] = useState<PriceAlarm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [displayBySymbol, setDisplayBySymbol] = useState<Record<string, string>>({});
 
-  const [symbols, setSymbols] = useState<SymbolConfig | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [formError, setFormError] = useState<string | null>(null);
@@ -51,10 +43,12 @@ export default function PriceAlarmsPage() {
     }
   }, []);
 
-  const fetchSymbols = useCallback(async () => {
+  const fetchSymbolDisplays = useCallback(async () => {
     try {
-      const res = await engineFetch('/api/symbols/bybit');
-      setSymbols(res as SymbolConfig);
+      const options = await getSymbols('bybit');
+      const map: Record<string, string> = {};
+      for (const o of options) map[o.symbol] = o.display;
+      setDisplayBySymbol(map);
     } catch {}
   }, []);
 
@@ -69,9 +63,9 @@ export default function PriceAlarmsPage() {
 
   useEffect(() => {
     fetchAlarms();
-    fetchSymbols();
+    fetchSymbolDisplays();
     fetchMe();
-  }, [fetchAlarms, fetchSymbols, fetchMe]);
+  }, [fetchAlarms, fetchSymbolDisplays, fetchMe]);
 
   function resetForm() {
     setForm({ ...emptyForm });
@@ -162,19 +156,12 @@ export default function PriceAlarmsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1 block text-sm text-slate-400">Asset</label>
-              <select
+              <SymbolPicker
                 value={form.symbol}
-                onChange={(e) => setForm({ ...form, symbol: e.target.value })}
-                className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2 text-white outline-none focus:border-blue-500"
-                required
-              >
-                <option value="">Select an asset</option>
-                {(symbols?.symbols || []).map((s) => (
-                  <option key={s.symbol} value={s.symbol}>
-                    {s.display || s.symbol}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setForm({ ...form, symbol: val })}
+                exchange="bybit"
+                placeholder="Select an asset..."
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
@@ -277,7 +264,7 @@ export default function PriceAlarmsPage() {
                 {alarms.map((a) => (
                   <tr key={a.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                     <td className="px-4 py-3 text-white font-mono text-xs">
-                      {(symbols?.symbols.find(s => s.symbol === a.symbol)?.display) || a.symbol}
+                      {displayBySymbol[a.symbol] ? `${displayBySymbol[a.symbol]} (${a.symbol})` : a.symbol}
                     </td>
                     <td className="px-4 py-3 text-slate-300 uppercase">{a.timeframe}</td>
                     <td className="px-4 py-3">
