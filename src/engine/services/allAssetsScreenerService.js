@@ -8,10 +8,15 @@ class AllAssetsScreenerService {
   static telegramService = null;
   static lastEWSignals = new Map();
   static lastSTWritten = new Map();
+  static ewSubscribersCache = null;
+  static ewSubscribersCacheTs = 0;
+  static EW_SUBSCRIBERS_CACHE_MS = 30 * 1000;
 
   static setDeps(db, telegramService) {
     this.db = db;
     this.telegramService = telegramService;
+    this.ewSubscribersCache = null;
+    this.ewSubscribersCacheTs = 0;
   }
 
   static _stMinTimeframes = new Set(['m15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1']);
@@ -34,6 +39,26 @@ class AllAssetsScreenerService {
     } catch (error) {
       logger.error(`AllAssetsScreenerService error for ${symbol} ${timeframe}:`, error.message);
     }
+  }
+
+  static async _getSubscribersForTimeframe(timeframe) {
+    if (!this.db) return [];
+    const now = Date.now();
+    if (!this.ewSubscribersCache || now - this.ewSubscribersCacheTs > this.EW_SUBSCRIBERS_CACHE_MS) {
+      try {
+        const rows = await this.db.getEnabledEwSubscribers();
+        this.ewSubscribersCache = rows;
+        this.ewSubscribersCacheTs = now;
+      } catch (err) {
+        logger.error('Failed to load EW subscribers:', err.message);
+        return [];
+      }
+    }
+    const userIds = new Set();
+    for (const row of this.ewSubscribersCache) {
+      if (row.timeframe === timeframe) userIds.add(row.user_id);
+    }
+    return Array.from(userIds);
   }
 
   static async _updateSTDirection(symbol, timeframe, bars) {
@@ -94,16 +119,28 @@ class AllAssetsScreenerService {
       if (ewResult.signal !== lastEWSignal) {
         const lastBar = bars[bars.length - 1];
         const price = lastBar ? lastBar.close : 0;
+        const timestamp = lastBar && lastBar.timestamp ? lastBar.timestamp : new Date().toISOString();
 
-        await this.telegramService.sendNotification(null, 'screener_reversal', {
+        const subscribers = await this._getSubscribersForTimeframe(timeframe);
+        const payload = {
           symbol,
           timeframe,
           indicatorType: 'EW',
           signal: ewResult.signal,
           price,
           exchange: 'bybit',
-          isTestnet: false
-        });
+          isTestnet: false,
+          timestamp,
+        };
+
+        if (subscribers.length > 0) {
+          for (const userId of subscribers) {
+            await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
+          }
+        } else {
+          // Legacy fallback for self-hosted single-user setups (no DB subscriptions yet)
+          await this.telegramService.sendNotification(null, 'screener_reversal', payload);
+        }
 
         this.lastEWSignals.set(key, ewResult.signal);
       }

@@ -13,6 +13,7 @@ const AllAssetsScreenerService = require('./services/allAssetsScreenerService');
 const PendingSetupService = require('./services/pendingSetupService');
 const EntryService = require('./services/entryService');
 const TelegramService = require('./services/telegramService');
+const PriceAlarmService = require('./services/priceAlarmService');
 const logger = require('./logger');
 const Config = require('./config');
 const fs = require('fs');
@@ -60,6 +61,9 @@ class ScreenerCandleProvider {
       
       // Initialize EntryService dependencies
       EntryService.setDeps(this.db, this.telegramService);
+
+      // Initialize PriceAlarmService dependencies
+      PriceAlarmService.setDeps(this.db, this.telegramService);
       
       // Load ALL symbols and timeframes from config
       const symbols = this.loadSymbols();
@@ -84,6 +88,10 @@ class ScreenerCandleProvider {
           await PendingSetupService.processItemFromCandle(symbol, timeframe, closedBars);
           // Process triggered setups (runs after pending setups complete)
           EntryService.processItemFromCandle(symbol, timeframe, closedBars);
+          // Process user price alarms
+          PriceAlarmService.processClosedCandle(symbol, timeframe, closedBars).catch(err => {
+            logger.error(`PriceAlarmService error for ${symbol} ${timeframe}:`, err.message);
+          });
         },
         isTestnet: false
       });

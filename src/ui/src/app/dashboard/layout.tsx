@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, ShoppingCart, Menu, X, ChevronDown, Search } from 'lucide-react';
+import { Activity, LayoutDashboard, LogOut, Settings, PlusCircle, ShoppingCart, Menu, X, ChevronDown, Search, Bell } from 'lucide-react';
 import engineFetch from '@/lib/api';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -65,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/screener-supertrend', label: 'SuperTrend', icon: Search },
     { href: '/dashboard/screener-ew', label: 'EW Signal', icon: Search },
+    { href: '/dashboard/alarms', label: 'Price Alarms', icon: Bell },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/orders/new', label: 'Place Order', icon: ShoppingCart },
     { href: '/dashboard/setups/new', label: 'New Trade', icon: PlusCircle },

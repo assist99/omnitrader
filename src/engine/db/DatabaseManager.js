@@ -238,6 +238,46 @@ async createUser(email, passwordHash, timeoutMs) {
     return this.db.getScreenerSnapshots(indicatorType);
   }
 
+  async getEwSubscriptionsByUser(userId) {
+    return this.db.getEwSubscriptionsByUser(userId);
+  }
+
+  async getEnabledEwSubscribers() {
+    return this.db.getEnabledEwSubscribers();
+  }
+
+  async replaceEwSubscriptionsForUser(userId, timeframes, timeoutMs) {
+    return this.runWriteOperation('replaceEwSubscriptionsForUser', async () => {
+      return this.db.replaceEwSubscriptionsForUser(userId, timeframes);
+    }, timeoutMs);
+  }
+
+  async getPriceAlarmsByUser(userId) {
+    return this.db.getPriceAlarmsByUser(userId);
+  }
+
+  async getActivePriceAlarms() {
+    return this.db.getActivePriceAlarms();
+  }
+
+  async createPriceAlarm(userId, payload, timeoutMs) {
+    return this.runWriteOperation('createPriceAlarm', async () => {
+      return this.db.createPriceAlarm(userId, payload);
+    }, timeoutMs);
+  }
+
+  async deletePriceAlarm(id, userId, timeoutMs) {
+    return this.runWriteOperation('deletePriceAlarm', async () => {
+      return this.db.deletePriceAlarm(id, userId);
+    }, timeoutMs);
+  }
+
+  async deleteAllPriceAlarmsByUser(userId, timeoutMs) {
+    return this.runWriteOperation('deleteAllPriceAlarmsByUser', async () => {
+      return this.db.deleteAllPriceAlarmsByUser(userId);
+    }, timeoutMs);
+  }
+
   getQueueStats() {
     return {
       queueLength: this.writeQueue.length,

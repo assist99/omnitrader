@@ -131,6 +131,10 @@ class Database {
       await this.runExchangeAccountsMigration();
       // Run screener rework migration
       await this.runScreenerReworkMigration();
+      // Run EW subscriptions migration
+      await this.runEwSubscriptionsMigration();
+      // Run price alarms migration
+      await this.runPriceAlarmsMigration();
     }
 
   }
@@ -154,6 +158,26 @@ class Database {
       await migration.runMigration();
     } catch (error) {
       logger.error('Screener rework migration failed:', error);
+    }
+  }
+
+  async runEwSubscriptionsMigration() {
+    try {
+      const Migration = require('./migrate_ew_subscriptions');
+      const migration = new Migration(this);
+      await migration.runMigration();
+    } catch (error) {
+      logger.error('EW subscriptions migration failed:', error);
+    }
+  }
+
+  async runPriceAlarmsMigration() {
+    try {
+      const Migration = require('./migrate_price_alarms');
+      const migration = new Migration(this);
+      await migration.runMigration();
+    } catch (error) {
+      logger.error('Price alarms migration failed:', error);
     }
   }
 
@@ -429,6 +453,75 @@ async getExchangeAccountByIndex(index) {
       LIMIT 1 OFFSET ?
     `;
     return this.get(sql, [index]);
+  }
+
+  async getEwSubscriptionsByUser(userId) {
+    const sql = `
+      SELECT timeframe, enabled FROM ew_screener_subscriptions
+      WHERE user_id = ? AND enabled = 1
+    `;
+    return this.all(sql, [userId]);
+  }
+
+  async getEnabledEwSubscribers() {
+    const sql = `
+      SELECT user_id, timeframe FROM ew_screener_subscriptions WHERE enabled = 1
+    `;
+    return this.all(sql);
+  }
+
+  async replaceEwSubscriptionsForUser(userId, timeframes) {
+    await this.run('DELETE FROM ew_screener_subscriptions WHERE user_id = ?', [userId]);
+    for (const tf of timeframes) {
+      await this.run(
+        'INSERT INTO ew_screener_subscriptions (user_id, timeframe, enabled) VALUES (?, ?, 1)',
+        [userId, tf]
+      );
+    }
+  }
+
+  async getPriceAlarmsByUser(userId) {
+    const sql = `
+      SELECT * FROM price_alarms WHERE user_id = ? ORDER BY created_at DESC
+    `;
+    return this.all(sql, [userId]);
+  }
+
+  async getActivePriceAlarms() {
+    const sql = `SELECT * FROM price_alarms`;
+    return this.all(sql);
+  }
+
+  async createPriceAlarm(userId, payload) {
+    const sql = `
+      INSERT INTO price_alarms (user_id, symbol, timeframe, direction, price_level, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `;
+    const result = await this.run(sql, [
+      userId,
+      payload.symbol,
+      payload.timeframe,
+      payload.direction,
+      payload.price_level,
+    ]);
+    return {
+      id: result.lastID,
+      user_id: userId,
+      symbol: payload.symbol,
+      timeframe: payload.timeframe,
+      direction: payload.direction,
+      price_level: payload.price_level,
+    };
+  }
+
+  async deletePriceAlarm(id, userId) {
+    const sql = `DELETE FROM price_alarms WHERE id = ? AND user_id = ?`;
+    return this.run(sql, [id, userId]);
+  }
+
+  async deleteAllPriceAlarmsByUser(userId) {
+    const sql = `DELETE FROM price_alarms WHERE user_id = ?`;
+    return this.run(sql, [userId]);
   }
 }
 

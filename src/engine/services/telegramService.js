@@ -20,6 +20,10 @@ class TelegramService {
     'screener_reversal'
   ]);
 
+  static ALARM_MESSAGE_TYPES = new Set([
+    'price_alarm'
+  ]);
+
   constructor(db) {
     this.botToken = Config.getTelegramBotToken();
     this.bot = null;
@@ -108,6 +112,10 @@ class TelegramService {
       return this.formatScreenerReversal(payload);
     }
 
+    if (messageType === 'price_alarm') {
+      return this.formatPriceAlarm(payload);
+    }
+
     const emoji = this.getEmojiForMessageType(messageType);
     const timestamp = new Date().toUTCString().substring(0, 22);
     const subtitle = this.getMessageSubtitle(messageType, payload);
@@ -159,6 +167,10 @@ class TelegramService {
 
     if (this.constructor.SCREENER_MESSAGE_TYPES.has(messageType)) {
       return this.formatScreenerReversal(payload);
+    }
+
+    if (this.constructor.ALARM_MESSAGE_TYPES.has(messageType)) {
+      return this.formatPriceAlarm(payload);
     }
 
     if (this.constructor.TRADING_MESSAGE_TYPES.has(messageType)) {
@@ -397,6 +409,19 @@ Price: ${this.formatPrice(price)}  ·  ${this.formatBatchTimestamp(timestamp)}
     );
   }
 
+  formatPriceAlarm(data) {
+    const payload = data || {};
+    const directionLabel = payload.direction === 'cross_above' ? 'ABOVE' : 'BELOW';
+    const timeframe = payload.timeframe ? String(payload.timeframe).toUpperCase() : '';
+
+    return `${this.formatCompactTradingMessage(
+      ['ALARM', payload.symbol, timeframe, `CROSSED ${directionLabel}`],
+      '🔔',
+      payload.price_level,
+      payload.timestamp
+    ).trim()}\nClose: ${this.formatPrice(payload.close)}\n`;
+  }
+
   formatPrice(price) {
     if (price === undefined || price === null) return '$0.00';
     return '$' + Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -414,6 +439,7 @@ Price: ${this.formatPrice(price)}  ·  ${this.formatBatchTimestamp(timestamp)}
       'be_activated': '🛡️',
       'exit_triggered': '🚪',
       'screener_reversal': '🔔',
+      'price_alarm': '🔔',
       'supply_demand_zone': '🏢',
       'error': '⚠️'
     };
@@ -433,6 +459,7 @@ Price: ${this.formatPrice(price)}  ·  ${this.formatBatchTimestamp(timestamp)}
       'be_activated': 'Break-Even Activated',
       'exit_triggered': 'Exit Triggered',
       'screener_reversal': 'Screener Alert',
+      'price_alarm': 'Price Alarm',
       'supply_demand_zone': 'Zone Alert',
       'error': 'Error Alert'
     };

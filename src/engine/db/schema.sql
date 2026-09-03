@@ -145,3 +145,27 @@ CREATE TABLE IF NOT EXISTS screener_snapshot (
   PRIMARY KEY (symbol, timeframe, indicator_type)
 );
 CREATE INDEX IF NOT EXISTS idx_screener_snapshot_type ON screener_snapshot(indicator_type);
+
+-- Per-user EW screener telegram subscriptions
+CREATE TABLE IF NOT EXISTS ew_screener_subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  timeframe TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(user_id, timeframe)
+);
+CREATE INDEX IF NOT EXISTS idx_ew_sub_user ON ew_screener_subscriptions(user_id);
+
+-- User price-level alarms (Bybit closed-candle based)
+CREATE TABLE IF NOT EXISTS price_alarms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  symbol TEXT NOT NULL,
+  timeframe TEXT NOT NULL,
+  direction TEXT NOT NULL,
+  price_level REAL NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_price_alarms_user ON price_alarms(user_id);
+CREATE INDEX IF NOT EXISTS idx_price_alarms_lookup ON price_alarms(symbol, timeframe);

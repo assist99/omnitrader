@@ -11,5 +11,7 @@ router.use('/system', require('./routes/system'));
 router.use('/screener-status', require('./routes/screenerStatus'));
 router.use('/webhook', require('./routes/webhook'));
 router.use('/symbols', require('./routes/symbols'));
+router.use('/ew-subscriptions', require('./routes/ewSubscriptions'));
+router.use('/price-alarms', require('./routes/priceAlarms'));
 
 module.exports = router;

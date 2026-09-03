@@ -98,3 +98,22 @@ export interface ApiResponse<T = any> {
   error?: string;
   message?: string;
 }
+
+export type PriceAlarmDirection = 'cross_above' | 'cross_below';
+
+export interface PriceAlarm {
+  id: number;
+  user_id: number;
+  symbol: string;
+  timeframe: Timeframe;
+  direction: PriceAlarmDirection;
+  price_level: number;
+  created_at: string;
+}
+
+export interface NewPriceAlarmForm {
+  symbol: string;
+  timeframe: Timeframe;
+  direction: PriceAlarmDirection;
+  price_level: number;
+}

@@ -17,6 +17,10 @@ class MessageBatcher {
     'screener_reversal'
   ]);
 
+  static ALARM_MESSAGE_TYPES = new Set([
+    'price_alarm'
+  ]);
+
   constructor(sendCallback, options = {}) {
     this.sendCallback = sendCallback;
     this.formatCallback = options.formatMessage || null;
@@ -103,6 +107,10 @@ class MessageBatcher {
       return { type: 'screener', symbol: null, key: `screener:${safeUserId}` };
     }
 
+    if (this.constructor.ALARM_MESSAGE_TYPES.has(messageType)) {
+      return { type: 'alarm', symbol, key: `alarm:${safeUserId}:${symbol}` };
+    }
+
     if (this.constructor.TRADING_MESSAGE_TYPES.has(messageType)) {
       return { type: 'trading', symbol, key: `trading:${safeUserId}:${symbol}` };
     }
@@ -120,6 +128,7 @@ class MessageBatcher {
     const labels = {
       trading: '📊 Trading Signals',
       screener: '🔔 Screener Alerts',
+      alarm: '⏰ Price Alarms',
       error: '⚠️ Error Alerts',
       other: '📨 Notifications'
     };
