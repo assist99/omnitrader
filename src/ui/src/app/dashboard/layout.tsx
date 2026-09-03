@@ -191,6 +191,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Search className="h-4 w-4" />
             EW Signal
           </Link>
+          <Link href="/dashboard/alarms"
+            className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              pathname.startsWith('/dashboard/alarms') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            <Bell className="h-4 w-4" />
+            Price Alarms
+          </Link>
           <Link href="/dashboard/orders/new"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
               pathname.includes('/orders/new') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
