@@ -25,4 +25,15 @@ router.get('/ew', async (req, res) => {
   }
 });
 
+router.get('/mazscore', async (req, res) => {
+  try {
+    const db = getDatabaseManager();
+    const rows = await db.getScreenerSnapshots('mazscore');
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    logger.error('Failed to fetch MA Z-Score snapshots:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

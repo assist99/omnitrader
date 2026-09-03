@@ -1,0 +1,225 @@
+//@version=6
+indicator("EW Multi-Timeframe Screener", overlay=true)
+
+// ==========================================
+// 🎨 DISPLAY OPTIONS & SCREENER SETTINGS
+// ==========================================
+var string G_VISUALS = "Display & Visual Toggles"
+show_table = input.bool(true, title="Show Screener Table", group=G_VISUALS)
+table_mode = input.string("Normal", title="Screener Table View Mode", options=["Normal", "Compact"], group=G_VISUALS)
+
+var string G_TBL = "Screener Table UI Settings"
+tablePosInput = input.string("Bottom Right", "Table Position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group=G_TBL)
+
+var string G_CALC = "Screener Calculation Parameters"
+emaLength      = input.int(50, title="EMA Length", group=G_CALC)
+atrLength      = input.int(14, title="ATR Length", group=G_CALC)
+lookbackLength = input.int(200, title="Rolling Lookback Length", group=G_CALC)
+extremeLevel   = input.float(2.5, title="Extreme Threshold Level", group=G_CALC)
+
+var string G_CRYPTO = "Crypto Assets"
+c1 = input.symbol("BINANCE:BTCUSDT.P", "Crypto 1", group=G_CRYPTO)
+c2 = input.symbol("BINANCE:ETHUSDT.P", "Crypto 2", group=G_CRYPTO)
+c3 = input.symbol("BINANCE:BNBUSDT.P", "Crypto 3", group=G_CRYPTO)
+c4 = input.symbol("BINANCE:LINKUSDT.P", "Crypto 4", group=G_CRYPTO)
+c5 = input.symbol("BINANCE:XRPUSDT.P", "Crypto 5", group=G_CRYPTO)
+c6 = input.symbol("BINANCE:SOLUSDT.P", "Crypto 6", group=G_CRYPTO)
+c7 = input.symbol("BINANCE:AVAXUSDT.P", "Crypto 7", group=G_CRYPTO)
+c8 = input.symbol("BINANCE:NEARUSDT.P", "Crypto 8", group=G_CRYPTO)
+
+var string G_METALS = "Metal Assets"
+m1 = input.symbol("TVC:GOLD", "Metal 1 (Gold)", group=G_METALS)
+m2 = input.symbol("TVC:SILVER", "Metal 2 (Silver)", group=G_METALS)
+
+// ==========================================
+// 📊 HELPER FUNCTIONS
+// ==========================================
+calcNormalizedIndex(int emaLen, int atrLen, int lookback) =>
+    float emaVal  = ta.ema(close, emaLen)
+    float atrVal  = ta.atr(atrLen)
+    float rawIdx  = atrVal != 0.0 ? (close - emaVal) / atrVal : 0.0
+    float meanIdx = ta.sma(rawIdx, lookback)
+    float stdIdx  = ta.stdev(rawIdx, lookback)
+    stdIdx != 0.0 ? (rawIdx - meanIdx) / stdIdx : 0.0
+
+fetchSymbolData(string sym) =>
+    float z1D  = request.security(sym, "1D",  calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+    float z4H  = request.security(sym, "240", calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+    float z1H  = request.security(sym, "60",  calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+    float z15M = request.security(sym, "15",  calcNormalizedIndex(emaLength, atrLength, lookbackLength), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+    [z1D, z4H, z1H, z15M]
+
+getCellColor(float val) =>
+    float absVal = math.abs(val)
+    if absVal < 0.5
+        color.new(color.gray, 60)
+    else if absVal < 1.0
+        val > 0 ? color.new(color.green, 50) : color.new(color.red, 50)
+    else if absVal < extremeLevel
+        val > 0 ? color.new(color.green, 20) : color.new(color.red, 20)
+    else
+        val > 0 ? color.new(#008000, 0) : color.new(#cc0000, 0)
+
+cleanSymbolName(string sym) =>
+    string[] strArr = str.split(sym, ":")
+    array.size(strArr) > 1 ? array.get(strArr, 1) : sym
+
+// ==========================================
+// 🚀 DATA FETCHING & PROCESSING
+// ==========================================
+[cz1D_0, cz4H_0, cz1H_0, cz15M_0] = fetchSymbolData(c1)
+[cz1D_1, cz4H_1, cz1H_1, cz15M_1] = fetchSymbolData(c2)
+[cz1D_2, cz4H_2, cz1H_2, cz15M_2] = fetchSymbolData(c3)
+[cz1D_3, cz4H_3, cz1H_3, cz15M_3] = fetchSymbolData(c4)
+[cz1D_4, cz4H_4, cz1H_4, cz15M_4] = fetchSymbolData(c5)
+[cz1D_5, cz4H_5, cz1H_5, cz15M_5] = fetchSymbolData(c6)
+[cz1D_6, cz4H_6, cz1H_6, cz15M_6] = fetchSymbolData(c7)
+[cz1D_7, cz4H_7, cz1H_7, cz15M_7] = fetchSymbolData(c8)
+
+[mz1D_0, mz4H_0, mz1H_0, mz15M_0] = fetchSymbolData(m1)
+[mz1D_1, mz4H_1, mz1H_1, mz15M_1] = fetchSymbolData(m2)
+
+float avgCrypto1D  = (cz1D_0 + cz1D_1 + cz1D_2 + cz1D_3 + cz1D_4 + cz1D_5 + cz1D_6 + cz1D_7) / 8.0
+float avgCrypto4H  = (cz4H_0 + cz4H_1 + cz4H_2 + cz4H_3 + cz4H_4 + cz4H_5 + cz4H_6 + cz4H_7) / 8.0
+float avgCrypto1H  = (cz1H_0 + cz1H_1 + cz1H_2 + cz1H_3 + cz1H_4 + cz1H_5 + cz1H_6 + cz1H_7) / 8.0
+float avgCrypto15M = (cz15M_0 + cz15M_1 + cz15M_2 + cz15M_3 + cz15M_4 + cz15M_5 + cz15M_6 + cz15M_7) / 8.0
+
+float avgMetal1D  = (mz1D_0 + mz1D_1) / 2.0
+float avgMetal4H  = (mz4H_0 + mz4H_1) / 2.0
+float avgMetal1H  = (mz1H_0 + mz1H_1) / 2.0
+float avgMetal15M = (mz15M_0 + mz15M_1) / 2.0
+
+// ==========================================
+// 🖥️ TABLE RENDERING ENGINE
+// ==========================================
+string tablePos = tablePosInput == "Top Right" ? position.top_right : tablePosInput == "Top Left" ? position.top_left : tablePosInput == "Bottom Right" ? position.bottom_right : position.bottom_left
+
+int totalRows = table_mode == "Compact" ? 3 : 13
+var table screenerTable = table.new(tablePos, 5, totalRows, border_width=2, border_color=color.black)
+
+var string[] cSymbols = array.new_string(8)
+var float[]  c1D      = array.new_float(8)
+var float[]  c4H      = array.new_float(8)
+var float[]  c1H      = array.new_float(8)
+var float[]  c15M     = array.new_float(8)
+
+var string[] mSymbols = array.new_string(2)
+var float[]  m1D      = array.new_float(2)
+var float[]  m4H      = array.new_float(2)
+var float[]  m1H      = array.new_float(2)
+var float[]  m15M     = array.new_float(2)
+
+if show_table and barstate.islast
+    array.set(cSymbols, 0, c1), array.set(cSymbols, 1, c2), array.set(cSymbols, 2, c3), array.set(cSymbols, 3, c4)
+    array.set(cSymbols, 4, c5), array.set(cSymbols, 5, c6), array.set(cSymbols, 6, c7), array.set(cSymbols, 7, c8)
+    
+    array.set(c1D, 0, cz1D_0), array.set(c4H, 0, cz4H_0), array.set(c1H, 0, cz1H_0), array.set(c15M, 0, cz15M_0)
+    array.set(c1D, 1, cz1D_1), array.set(c4H, 1, cz4H_1), array.set(c1H, 1, cz1H_1), array.set(c15M, 1, cz15M_1)
+    array.set(c1D, 2, cz1D_2), array.set(c4H, 2, cz4H_2), array.set(c1H, 2, cz1H_2), array.set(c15M, 2, cz15M_2)
+    array.set(c1D, 3, cz1D_3), array.set(c4H, 3, cz4H_3), array.set(c1H, 3, cz1H_3), array.set(c15M, 3, cz15M_3)
+    array.set(c1D, 4, cz1D_4), array.set(c4H, 4, cz4H_4), array.set(c1H, 4, cz1H_4), array.set(c15M, 4, cz15M_4)
+    array.set(c1D, 5, cz1D_5), array.set(c4H, 5, cz4H_5), array.set(c1H, 5, cz1H_5), array.set(c15M, 5, cz15M_5)
+    array.set(c1D, 6, cz1D_6), array.set(c4H, 6, cz4H_6), array.set(c1H, 6, cz1H_6), array.set(c15M, 6, cz15M_6)
+    array.set(c1D, 7, cz1D_7), array.set(c4H, 7, cz4H_7), array.set(c1H, 7, cz1H_7), array.set(c15M, 7, cz15M_7)
+
+    array.set(mSymbols, 0, m1), array.set(mSymbols, 1, m2)
+    array.set(m1D, 0, mz1D_0), array.set(m4H, 0, mz4H_0), array.set(m1H, 0, mz1H_0), array.set(m15M, 0, mz15M_0)
+    array.set(m1D, 1, mz1D_1), array.set(m4H, 1, mz4H_1), array.set(m1H, 1, mz1H_1), array.set(m15M, 1, mz15M_1)
+
+    // Sort arrays based on 1D values in Normal Mode
+    if table_mode == "Normal"
+        for i = 0 to 6
+            for j = 0 to 6 - i
+                if array.get(c1D, j) < array.get(c1D, j + 1)
+                    string tempSym = array.get(cSymbols, j)
+                    array.set(cSymbols, j, array.get(cSymbols, j + 1))
+                    array.set(cSymbols, j + 1, tempSym)
+
+                    float temp1D = array.get(c1D, j)
+                    array.set(c1D, j, array.get(c1D, j + 1))
+                    array.set(c1D, j + 1, temp1D)
+
+                    float temp4H = array.get(c4H, j)
+                    array.set(c4H, j, array.get(c4H, j + 1))
+                    array.set(c4H, j + 1, temp4H)
+
+                    float temp1H = array.get(c1H, j)
+                    array.set(c1H, j, array.get(c1H, j + 1))
+                    array.set(c1H, j + 1, temp1H)
+
+                    float temp15M = array.get(c15M, j)
+                    array.set(c15M, j, array.get(c15M, j + 1))
+                    array.set(c15M, j + 1, temp15M)
+
+        if array.get(m1D, 0) < array.get(m1D, 1)
+            string tempSym = array.get(mSymbols, 0)
+            array.set(mSymbols, 0, array.get(mSymbols, 1))
+            array.set(mSymbols, 1, tempSym)
+
+            float temp1D = array.get(m1D, 0)
+            array.set(m1D, 0, array.get(m1D, 1))
+            array.set(m1D, 1, temp1D)
+
+            float temp4H = array.get(m4H, 0)
+            array.set(m4H, 0, array.get(m4H, 1))
+            array.set(m4H, 1, temp4H)
+
+            float temp1H = array.get(m1H, 0)
+            array.set(m1H, 0, array.get(m1H, 1))
+            array.set(m1H, 1, temp1H)
+
+            float temp15M = array.get(m15M, 0)
+            array.set(m15M, 0, array.get(m15M, 1))
+            array.set(m15M, 1, temp15M)
+
+    int curRow = 0
+    table.cell(screenerTable, 0, curRow, "SYMBOL", bgcolor=color.navy, text_color=color.yellow, text_size=size.large)
+    table.cell(screenerTable, 1, curRow, "1D",     bgcolor=color.navy, text_color=color.white,  text_size=size.large)
+    table.cell(screenerTable, 2, curRow, "4H",     bgcolor=color.navy, text_color=color.white,  text_size=size.large)
+    table.cell(screenerTable, 3, curRow, "1H",     bgcolor=color.navy, text_color=color.white,  text_size=size.large)
+    table.cell(screenerTable, 4, curRow, "15M",    bgcolor=color.navy, text_color=color.white,  text_size=size.large)
+    curRow += 1
+
+    table.cell(screenerTable, 0, curRow, "-- CRYPTO --", bgcolor=color.orange, text_color=color.black, text_size=size.large)
+    table.cell(screenerTable, 1, curRow, str.tostring(avgCrypto1D, "#.##"),  bgcolor=getCellColor(avgCrypto1D),  text_color=color.white, text_size=size.large)
+    table.cell(screenerTable, 2, curRow, str.tostring(avgCrypto4H, "#.##"),  bgcolor=getCellColor(avgCrypto4H),  text_color=color.white, text_size=size.large)
+    table.cell(screenerTable, 3, curRow, str.tostring(avgCrypto1H, "#.##"),  bgcolor=getCellColor(avgCrypto1H),  text_color=color.white, text_size=size.large)
+    table.cell(screenerTable, 4, curRow, str.tostring(avgCrypto15M, "#.##"), bgcolor=getCellColor(avgCrypto15M), text_color=color.white, text_size=size.large)
+    curRow += 1
+
+    if table_mode == "Normal"
+        for i = 0 to 7
+            string symName = cleanSymbolName(array.get(cSymbols, i))
+            float v1D  = array.get(c1D, i)
+            float v4H  = array.get(c4H, i)
+            float v1H  = array.get(c1H, i)
+            float v15M = array.get(c15M, i)
+
+            table.cell(screenerTable, 0, curRow, symName, bgcolor=color.black, text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 1, curRow, str.tostring(v1D, "#.##"),  bgcolor=getCellColor(v1D),  text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 2, curRow, str.tostring(v4H, "#.##"),  bgcolor=getCellColor(v4H),  text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 3, curRow, str.tostring(v1H, "#.##"),  bgcolor=getCellColor(v1H),  text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 4, curRow, str.tostring(v15M, "#.##"), bgcolor=getCellColor(v15M), text_color=color.white, text_size=size.normal)
+            curRow += 1
+
+    table.cell(screenerTable, 0, curRow, "-- METALS --", bgcolor=color.teal, text_color=color.white, text_size=size.large)
+    table.cell(screenerTable, 1, curRow, str.tostring(avgMetal1D, "#.##"),  bgcolor=getCellColor(avgMetal1D),  text_color=color.white, text_size=size.large)
+    table.cell(screenerTable, 2, curRow, str.tostring(avgMetal4H, "#.##"),  bgcolor=getCellColor(avgMetal4H),  text_color=color.white, text_size=size.large)
+    table.cell(screenerTable, 3, curRow, str.tostring(avgMetal1H, "#.##"),  bgcolor=getCellColor(avgMetal1H),  text_color=color.white, text_size=size.large)
+    table.cell(screenerTable, 4, curRow, str.tostring(avgMetal15M, "#.##"), bgcolor=getCellColor(avgMetal15M), text_color=color.white, text_size=size.large)
+    curRow += 1
+
+    if table_mode == "Normal"
+        for i = 0 to 1
+            string symName = cleanSymbolName(array.get(mSymbols, i))
+            float v1D  = array.get(m1D, i)
+            float v4H  = array.get(m4H, i)
+            float v1H  = array.get(m1H, i)
+            float v15M = array.get(m15M, i)
+
+            table.cell(screenerTable, 0, curRow, symName, bgcolor=color.black, text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 1, curRow, str.tostring(v1D, "#.##"),  bgcolor=getCellColor(v1D),  text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 2, curRow, str.tostring(v4H, "#.##"),  bgcolor=getCellColor(v4H),  text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 3, curRow, str.tostring(v1H, "#.##"),  bgcolor=getCellColor(v1H),  text_color=color.white, text_size=size.normal)
+            table.cell(screenerTable, 4, curRow, str.tostring(v15M, "#.##"), bgcolor=getCellColor(v15M), text_color=color.white, text_size=size.normal)
+            curRow += 1

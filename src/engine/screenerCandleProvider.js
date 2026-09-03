@@ -108,6 +108,9 @@ class ScreenerCandleProvider {
       // Initialize SuperTrend directions from historical data
       await AllAssetsScreenerService.populateInitialSnapshot(this.candleProvider);
       
+      // Initialize MA Z-Score values from historical data
+      await AllAssetsScreenerService.populateMAZScoreSnapshot(this.candleProvider);
+      
     } catch (error) {
       logger.error('Failed to start Screener CandleProvider:', error);
       await this.stop();

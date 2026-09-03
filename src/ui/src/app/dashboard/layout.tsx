@@ -65,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/screener-supertrend', label: 'SuperTrend', icon: Search },
     { href: '/dashboard/screener-ew', label: 'EW Signal', icon: Search },
+    { href: '/dashboard/screener-mazscore', label: 'MA Z-Score', icon: Search },
     { href: '/dashboard/alarms', label: 'Price Alarms', icon: Bell },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/orders/new', label: 'Place Order', icon: ShoppingCart },
@@ -190,6 +191,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }`}>
             <Search className="h-4 w-4" />
             EW Signal
+          </Link>
+          <Link href="/dashboard/screener-mazscore"
+            className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              pathname.startsWith('/dashboard/screener-mazscore') ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            <Search className="h-4 w-4" />
+            MA Z-Score
           </Link>
           <Link href="/dashboard/alarms"
             className={`mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${

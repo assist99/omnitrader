@@ -4,6 +4,7 @@ const SuperTrend = require('./indicators/superTrend');
 const MacdEma = require('./indicators/macdEma');
 const Candlestick = require('./indicators/candlestick');
 const EWT = require('./indicators/ewt');
+const MAZScore = require('./indicators/mazscore');
 const Helpers = require('./indicators/helpers');
 
 class IndicatorService {
@@ -30,6 +31,8 @@ class IndicatorService {
           return MacdEma.checkEMA(candles, params);
         case 'candlestick':
           return Candlestick.checkCandlestickPattern(candles, params.patternType);
+        case 'mazscore':
+          return MAZScore.checkMAZScore(candles, params);
         default:
           return { met: false, error: `Unsupported indicator type: ${indicatorType}` };
       }
@@ -93,13 +96,14 @@ class IndicatorService {
         extMultiplier: 1.27,
         tradeMode: 'First Change Only',
       },
+      'mazscore': { maLength: 20 },
     };
 
     return defaultParams[this._normalizeType(indicatorType)] || {};
   }
 
   static validateIndicatorConfig(indicatorType, timeframe) {
-    const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'ewt'];
+    const validIndicators = ['supertrend', 'rollingsupertrend', 'macd', 'ema', 'ewt', 'mazscore'];
     const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1'];
 
     if (!validIndicators.includes(this._normalizeType(indicatorType))) {

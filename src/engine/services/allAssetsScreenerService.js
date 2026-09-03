@@ -3,6 +3,15 @@ const IndicatorService = require('./indicatorService');
 const CandleUtils = require('../utils/candleUtils');
 const { _calculateSuperTrendAligned } = require('./indicators/helpers');
 
+const METAL_SYMBOLS = new Set([
+  'PAXG/USDT:USDT',
+  'XAU/USDT:USDT',
+  'XAG/USDT:USDT',
+  'XAUT/USDT:USDT',
+  'XAGUSD/USD:USD',
+  'GOLD/USDT:USDT',
+]);
+
 class AllAssetsScreenerService {
   static db = null;
   static telegramService = null;
@@ -11,6 +20,11 @@ class AllAssetsScreenerService {
   static ewSubscribersCache = null;
   static ewSubscribersCacheTs = 0;
   static EW_SUBSCRIBERS_CACHE_MS = 30 * 1000;
+  static lastMAZScoreAvg = null;
+  static MAZSCORE_ALERT_THRESHOLD = 1.5;
+  static nonMetalSymbols = null;
+  static m15ZScoreMap = new Map();
+  static lastMAZScoreWritten = new Map();
 
   static setDeps(db, telegramService) {
     this.db = db;
@@ -21,7 +35,7 @@ class AllAssetsScreenerService {
 
   static _stMinTimeframes = new Set(['m15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1']);
 
-  static async processClosedCandle(symbol, timeframe, closedBars) {
+   static async processClosedCandle(symbol, timeframe, closedBars) {
     if (closedBars.length < 20) return;
 
     const parsedBars = CandleUtils.parseExchangeCandles(closedBars);
@@ -34,6 +48,11 @@ class AllAssetsScreenerService {
       setImmediate(() => {
         this._computeEW(symbol, timeframe, parsedBars).catch(err => {
           logger.error(`EW computation error for ${symbol} ${timeframe}:`, err.message);
+        });
+      });
+      setImmediate(() => {
+        this._computeMAZScore(symbol, timeframe, parsedBars).catch(err => {
+          logger.error(`MA Z-Score computation error for ${symbol} ${timeframe}:`, err.message);
         });
       });
     } catch (error) {
@@ -199,6 +218,157 @@ class AllAssetsScreenerService {
       logger.info('Initial EW snapshot populated');
     } catch (error) {
       logger.error('Failed to populate initial EW snapshot:', error.message);
+    }
+  }
+
+  static async _computeMAZScore(symbol, timeframe, bars) {
+    if (bars.length < 20) return;
+
+    const result = IndicatorService.checkCondition('mazscore', bars, { maLength: 20 });
+
+    if (result.met && result.signal && result.signal !== 'none') {
+      const zScoreVal = parseFloat(result.signal);
+      if (isNaN(zScoreVal)) return;
+
+      const rounded = zScoreVal.toFixed(2);
+      const key = `${symbol}:${timeframe}`;
+      const lastWritten = this.lastMAZScoreWritten.get(key);
+
+      if (rounded !== lastWritten) {
+        await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore', rounded);
+        this.lastMAZScoreWritten.set(key, rounded);
+      }
+
+      if (timeframe === 'm15') {
+        this.m15ZScoreMap.set(symbol, zScoreVal);
+        await this._checkAndSendMAZScoreAlert(symbol, timeframe, bars);
+      }
+    }
+  }
+
+  static async _checkAndSendMAZScoreAlert(symbol, timeframe, bars) {
+    if (!this.db || !this.telegramService) return;
+    if (this.m15ZScoreMap.size === 0) return;
+
+    try {
+      const nonMetalSymbols = this._getNonMetalSymbols();
+      const m15ZValues = [];
+      for (const [sym, val] of this.m15ZScoreMap.entries()) {
+        if (nonMetalSymbols.has(sym)) {
+          m15ZValues.push(val);
+        }
+      }
+
+      if (m15ZValues.length === 0) return;
+
+      const avgZScore = m15ZValues.reduce((a, b) => a + b, 0) / m15ZValues.length;
+      const prevAvg = this.lastMAZScoreAvg;
+
+      this.lastMAZScoreAvg = avgZScore;
+
+      const threshold = this.MAZSCORE_ALERT_THRESHOLD;
+
+      if (prevAvg !== null) {
+        let signalType = null;
+        if (prevAvg <= threshold && avgZScore > threshold) {
+          signalType = 'overbought';
+        } else if (prevAvg >= -threshold && avgZScore < -threshold) {
+          signalType = 'oversold';
+        }
+
+        if (signalType) {
+          const lastBar = bars[bars.length - 1];
+          const price = lastBar ? lastBar.close : 0;
+          const timestamp = lastBar && lastBar.timestamp ? lastBar.timestamp : new Date().toISOString();
+
+          const payload = {
+            symbol: 'MARKET',
+            timeframe,
+            indicatorType: 'MAZSCORE',
+            signal: signalType,
+            price: avgZScore,
+            exchange: 'bybit',
+            isTestnet: false,
+            timestamp,
+          };
+
+          await this.telegramService.sendNotification(null, 'screener_reversal', payload);
+          logger.info(`MA Z-Score alert sent: ${signalType}, avg=${avgZScore.toFixed(4)}, prev=${prevAvg.toFixed(4)}`);
+        }
+      }
+    } catch (error) {
+      logger.error('MA Z-Score alert check error:', error.message);
+    }
+  }
+
+  static _getNonMetalSymbols() {
+    if (this.nonMetalSymbols) return this.nonMetalSymbols;
+
+    const path = require('path');
+    const fs = require('fs');
+    const { getProjectRoot } = require('../config');
+    const symbolsConfigPath = path.resolve(getProjectRoot(), 'config/symbols/bybit.json');
+    const symbolsConfig = JSON.parse(fs.readFileSync(symbolsConfigPath, 'utf8'));
+    const allSymbols = new Set(symbolsConfig.symbols.map(s => s.symbol));
+    this.nonMetalSymbols = new Set([...allSymbols].filter(s => !METAL_SYMBOLS.has(s)));
+    return this.nonMetalSymbols;
+  }
+
+  static async populateMAZScoreSnapshot(candleProvider) {
+    if (!this.db) return;
+
+    try {
+      const allCandles = candleProvider.getAllClosedCandles();
+      const symbolsConfigPath = require('path').resolve(
+        require('../config').getProjectRoot(),
+        'config/symbols/bybit.json'
+      );
+      const symbolsConfig = JSON.parse(require('fs').readFileSync(symbolsConfigPath, 'utf8'));
+      const intervals = symbolsConfig.intervals;
+      const allSymbols = symbolsConfig.symbols.map(s => s.symbol);
+
+      this._getNonMetalSymbols();
+
+      logger.info(`Populating initial MA Z-Score snapshot for ${allSymbols.length} symbols x ${intervals.length} timeframes...`);
+
+      let count = 0;
+      for (const symbol of allSymbols) {
+        for (const timeframe of intervals) {
+          const key = `${symbol}:${timeframe}`;
+          const candles = allCandles.get(key);
+          if (!candles || candles.length < 20) {
+            await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore', null);
+            continue;
+          }
+
+          const parsed = CandleUtils.parseExchangeCandles(candles);
+          if (parsed.length < 20) {
+            await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore', null);
+            continue;
+          }
+
+          const result = IndicatorService.checkCondition('mazscore', parsed, { maLength: 20 });
+          if (result.met && result.signal && result.signal !== 'none') {
+            const zScoreVal = parseFloat(result.signal);
+            await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore', result.signal);
+            if (timeframe === 'm15') {
+              this.m15ZScoreMap.set(symbol, zScoreVal);
+            }
+          } else {
+            await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore', null);
+          }
+          count++;
+        }
+      }
+
+      const m15Values = [...this.m15ZScoreMap.values()];
+      if (m15Values.length > 0) {
+        this.lastMAZScoreAvg = m15Values.reduce((a, b) => a + b, 0) / m15Values.length;
+      }
+
+      logger.info(`Initial MA Z-Score snapshot populated for ${count} symbol/timeframe combinations`);
+    } catch (error) {
+      logger.error('Failed to populate initial MA Z-Score snapshot:', error.message);
     }
   }
 }
