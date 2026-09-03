@@ -21,7 +21,7 @@ class AllAssetsScreenerService {
   static ewSubscribersCacheTs = 0;
   static EW_SUBSCRIBERS_CACHE_MS = 30 * 1000;
   static lastMAZScoreAvg = null;
-  static MAZSCORE_ALERT_THRESHOLD = 1.5;
+  static MAZSCORE_ALERT_THRESHOLD = 1;
   static nonMetalSymbols = null;
   static m15ZScoreMap = new Map();
   static lastMAZScoreWritten = new Map();
