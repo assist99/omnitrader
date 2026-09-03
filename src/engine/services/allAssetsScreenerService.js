@@ -42,7 +42,7 @@ class AllAssetsScreenerService {
   }
 
   static async _getSubscribersForTimeframe(timeframe) {
-    if (!this.db) return [];
+    if (!this.db) return { userIds: [], hasAnySubscriptions: false };
     const now = Date.now();
     if (!this.ewSubscribersCache || now - this.ewSubscribersCacheTs > this.EW_SUBSCRIBERS_CACHE_MS) {
       try {
@@ -51,14 +51,16 @@ class AllAssetsScreenerService {
         this.ewSubscribersCacheTs = now;
       } catch (err) {
         logger.error('Failed to load EW subscribers:', err.message);
-        return [];
+        return { userIds: [], hasAnySubscriptions: false };
       }
     }
     const userIds = new Set();
+    let hasAny = false;
     for (const row of this.ewSubscribersCache) {
+      hasAny = true;
       if (row.timeframe === timeframe) userIds.add(row.user_id);
     }
-    return Array.from(userIds);
+    return { userIds: Array.from(userIds), hasAnySubscriptions: hasAny };
   }
 
   static async _updateSTDirection(symbol, timeframe, bars) {
@@ -121,7 +123,7 @@ class AllAssetsScreenerService {
         const price = lastBar ? lastBar.close : 0;
         const timestamp = lastBar && lastBar.timestamp ? lastBar.timestamp : new Date().toISOString();
 
-        const subscribers = await this._getSubscribersForTimeframe(timeframe);
+        const { userIds: subscribers, hasAnySubscriptions } = await this._getSubscribersForTimeframe(timeframe);
         const payload = {
           symbol,
           timeframe,
@@ -137,8 +139,7 @@ class AllAssetsScreenerService {
           for (const userId of subscribers) {
             await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
           }
-        } else {
-          // Legacy fallback for self-hosted single-user setups (no DB subscriptions yet)
+        } else if (!hasAnySubscriptions) {
           await this.telegramService.sendNotification(null, 'screener_reversal', payload);
         }
 
