@@ -487,6 +487,13 @@ async getExchangeAccountByIndex(index) {
     return this.all(sql, [userId]);
   }
 
+  async getPriceAlarmById(id, userId) {
+    const sql = `
+      SELECT * FROM price_alarms WHERE id = ? AND user_id = ?
+    `;
+    return this.get(sql, [id, userId]);
+  }
+
   async getActivePriceAlarms() {
     const sql = `SELECT * FROM price_alarms`;
     return this.all(sql);
@@ -517,6 +524,24 @@ async getExchangeAccountByIndex(index) {
   async deletePriceAlarm(id, userId) {
     const sql = `DELETE FROM price_alarms WHERE id = ? AND user_id = ?`;
     return this.run(sql, [id, userId]);
+  }
+
+  async updatePriceAlarm(id, userId, payload) {
+    const allowed = ['symbol', 'timeframe', 'direction', 'price_level'];
+    const sets = [];
+    const params = [];
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(payload, key)) {
+        sets.push(`${key} = ?`);
+        params.push(payload[key]);
+      }
+    }
+    if (sets.length === 0) {
+      return { changes: 0 };
+    }
+    params.push(id, userId);
+    const sql = `UPDATE price_alarms SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`;
+    return this.run(sql, params);
   }
 
   async deleteAllPriceAlarmsByUser(userId) {

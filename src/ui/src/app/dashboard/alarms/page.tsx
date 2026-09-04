@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Bell, Plus, Trash2, Check, X } from 'lucide-react';
+import { Bell, Plus, Trash2, Check, X, Pencil } from 'lucide-react';
 import engineFetch from '@/lib/api';
 import type { PriceAlarm, Timeframe } from '@/lib/types';
 import SymbolPicker from '@/components/SymbolPicker';
@@ -29,6 +29,11 @@ export default function PriceAlarmsPage() {
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [telegramConfigured, setTelegramConfigured] = useState<boolean | null>(null);
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ ...emptyForm });
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const fetchAlarms = useCallback(async () => {
     try {
@@ -119,6 +124,54 @@ export default function PriceAlarmsPage() {
       await fetchAlarms();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Delete failed');
+    }
+  }
+
+  function startEdit(a: PriceAlarm) {
+    setEditingId(a.id);
+    setEditForm({
+      symbol: a.symbol,
+      timeframe: a.timeframe,
+      direction: a.direction,
+      price_level: String(a.price_level),
+    });
+    setEditError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditError(null);
+  }
+
+  async function handleEditSave(id: number) {
+    setEditError(null);
+    const level = Number(editForm.price_level);
+    if (!Number.isFinite(level) || level <= 0) {
+      setEditError('Price level must be a positive number');
+      return;
+    }
+    if (!editForm.symbol) {
+      setEditError('Pick an asset');
+      return;
+    }
+    setEditSubmitting(true);
+    try {
+      const res = await engineFetch(`/api/price-alarms/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          symbol: editForm.symbol,
+          timeframe: editForm.timeframe,
+          direction: editForm.direction,
+          price_level: level,
+        }),
+      });
+      if (!res.success) throw new Error(res.error || 'Failed to update');
+      setEditingId(null);
+      await fetchAlarms();
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setEditSubmitting(false);
     }
   }
 
@@ -263,25 +316,110 @@ export default function PriceAlarmsPage() {
               <tbody>
                 {alarms.map((a) => (
                   <tr key={a.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                    <td className="px-4 py-3 text-white font-mono text-xs">
-                      {displayBySymbol[a.symbol] ? `${displayBySymbol[a.symbol]} (${a.symbol})` : a.symbol}
-                    </td>
-                    <td className="px-4 py-3 text-slate-300 uppercase">{a.timeframe}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        a.direction === 'cross_above'
-                          ? 'bg-green-900/30 text-green-400'
-                          : 'bg-red-900/30 text-red-400'
-                      }`}>
-                        {a.direction === 'cross_above' ? 'Cross Above' : 'Cross Below'}
-                      </span>
+                      {editingId === a.id ? (
+                        <SymbolPicker
+                          value={editForm.symbol}
+                          onChange={(val) => setEditForm({ ...editForm, symbol: val })}
+                          exchange="bybit"
+                          placeholder="Select an asset..."
+                        />
+                      ) : (
+                        <span className="text-white font-mono text-xs">
+                          {displayBySymbol[a.symbol] ? `${displayBySymbol[a.symbol]} (${a.symbol})` : a.symbol}
+                        </span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-slate-300 text-right font-mono">{a.price_level}</td>
+                    <td className="px-4 py-3">
+                      {editingId === a.id ? (
+                        <select
+                          value={editForm.timeframe}
+                          onChange={(e) => setEditForm({ ...editForm, timeframe: e.target.value as Timeframe })}
+                          className="rounded-lg border border-slate-600 bg-slate-700/50 px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
+                        >
+                          {TF_ORDER.map((tf) => (
+                            <option key={tf} value={tf}>
+                              {tf.toUpperCase()}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-slate-300 uppercase">{a.timeframe}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {editingId === a.id ? (
+                        <div className="flex gap-2">
+                          <label className="flex items-center gap-1 text-xs text-slate-300">
+                            <input
+                              type="radio"
+                              checked={editForm.direction === 'cross_above'}
+                              onChange={() => setEditForm({ ...editForm, direction: 'cross_above' })}
+                            />
+                            Cross Above
+                          </label>
+                          <label className="flex items-center gap-1 text-xs text-slate-300">
+                            <input
+                              type="radio"
+                              checked={editForm.direction === 'cross_below'}
+                              onChange={() => setEditForm({ ...editForm, direction: 'cross_below' })}
+                            />
+                            Cross Below
+                          </label>
+                        </div>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            a.direction === 'cross_above'
+                              ? 'bg-green-900/30 text-green-400'
+                              : 'bg-red-900/30 text-red-400'
+                          }`}
+                        >
+                          {a.direction === 'cross_above' ? 'Cross Above' : 'Cross Below'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {editingId === a.id ? (
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={editForm.price_level}
+                          onChange={(e) => setEditForm({ ...editForm, price_level: e.target.value })}
+                          className="w-24 rounded-lg border border-slate-600 bg-slate-700/50 px-2 py-1 text-xs text-right text-white outline-none focus:border-blue-500"
+                          placeholder="e.g. 100000"
+                        />
+                      ) : (
+                        <span className="text-slate-300 text-right font-mono">{a.price_level}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-500 text-xs">
                       {new Date(a.created_at + 'Z').toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {deletingId === a.id ? (
+                      {editingId === a.id ? (
+                        <div className="flex flex-col items-end gap-1">
+                          {editError && <span className="text-red-400 text-xs">{editError}</span>}
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleEditSave(a.id)}
+                              disabled={editSubmitting}
+                              className="rounded-lg p-1.5 text-green-400 hover:text-green-300 hover:bg-green-900/30 disabled:opacity-50"
+                              title="Save"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50"
+                              title="Cancel"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : deletingId === a.id ? (
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleDelete(a.id)}
@@ -299,13 +437,25 @@ export default function PriceAlarmsPage() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => { setDeletingId(a.id); setError(null); }}
-                          className="rounded-lg p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-900/30"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => startEdit(a)}
+                            className="rounded-lg p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-900/30"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeletingId(a.id);
+                              setError(null);
+                            }}
+                            className="rounded-lg p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-900/30"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

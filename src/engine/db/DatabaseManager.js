@@ -256,6 +256,10 @@ async createUser(email, passwordHash, timeoutMs) {
     return this.db.getPriceAlarmsByUser(userId);
   }
 
+  async getPriceAlarmById(id, userId) {
+    return this.db.getPriceAlarmById(id, userId);
+  }
+
   async getActivePriceAlarms() {
     return this.db.getActivePriceAlarms();
   }
@@ -269,6 +273,12 @@ async createUser(email, passwordHash, timeoutMs) {
   async deletePriceAlarm(id, userId, timeoutMs) {
     return this.runWriteOperation('deletePriceAlarm', async () => {
       return this.db.deletePriceAlarm(id, userId);
+    }, timeoutMs);
+  }
+
+  async updatePriceAlarm(id, userId, payload, timeoutMs) {
+    return this.runWriteOperation('updatePriceAlarm', async () => {
+      return this.db.updatePriceAlarm(id, userId, payload);
     }, timeoutMs);
   }
 

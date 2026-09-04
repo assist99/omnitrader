@@ -89,4 +89,26 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(404).json({ success: false, error: 'Not found' });
+    }
+    const db = getDatabaseManager();
+    const existing = await db.getPriceAlarmById(id, req.user.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Not found' });
+    }
+    const { errors, value } = validateAlarmPayload(req.body);
+    if (errors.length > 0) {
+      return res.status(400).json({ success: false, error: errors.join('; ') });
+    }
+    await db.updatePriceAlarm(id, req.user.id, value);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
