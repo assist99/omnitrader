@@ -96,7 +96,7 @@ class IndicatorService {
         extMultiplier: 1.27,
         tradeMode: 'First Change Only',
       },
-      'mazscore': { maLength: 20 },
+      'mazscore': { emaLength: 50, atrLength: 14, lookbackLength: 200 },
     };
 
     return defaultParams[this._normalizeType(indicatorType)] || {};

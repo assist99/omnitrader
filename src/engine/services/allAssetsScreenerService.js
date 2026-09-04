@@ -226,7 +226,7 @@ class AllAssetsScreenerService {
   static async _computeMAZScore(symbol, timeframe, bars) {
     if (bars.length < 20) return;
 
-    const result = IndicatorService.checkCondition('mazscore', bars, { maLength: 20 });
+    const result = IndicatorService.checkCondition('mazscore', bars, { emaLength: 50, atrLength: 14, lookbackLength: 200 });
 
     if (result.met && result.signal && result.signal !== 'none') {
       const zScoreVal = parseFloat(result.signal);
@@ -393,7 +393,7 @@ class AllAssetsScreenerService {
             continue;
           }
 
-          const result = IndicatorService.checkCondition('mazscore', parsed, { maLength: 20 });
+          const result = IndicatorService.checkCondition('mazscore', parsed, { emaLength: 50, atrLength: 14, lookbackLength: 200 });
           if (result.met && result.signal && result.signal !== 'none') {
             const zScoreVal = parseFloat(result.signal);
             await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore', result.signal);
