@@ -14,7 +14,13 @@ const METAL_SYMBOLS = new Set([
   'GOLD/USDT:USDT',
 ]);
 
-function ZScoreCell({ value }: { value: number | null }) {
+function Dot({ extreme }: { extreme: string | null | undefined }) {
+  if (!extreme) return null;
+  const color = extreme === 'bullish' ? 'bg-green-400' : 'bg-red-400';
+  return <span className={`inline-block w-1.5 h-1.5 rounded-full ${color} ml-0.5`} />;
+}
+
+function ZScoreCell({ value, extreme }: { value: number | null; extreme?: string | null | undefined }) {
   if (value === null) {
     return <span className="text-slate-500 text-xs font-mono">—</span>;
   }
@@ -25,8 +31,9 @@ function ZScoreCell({ value }: { value: number | null }) {
   else if (absVal >= 0.5) color = value > 0 ? 'text-green-200/70' : 'text-red-200/70';
   const bg = value > 0 ? (absVal >= 1.5 ? 'bg-green-500/10' : absVal >= 1.0 ? 'bg-green-500/5' : 'bg-green-500/[0.02]') : value < 0 ? (absVal >= 1.5 ? 'bg-red-500/10' : absVal >= 1.0 ? 'bg-red-500/5' : 'bg-red-500/[0.02]') : '';
   return (
-    <span className={`${color} ${bg} text-xs font-mono px-1 py-0.5 rounded inline-block min-w-[3rem] text-center`}>
+    <span className={`${color} ${bg} text-xs font-mono px-1 py-0.5 rounded inline-flex items-center min-w-[3rem] justify-center`}>
       {value.toFixed(2)}
+      <Dot extreme={extreme} />
     </span>
   );
 }
@@ -54,6 +61,7 @@ function SectionRow({ label, values, bgColor, textColor }: { label: string; valu
 
 export default function MAZScoreScreenerPage() {
   const [data, setData] = useState<Record<string, Record<string, number | null>>>({});
+  const [extremes, setExtremes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('d1');
@@ -61,15 +69,19 @@ export default function MAZScoreScreenerPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await engineFetch('/api/screener-status/mazscore');
-      if (!res.success) throw new Error(res.error || 'Failed to fetch');
-      const rows: { symbol: string; timeframe: string; signal: string | null }[] = res.data || [];
+      const [zRes, extRes] = await Promise.all([
+        engineFetch('/api/screener-status/mazscore'),
+        engineFetch('/api/screener-status/mazscore-extreme'),
+      ]);
+      if (!zRes.success) throw new Error(zRes.error || 'Failed to fetch');
+      const rows: { symbol: string; timeframe: string; signal: string | null }[] = zRes.data || [];
       const matrix: Record<string, Record<string, number | null>> = {};
       for (const row of rows) {
         if (!matrix[row.symbol]) matrix[row.symbol] = {};
         matrix[row.symbol][row.timeframe] = row.signal !== null ? parseFloat(row.signal) : null;
       }
       setData(matrix);
+      setExtremes(extRes.data || {});
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -185,7 +197,7 @@ export default function MAZScoreScreenerPage() {
                   <td className="sticky left-0 bg-slate-900 z-10 px-3 py-2 text-white font-mono text-xs">{display}</td>
                   {TF_ORDER.map((tf) => (
                     <td key={tf} className="px-3 py-2 text-center">
-                      <ZScoreCell value={data[symbol]?.[tf] ?? null} />
+                      <ZScoreCell value={data[symbol]?.[tf] ?? null} extreme={extremes[`${symbol}:${tf}`]} />
                     </td>
                   ))}
                 </tr>
@@ -199,7 +211,7 @@ export default function MAZScoreScreenerPage() {
                   <td className="sticky left-0 bg-slate-900 z-10 px-3 py-2 text-white font-mono text-xs">{display}</td>
                   {TF_ORDER.map((tf) => (
                     <td key={tf} className="px-3 py-2 text-center">
-                      <ZScoreCell value={data[symbol]?.[tf] ?? null} />
+                      <ZScoreCell value={data[symbol]?.[tf] ?? null} extreme={extremes[`${symbol}:${tf}`]} />
                     </td>
                   ))}
                 </tr>

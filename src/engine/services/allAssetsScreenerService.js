@@ -27,6 +27,8 @@ class AllAssetsScreenerService {
   static lastMAZScoreWritten = new Map();
   static MAZSCORE_PER_ASSET_THRESHOLD = 2.5;
   static lastMAZScorePerAsset = new Map();
+  static lastMAZScoreExtreme = new Map();
+  static lastMAZScoreAvgExtreme = null;
 
   static setDeps(db, telegramService) {
     this.db = db;
@@ -281,6 +283,9 @@ class AllAssetsScreenerService {
         }
 
         if (signalType) {
+          this.lastMAZScoreAvgExtreme = signalType;
+          await this.db.upsertScreenerSnapshot('MARKET', 'm15', 'mazscore_avg_extreme', signalType);
+
           const lastBar = bars[bars.length - 1];
           const price = lastBar ? lastBar.close : 0;
           const timestamp = lastBar && lastBar.timestamp ? lastBar.timestamp : new Date().toISOString();
@@ -324,6 +329,9 @@ class AllAssetsScreenerService {
       }
 
       if (signalType) {
+        this.lastMAZScoreExtreme.set(key, signalType);
+        await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore_extreme', signalType);
+
         const lastBar = bars[bars.length - 1];
         const price = lastBar ? lastBar.close : 0;
         const timestamp = lastBar?.timestamp || new Date().toISOString();
@@ -413,6 +421,16 @@ class AllAssetsScreenerService {
       }
 
       logger.info(`Initial MA Z-Score snapshot populated for ${count} symbol/timeframe combinations`);
+
+      const extremeRows = await this.db.getScreenerSnapshots('mazscore_extreme');
+      for (const row of extremeRows) {
+        this.lastMAZScoreExtreme.set(`${row.symbol}:${row.timeframe}`, row.signal);
+      }
+      const avgExtremeRows = await this.db.getScreenerSnapshots('mazscore_avg_extreme');
+      if (avgExtremeRows.length > 0) {
+        this.lastMAZScoreAvgExtreme = avgExtremeRows[0].signal;
+      }
+      logger.info(`Loaded ${extremeRows.length} per-asset extremes, avg extreme: ${this.lastMAZScoreAvgExtreme}`);
     } catch (error) {
       logger.error('Failed to populate initial MA Z-Score snapshot:', error.message);
     }

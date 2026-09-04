@@ -36,4 +36,18 @@ router.get('/mazscore', async (req, res) => {
   }
 });
 
+router.get('/mazscore-extreme', (req, res) => {
+  try {
+    const { AllAssetsScreenerService } = require('../../services/allAssetsScreenerService');
+    const entries = {};
+    for (const [key, value] of AllAssetsScreenerService.lastMAZScoreExtreme.entries()) {
+      entries[key] = value;
+    }
+    res.json({ success: true, data: entries, avgExtreme: AllAssetsScreenerService.lastMAZScoreAvgExtreme });
+  } catch (error) {
+    logger.error('Failed to fetch MA Z-Score extremes:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
