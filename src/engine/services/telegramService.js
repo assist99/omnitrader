@@ -396,9 +396,21 @@ Price: ${this.formatPrice(price)}  ·  ${this.formatBatchTimestamp(timestamp)}
 
   formatScreenerReversal(data) {
     const payload = data || {};
-    const isBuy = payload.signal === 'bullish_crossover' || payload.signal === 'bullish' || payload.signal === 'oversold';
-    const action = isBuy ? 'BUY' : 'SELL';
-    const emoji = isBuy ? '🟢' : '🔴';
+    let action, emoji;
+
+    if (payload.indicatorType === 'MAZSCORE') {
+      if (payload.signal === 'bullish') {
+        action = 'BULLISH';
+        emoji = '🟢';
+      } else {
+        action = 'BEARISH';
+        emoji = '🔴';
+      }
+    } else {
+      const isBuy = payload.signal === 'bullish_crossover' || payload.signal === 'bullish';
+      action = isBuy ? 'BUY' : 'SELL';
+      emoji = isBuy ? '🟢' : '🔴';
+    }
     const indicator = payload.indicatorType ? payload.indicatorType.toUpperCase() : '';
 
     return this.formatCompactTradingMessage(

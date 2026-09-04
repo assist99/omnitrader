@@ -275,9 +275,9 @@ class AllAssetsScreenerService {
       if (prevAvg !== null) {
         let signalType = null;
         if (prevAvg <= threshold && avgZScore > threshold) {
-          signalType = 'overbought';
+          signalType = 'bullish';
         } else if (prevAvg >= -threshold && avgZScore < -threshold) {
-          signalType = 'oversold';
+          signalType = 'bearish';
         }
 
         if (signalType) {
@@ -318,9 +318,9 @@ class AllAssetsScreenerService {
 
       let signalType = null;
       if (prevZScore <= threshold && zScoreVal > threshold) {
-        signalType = 'overbought';
+        signalType = 'bullish';
       } else if (prevZScore >= -threshold && zScoreVal < -threshold) {
-        signalType = 'oversold';
+        signalType = 'bearish';
       }
 
       if (signalType) {
