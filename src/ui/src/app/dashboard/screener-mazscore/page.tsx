@@ -84,36 +84,35 @@ export default function MAZScoreScreenerPage() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const handleSort = (tf: string) => {
-    if (sortBy === tf) {
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
       setSortDir(d => d === 'desc' ? 'asc' : 'desc');
     } else {
-      setSortBy(tf);
-      setSortDir('desc');
+      setSortBy(key);
+      setSortDir(key === 'symbol' ? 'asc' : 'desc');
     }
+  };
+
+  const sortSymbols = (a: string, b: string) => {
+    if (sortBy === 'symbol') {
+      const cmp = a.localeCompare(b);
+      return sortDir === 'desc' ? -cmp : cmp;
+    }
+    const aVal = data[a]?.[sortBy];
+    const bVal = data[b]?.[sortBy];
+    if (aVal === null && bVal === null) return 0;
+    if (aVal === null) return 1;
+    if (bVal === null) return -1;
+    return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
   };
 
   const cryptoSymbols = Object.keys(data)
     .filter(s => !METAL_SYMBOLS.has(s))
-    .sort((a, b) => {
-      const aVal = data[a]?.[sortBy];
-      const bVal = data[b]?.[sortBy];
-      if (aVal === null && bVal === null) return 0;
-      if (aVal === null) return 1;
-      if (bVal === null) return -1;
-      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
-    });
+    .sort(sortSymbols);
 
   const metalSymbols = Object.keys(data)
     .filter(s => METAL_SYMBOLS.has(s))
-    .sort((a, b) => {
-      const aVal = data[a]?.[sortBy];
-      const bVal = data[b]?.[sortBy];
-      if (aVal === null && bVal === null) return 0;
-      if (aVal === null) return 1;
-      if (bVal === null) return -1;
-      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
-    });
+    .sort(sortSymbols);
 
   const cryptoAvg = TF_ORDER.reduce<Record<string, number | null>>((acc, tf) => {
     const vals = cryptoSymbols.map(s => data[s]?.[tf]).filter((v): v is number => v !== null);
@@ -158,7 +157,13 @@ export default function MAZScoreScreenerPage() {
         <table className="w-full text-sm text-left">
           <thead>
             <tr className="border-b border-slate-700/50">
-              <th className="sticky left-0 bg-slate-900 z-10 px-3 py-2 text-slate-400 font-medium">Symbol</th>
+              <th
+              onClick={() => handleSort('symbol')}
+              className={`sticky left-0 bg-slate-900 z-10 px-3 py-2 font-medium cursor-pointer select-none hover:text-white transition-colors ${sortBy === 'symbol' ? 'text-white' : 'text-slate-400'}`}
+            >
+              Symbol
+              <SortIcon active={sortBy === 'symbol'} direction={sortDir} />
+            </th>
               {TF_ORDER.map((tf) => (
                 <th
                   key={tf}
