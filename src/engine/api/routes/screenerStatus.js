@@ -38,7 +38,7 @@ router.get('/mazscore', async (req, res) => {
 
 router.get('/mazscore-extreme', (req, res) => {
   try {
-    const { AllAssetsScreenerService } = require('../../services/allAssetsScreenerService');
+    const AllAssetsScreenerService = require('../../services/allAssetsScreenerService');
     const entries = {};
     for (const [key, value] of AllAssetsScreenerService.lastMAZScoreExtreme.entries()) {
       entries[key] = value;
