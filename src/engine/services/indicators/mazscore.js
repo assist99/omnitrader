@@ -47,9 +47,10 @@ function atr(bars, length) {
   let sum = 0;
   for (let i = 0; i < tr.length; i++) {
     sum += tr[i];
-    if (i >= length - 1) {
+    if (i === length - 1) {
       result[i] = sum / length;
-      sum -= tr[i - length + 1];
+    } else if (i > length - 1) {
+      result[i] = (result[i - 1] * (length - 1) + tr[i]) / length;
     }
   }
   return result;
