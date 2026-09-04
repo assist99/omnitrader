@@ -25,6 +25,8 @@ class AllAssetsScreenerService {
   static nonMetalSymbols = null;
   static m15ZScoreMap = new Map();
   static lastMAZScoreWritten = new Map();
+  static MAZSCORE_PER_ASSET_THRESHOLD = 2.5;
+  static lastMAZScorePerAsset = new Map();
 
   static setDeps(db, telegramService) {
     this.db = db;
@@ -243,6 +245,8 @@ class AllAssetsScreenerService {
         this.m15ZScoreMap.set(symbol, zScoreVal);
         await this._checkAndSendMAZScoreAlert(symbol, timeframe, bars);
       }
+
+      await this._checkAndSendPerAssetMAZScoreAlert(symbol, timeframe, zScoreVal, bars);
     }
   }
 
@@ -298,6 +302,48 @@ class AllAssetsScreenerService {
       }
     } catch (error) {
       logger.error('MA Z-Score alert check error:', error.message);
+    }
+  }
+
+  static async _checkAndSendPerAssetMAZScoreAlert(symbol, timeframe, zScoreVal, bars) {
+    if (!this.db || !this.telegramService) return;
+
+    try {
+      const threshold = this.MAZSCORE_PER_ASSET_THRESHOLD;
+      const key = `${symbol}:${timeframe}`;
+      const prevZScore = this.lastMAZScorePerAsset.get(key);
+      this.lastMAZScorePerAsset.set(key, zScoreVal);
+
+      if (prevZScore === undefined) return;
+
+      let signalType = null;
+      if (prevZScore <= threshold && zScoreVal > threshold) {
+        signalType = 'overbought';
+      } else if (prevZScore >= -threshold && zScoreVal < -threshold) {
+        signalType = 'oversold';
+      }
+
+      if (signalType) {
+        const lastBar = bars[bars.length - 1];
+        const price = lastBar ? lastBar.close : 0;
+        const timestamp = lastBar?.timestamp || new Date().toISOString();
+
+        const payload = {
+          symbol,
+          timeframe,
+          indicatorType: 'MAZSCORE',
+          signal: signalType,
+          price: zScoreVal,
+          exchange: 'bybit',
+          isTestnet: false,
+          timestamp,
+        };
+
+        await this.telegramService.sendNotification(null, 'screener_reversal', payload);
+        logger.info(`MA Z-Score per-asset alert: ${symbol} ${timeframe} ${signalType}, z=${zScoreVal.toFixed(4)}, prev=${prevZScore.toFixed(4)}`);
+      }
+    } catch (error) {
+      logger.error(`MA Z-Score per-asset alert error for ${symbol} ${timeframe}:`, error.message);
     }
   }
 

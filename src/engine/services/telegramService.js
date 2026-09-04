@@ -396,7 +396,7 @@ Price: ${this.formatPrice(price)}  ·  ${this.formatBatchTimestamp(timestamp)}
 
   formatScreenerReversal(data) {
     const payload = data || {};
-    const isBuy = payload.signal === 'bullish_crossover' || payload.signal === 'bullish';
+    const isBuy = payload.signal === 'bullish_crossover' || payload.signal === 'bullish' || payload.signal === 'oversold';
     const action = isBuy ? 'BUY' : 'SELL';
     const emoji = isBuy ? '🟢' : '🔴';
     const indicator = payload.indicatorType ? payload.indicatorType.toUpperCase() : '';
