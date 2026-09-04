@@ -282,9 +282,9 @@ function checkEWT(candles, params = {}) {
     const m15BearSignal = localDirChanged && isLocalBearish;
     const synthBullSignal = htfChanged && isSynthBullish;
     const synthBearSignal = htfChanged && isSynthBearish;
-
-    const entryLongPrimary = m15BullSignal && isSynthBullish && isHighReturnBar && longAllowed && signalsAllowed;
-    const entryShortPrimary = m15BearSignal && isSynthBearish && isHighReturnBar && shortAllowed && signalsAllowed;
+    const usePrimarySignal = false;
+    const entryLongPrimary = usePrimarySignal && m15BullSignal && isSynthBullish && isHighReturnBar && longAllowed && signalsAllowed;
+    const entryShortPrimary =usePrimarySignal && m15BearSignal && isSynthBearish && isHighReturnBar && shortAllowed && signalsAllowed;
 
     const entryLongAdditional = synthBullSignal && isHighReturnBar && signalsAllowed;
     const entryShortAdditional = synthBearSignal && isHighReturnBar && signalsAllowed;
