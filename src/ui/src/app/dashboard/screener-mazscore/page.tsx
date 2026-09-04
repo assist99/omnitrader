@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import engineFetch from '@/lib/api';
 
-const TF_ORDER = ['m15', 'h1', 'h4', 'd1', 'w1'];
+const TF_ORDER = ['m5', 'm15', 'h1', 'h4', 'd1', 'w1'];
 
 const METAL_SYMBOLS = new Set([
   'PAXG/USDT:USDT',
