@@ -20,12 +20,17 @@ class AllAssetsScreenerService {
   static ewSubscribersCache = null;
   static ewSubscribersCacheTs = 0;
   static EW_SUBSCRIBERS_CACHE_MS = 30 * 1000;
+  static MAZSCORE_SUBSCRIBERS_CACHE_MS = 30 * 1000;
+  static mazscoreTfSubscribersCache = null;
+  static mazscoreTfSubscribersCacheTs = 0;
+  static mazscoreAssetSubscribersCache = null;
+  static mazscoreAssetSubscribersCacheTs = 0;
   static lastMAZScoreAvg = null;
-  static MAZSCORE_ALERT_THRESHOLD = 1;
+  static MAZSCORE_ALERT_THRESHOLD = 0.5;
   static nonMetalSymbols = null;
   static m15ZScoreMap = new Map();
   static lastMAZScoreWritten = new Map();
-  static MAZSCORE_PER_ASSET_THRESHOLD = 2.5;
+  static MAZSCORE_PER_ASSET_THRESHOLD = 1.5;
   static lastMAZScorePerAsset = new Map();
   static lastMAZScoreExtreme = new Map();
   static lastMAZScoreAvgExtreme = null;
@@ -82,6 +87,50 @@ class AllAssetsScreenerService {
     for (const row of this.ewSubscribersCache) {
       hasAny = true;
       if (row.timeframe === timeframe) userIds.add(row.user_id);
+    }
+    return { userIds: Array.from(userIds), hasAnySubscriptions: hasAny };
+  }
+
+  static async _getMazscoreTfSubscribers(timeframe) {
+    if (!this.db) return { userIds: [], hasAnySubscriptions: false };
+    const now = Date.now();
+    if (!this.mazscoreTfSubscribersCache || now - this.mazscoreTfSubscribersCacheTs > this.MAZSCORE_SUBSCRIBERS_CACHE_MS) {
+      try {
+        const rows = await this.db.getEnabledMazscoreTfSubscribers();
+        this.mazscoreTfSubscribersCache = rows;
+        this.mazscoreTfSubscribersCacheTs = now;
+      } catch (err) {
+        logger.error('Failed to load MAZScore TF subscribers:', err.message);
+        return { userIds: [], hasAnySubscriptions: false };
+      }
+    }
+    const userIds = new Set();
+    let hasAny = false;
+    for (const row of this.mazscoreTfSubscribersCache) {
+      hasAny = true;
+      if (row.timeframe === timeframe) userIds.add(row.user_id);
+    }
+    return { userIds: Array.from(userIds), hasAnySubscriptions: hasAny };
+  }
+
+  static async _getMazscoreAssetSubscribers(symbol, timeframe) {
+    if (!this.db) return { userIds: [], hasAnySubscriptions: false };
+    const now = Date.now();
+    if (!this.mazscoreAssetSubscribersCache || now - this.mazscoreAssetSubscribersCacheTs > this.MAZSCORE_SUBSCRIBERS_CACHE_MS) {
+      try {
+        const rows = await this.db.getEnabledMazscoreAssetSubscribers();
+        this.mazscoreAssetSubscribersCache = rows;
+        this.mazscoreAssetSubscribersCacheTs = now;
+      } catch (err) {
+        logger.error('Failed to load MAZScore asset subscribers:', err.message);
+        return { userIds: [], hasAnySubscriptions: false };
+      }
+    }
+    const userIds = new Set();
+    let hasAny = false;
+    for (const row of this.mazscoreAssetSubscribersCache) {
+      hasAny = true;
+      if (row.symbol === symbol && row.timeframe === timeframe) userIds.add(row.user_id);
     }
     return { userIds: Array.from(userIds), hasAnySubscriptions: hasAny };
   }
@@ -301,7 +350,16 @@ class AllAssetsScreenerService {
             timestamp,
           };
 
-          await this.telegramService.sendNotification(null, 'screener_reversal', payload);
+          const { userIds: subscribers, hasAnySubscriptions } = await this._getMazscoreTfSubscribers(timeframe);
+
+          if (subscribers.length > 0) {
+            for (const userId of subscribers) {
+              await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
+            }
+          } else if (!hasAnySubscriptions) {
+            await this.telegramService.sendNotification(null, 'screener_reversal', payload);
+          }
+
           logger.info(`MA Z-Score alert sent: ${signalType}, avg=${avgZScore.toFixed(4)}, prev=${prevAvg.toFixed(4)}`);
         }
       }
@@ -347,7 +405,16 @@ class AllAssetsScreenerService {
           timestamp,
         };
 
-        await this.telegramService.sendNotification(null, 'screener_reversal', payload);
+        const { userIds: subscribers, hasAnySubscriptions } = await this._getMazscoreAssetSubscribers(symbol, timeframe);
+
+        if (subscribers.length > 0) {
+          for (const userId of subscribers) {
+            await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
+          }
+        } else if (!hasAnySubscriptions) {
+          await this.telegramService.sendNotification(null, 'screener_reversal', payload);
+        }
+
         logger.info(`MA Z-Score per-asset alert: ${symbol} ${timeframe} ${signalType}, z=${zScoreVal.toFixed(4)}, prev=${prevZScore.toFixed(4)}`);
       }
     } catch (error) {
@@ -405,6 +472,7 @@ class AllAssetsScreenerService {
           if (result.met && result.signal && result.signal !== 'none') {
             const zScoreVal = parseFloat(result.signal);
             await this.db.upsertScreenerSnapshot(symbol, timeframe, 'mazscore', result.signal);
+            this.lastMAZScorePerAsset.set(key, zScoreVal);
             if (timeframe === 'm15') {
               this.m15ZScoreMap.set(symbol, zScoreVal);
             }

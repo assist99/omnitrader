@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { Bell, BellOff, Save } from 'lucide-react';
 import engineFetch from '@/lib/api';
 
 const TF_ORDER = ['m5', 'm15', 'h1', 'h4', 'd1', 'w1'];
@@ -66,6 +67,11 @@ export default function MAZScoreScreenerPage() {
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('d1');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [tfSubs, setTfSubs] = useState<Record<string, boolean>>({});
+  const [assetSubs, setAssetSubs] = useState<Record<string, boolean>>({});
+  const [subsLoaded, setSubsLoaded] = useState(false);
+  const [subsSaving, setSubsSaving] = useState(false);
+  const [subsMessage, setSubsMessage] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -90,11 +96,46 @@ export default function MAZScoreScreenerPage() {
     }
   }, []);
 
+  const fetchSubs = useCallback(async () => {
+    try {
+      const res = await engineFetch('/api/mazscore-subscriptions');
+      if (res.success) {
+        const tfMap: Record<string, boolean> = {};
+        for (const row of res.data.timeframes || []) tfMap[row.timeframe] = !!row.enabled;
+        const assetMap: Record<string, boolean> = {};
+        for (const row of res.data.symbols || []) assetMap[row.symbol] = !!row.enabled;
+        setTfSubs(tfMap);
+        setAssetSubs(assetMap);
+      }
+    } catch {}
+    setSubsLoaded(true);
+  }, []);
+
   useEffect(() => {
     fetchData();
+    fetchSubs();
     const interval = setInterval(fetchData, 120000);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, fetchSubs]);
+
+  async function saveSubs() {
+    setSubsSaving(true);
+    setSubsMessage(null);
+    try {
+      const timeframes = TF_ORDER.filter(tf => tfSubs[tf]);
+      const symbols = Object.keys(assetSubs).filter(s => assetSubs[s]);
+      const res = await engineFetch('/api/mazscore-subscriptions', {
+        method: 'PUT',
+        body: JSON.stringify({ timeframes, symbols }),
+      });
+      if (!res.success) throw new Error(res.error || 'Failed to save');
+      setSubsMessage('Saved');
+    } catch (err: unknown) {
+      setSubsMessage(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSubsSaving(false);
+    }
+  }
 
   const handleSort = (key: string) => {
     if (sortBy === key) {
@@ -106,6 +147,9 @@ export default function MAZScoreScreenerPage() {
   };
 
   const sortSymbols = (a: string, b: string) => {
+    const aEnabled = !!assetSubs[a];
+    const bEnabled = !!assetSubs[b];
+    if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
     if (sortBy === 'symbol') {
       const cmp = a.localeCompare(b);
       return sortDir === 'desc' ? -cmp : cmp;
@@ -138,6 +182,10 @@ export default function MAZScoreScreenerPage() {
     return acc;
   }, {});
 
+  const allSymbols = Object.keys(data);
+  const allSymbolsSorted = [...new Set([...allSymbols])].sort();
+  const anySubscribed = Object.values(tfSubs).some(Boolean) || Object.values(assetSubs).some(Boolean);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -157,13 +205,80 @@ export default function MAZScoreScreenerPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-white">MA Z-Score Screener</h1>
+        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          MA Z-Score Screener
+          {anySubscribed ? (
+            <Bell className="h-4 w-4 text-blue-400" aria-label="Telegram alerts enabled" />
+          ) : (
+            <BellOff className="h-4 w-4 text-slate-500" aria-label="Telegram alerts disabled" />
+          )}
+        </h1>
         <button
           onClick={fetchData}
           className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
         >
           Refresh
         </button>
+      </div>
+
+      <div className="mb-4 rounded-xl border border-slate-700/50 bg-slate-800 p-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
+          <div>
+            <div className="text-sm font-medium text-white">Telegram alerts per timeframe</div>
+            <div className="text-xs text-slate-400">Get notified on MA Z-Score reversals for the selected timeframes and assets.</div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {TF_ORDER.map(tf => (
+              <label key={tf} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
+                <input
+                  type="checkbox"
+                  checked={!!tfSubs[tf]}
+                  onChange={(e) => setTfSubs({ ...tfSubs, [tf]: e.target.checked })}
+                  className="rounded border-slate-600"
+                  disabled={!subsLoaded}
+                />
+                <span className="uppercase font-mono text-xs">{tf}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <div className="text-sm font-medium text-white mb-2">Assets</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {allSymbolsSorted.map(symbol => {
+              const display = symbol.replace('/USDT:USDT', '');
+              return (
+                <label key={symbol} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!assetSubs[symbol]}
+                    onChange={(e) => setAssetSubs({ ...assetSubs, [symbol]: e.target.checked })}
+                    className="rounded border-slate-600"
+                    disabled={!subsLoaded}
+                  />
+                  <span className="font-mono text-xs">{display}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={saveSubs}
+            disabled={subsSaving || !subsLoaded}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {subsSaving ? 'Saving…' : 'Save'}
+          </button>
+          {subsMessage && (
+            <div className={`text-xs ${subsMessage === 'Saved' ? 'text-green-400' : 'text-red-400'}`}>
+              {subsMessage}
+            </div>
+          )}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
