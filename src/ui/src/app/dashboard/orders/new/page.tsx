@@ -464,12 +464,12 @@ export default function ManualOrderFormPage() {
                 className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-white outline-none focus:border-blue-500"
               >
                 <option value="">Not set</option>
-                <option value="superTrend">SuperTrend</option>
-                <option value="rollingSuperTrend">Rolling SuperTrend</option>
-                <option value="rollingSuperTrend2">Rolling SuperTrend2</option>
+                <option value="supertrend">SuperTrend</option>
+                <option value="rollingsupertrend">Rolling SuperTrend</option>
+                <option value="rollingsupertrend2">Rolling SuperTrend2</option>
                 <option value="macd">MACD</option>
                 <option value="ema">EMA Cross</option>
-                <option value="ewTrading">EW Trading</option>
+                <option value="ewt">EW Trading</option>
               </select>
             </div>
             <div>

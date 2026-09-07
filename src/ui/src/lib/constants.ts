@@ -11,12 +11,12 @@ export const TIMEFRAMES = [
 ] as const;
 
 export const INDICATORS = [
-  { value: 'superTrend', label: 'SuperTrend' },
-  { value: 'rollingSuperTrend', label: 'Rolling SuperTrend' },
-  { value: 'rollingSuperTrend2', label: 'Rolling SuperTrend2' },
+  { value: 'supertrend', label: 'SuperTrend' },
+  { value: 'rollingsupertrend', label: 'Rolling SuperTrend' },
+  { value: 'rollingsupertrend2', label: 'Rolling SuperTrend2' },
   { value: 'macd', label: 'MACD' },
   { value: 'ema', label: 'EMA Cross' },
-  { value: 'ewTrading', label: 'EW Trading' },
+  { value: 'ewt', label: 'EW Trading' },
 ] as const;
 
 export const DEFAULT_TP_RATIOS = [1, 2, 3, 4];

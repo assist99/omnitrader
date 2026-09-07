@@ -27,7 +27,7 @@ export default function SetupFormPage() {
     activation_price: 0,
     ignore_box_upper: 0,
     ignore_box_lower: 0,
-    entry_indicator_type: 'superTrend',
+    entry_indicator_type: 'supertrend',
     entry_indicator_tf: 'h1',
     risk_type: 'fixed',
     risk_value: 0,

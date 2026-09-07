@@ -1,6 +1,6 @@
 export type Side = 'long' | 'short';
 export type SetupStatus = 'pending' | 'triggered' | 'active' | 'closed' | 'cancelled';
-export type EntryIndicatorType = 'superTrend' | 'rollingSuperTrend' | 'rollingSuperTrend2' | 'macd' | 'ema' | 'ewTrading' | 'manual';
+export type EntryIndicatorType = 'supertrend' | 'rollingsupertrend' | 'rollingsupertrend2' | 'macd' | 'ema' | 'ewt' | 'manual';
 export type ScreenerIndicatorType = 'supertrend' | 'rollingsupertrend' | 'rollingsupertrend2' | 'macd' | 'ema' | 'ewt';
 export type Timeframe = 'm1' | 'm5' | 'm15' | 'm30' | 'h1' | 'h2' | 'h4' | 'd1' | 'w1';
 export type RiskType = 'percent' | 'fixed';
