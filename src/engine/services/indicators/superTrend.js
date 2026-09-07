@@ -53,6 +53,22 @@ function checkRollingSuperTrend(candles, params = {}) {
   }
 }
 
+function checkRollingSuperTrend2(candles, params = {}) {
+  try {
+    const rollingPeriod = params.rollingPeriod || 16;
+
+    if (candles.length < rollingPeriod + 1) {
+      return { met: false, error: 'Insufficient data for Rolling SuperTrend2 calculation' };
+    }
+
+    const syntheticCandles = buildSyntheticCandles(candles, rollingPeriod);
+    return checkSuperTrend(syntheticCandles, params);
+  } catch (error) {
+    logger.error('Error checking Rolling SuperTrend2:', error);
+    return { met: false, error: error.message };
+  }
+}
+
 function getSuperTrendSwingPrice(candles, side, params = {}) {
   try {
     const period = params.period || 10;
@@ -152,9 +168,22 @@ function getRollingSuperTrendSwingPrice(candles, side, params = {}) {
   }
 }
 
+function getRollingSuperTrend2SwingPrice(candles, side, params = {}) {
+  try {
+    const rollingPeriod = params.rollingPeriod || 16;
+    const syntheticCandles = buildSyntheticCandles(candles, rollingPeriod);
+    return getSuperTrendSwingPrice(syntheticCandles, side, params);
+  } catch (error) {
+    logger.error('Error getting rolling SuperTrend2 swing price:', error);
+    return { price: null, error: error.message };
+  }
+}
+
 module.exports = {
   checkSuperTrend,
   checkRollingSuperTrend,
+  checkRollingSuperTrend2,
   getSuperTrendSwingPrice,
   getRollingSuperTrendSwingPrice,
+  getRollingSuperTrend2SwingPrice,
 };

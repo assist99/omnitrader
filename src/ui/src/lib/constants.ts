@@ -13,6 +13,7 @@ export const TIMEFRAMES = [
 export const INDICATORS = [
   { value: 'superTrend', label: 'SuperTrend' },
   { value: 'rollingSuperTrend', label: 'Rolling SuperTrend' },
+  { value: 'rollingSuperTrend2', label: 'Rolling SuperTrend2' },
   { value: 'macd', label: 'MACD' },
   { value: 'ema', label: 'EMA Cross' },
   { value: 'ewTrading', label: 'EW Trading' },

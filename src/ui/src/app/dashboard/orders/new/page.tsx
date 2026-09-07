@@ -466,6 +466,7 @@ export default function ManualOrderFormPage() {
                 <option value="">Not set</option>
                 <option value="superTrend">SuperTrend</option>
                 <option value="rollingSuperTrend">Rolling SuperTrend</option>
+                <option value="rollingSuperTrend2">Rolling SuperTrend2</option>
                 <option value="macd">MACD</option>
                 <option value="ema">EMA Cross</option>
                 <option value="ewTrading">EW Trading</option>
