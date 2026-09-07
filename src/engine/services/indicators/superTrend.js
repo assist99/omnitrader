@@ -179,6 +179,55 @@ function getRollingSuperTrend2SwingPrice(candles, side, params = {}) {
   }
 }
 
+function getSuperTrendLineValue(candles, side, entryPrice, params = {}) {
+  try {
+    const period = params.period || 10;
+    const multiplier = params.multiplier || 3;
+
+    const highs = candles.map(c => c.high);
+    const lows = candles.map(c => c.low);
+    const closes = candles.map(c => c.close);
+
+    const { superTrend } = _calculateSuperTrendAligned(highs, lows, closes, period, multiplier);
+    const nonNull = superTrend.filter(val => val !== null);
+    if (nonNull.length === 0) {
+      return { price: null, error: 'Insufficient data for SuperTrend line calculation' };
+    }
+
+    const lineValue = nonNull[nonNull.length - 1];
+
+    if (side === 'long' && lineValue >= entryPrice) {
+      return { price: null, error: 'SuperTrend line is not below entry price' };
+    }
+    if (side === 'short' && lineValue <= entryPrice) {
+      return { price: null, error: 'SuperTrend line is not above entry price' };
+    }
+
+    logger.info(`SuperTrend line value for ${side}: $${lineValue} (entry: $${entryPrice})`);
+
+    return { price: lineValue, lineValue, lastClose: entryPrice };
+  } catch (error) {
+    logger.error('Error getting SuperTrend line value:', error);
+    return { price: null, error: error.message };
+  }
+}
+
+function getRollingSuperTrendLineValue(candles, side, entryPrice, params = {}) {
+  try {
+    const rollingPeriod = params.rollingPeriod || 4;
+
+    if (candles.length < rollingPeriod + 1) {
+      return { price: null, error: 'Insufficient data for Rolling SuperTrend line calculation' };
+    }
+
+    const syntheticCandles = buildSyntheticCandles(candles, rollingPeriod);
+    return getSuperTrendLineValue(syntheticCandles, side, entryPrice, params);
+  } catch (error) {
+    logger.error('Error getting Rolling SuperTrend line value:', error);
+    return { price: null, error: error.message };
+  }
+}
+
 module.exports = {
   checkSuperTrend,
   checkRollingSuperTrend,
@@ -186,4 +235,6 @@ module.exports = {
   getSuperTrendSwingPrice,
   getRollingSuperTrendSwingPrice,
   getRollingSuperTrend2SwingPrice,
+  getSuperTrendLineValue,
+  getRollingSuperTrendLineValue,
 };

@@ -58,14 +58,14 @@ class PriceUtils {
           return ignoreBoxLower;
         }
         
-        // Try swing detection if indicator and candles provided
+        // Try swing detection or indicator-based SL if indicator and candles provided
         if (indicatorType && candles && candles.length >= 50) {
-          const swingResult = IndicatorService.getSwingPrice(indicatorType, candles, side, indicatorParams);
-          if (swingResult.price && swingResult.price < entryPrice) {
-            logger.info(`SL using ${indicatorType} swing price: $${swingResult.price}`);
-            return swingResult.price;
-          } else if (swingResult.error) {
-            logger.warn(`Swing detection failed for ${indicatorType}: ${swingResult.error}`);
+          const slResult = IndicatorService.getStopLossPrice(indicatorType, candles, side, entryPrice, indicatorParams);
+          if (slResult.price && slResult.price < entryPrice) {
+            logger.info(`SL using ${indicatorType} stop price: $${slResult.price}`);
+            return slResult.price;
+          } else if (slResult.error) {
+            logger.warn(`Stop price detection failed for ${indicatorType}: ${slResult.error}`);
           }
         }
         
@@ -80,14 +80,14 @@ class PriceUtils {
           return ignoreBoxUpper;
         }
         
-        // Try swing detection if indicator and candles provided
+        // Try swing detection or indicator-based SL if indicator and candles provided
         if (indicatorType && candles && candles.length >= 50) {
-          const swingResult = IndicatorService.getSwingPrice(indicatorType, candles, side, indicatorParams);
-          if (swingResult.price && swingResult.price > entryPrice) {
-            logger.info(`SL using ${indicatorType} swing price: $${swingResult.price}`);
-            return swingResult.price;
-          } else if (swingResult.error) {
-            logger.warn(`Swing detection failed for ${indicatorType}: ${swingResult.error}`);
+          const slResult = IndicatorService.getStopLossPrice(indicatorType, candles, side, entryPrice, indicatorParams);
+          if (slResult.price && slResult.price > entryPrice) {
+            logger.info(`SL using ${indicatorType} stop price: $${slResult.price}`);
+            return slResult.price;
+          } else if (slResult.error) {
+            logger.warn(`Stop price detection failed for ${indicatorType}: ${slResult.error}`);
           }
         }
         

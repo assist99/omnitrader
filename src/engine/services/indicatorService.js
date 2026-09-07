@@ -107,6 +107,18 @@ class IndicatorService {
     return defaultParams[this._normalizeType(indicatorType)] || {};
   }
 
+  static getStopLossPrice(indicatorType, candles, side, entryPrice, params = {}) {
+    const normalizedType = this._normalizeType(indicatorType);
+    if (normalizedType === 'rollingsupertrend2') {
+      return SuperTrend.getRollingSuperTrendLineValue(candles, side, entryPrice, {
+        period: params.period || 10,
+        multiplier: params.multiplier || 3,
+        rollingPeriod: 4,
+      });
+    }
+    return this.getSwingPrice(indicatorType, candles, side, params);
+  }
+
   static validateIndicatorConfig(indicatorType, timeframe) {
     const validIndicators = ['supertrend', 'rollingsupertrend', 'rollingsupertrend2', 'macd', 'ema', 'ewt', 'mazscore'];
     const validTimeframes = ['m1', 'm5', 'm15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1'];
