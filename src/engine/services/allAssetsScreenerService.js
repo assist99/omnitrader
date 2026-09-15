@@ -42,6 +42,18 @@ class AllAssetsScreenerService {
     this.ewSubscribersCacheTs = 0;
   }
 
+  static invalidateEwSubscribersCache() {
+    this.ewSubscribersCache = null;
+    this.ewSubscribersCacheTs = 0;
+  }
+
+  static invalidateMazscoreCaches() {
+    this.mazscoreTfSubscribersCache = null;
+    this.mazscoreTfSubscribersCacheTs = 0;
+    this.mazscoreAssetSubscribersCache = null;
+    this.mazscoreAssetSubscribersCacheTs = 0;
+  }
+
   static _stMinTimeframes = new Set(['m15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1']);
 
    static async processClosedCandle(symbol, timeframe, closedBars) {
@@ -211,8 +223,6 @@ class AllAssetsScreenerService {
           for (const userId of subscribers) {
             await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
           }
-        } else if (!hasAnySubscriptions) {
-          await this.telegramService.sendNotification(null, 'screener_reversal', payload);
         }
 
         this.lastEWSignals.set(key, ewResult.signal);
@@ -356,8 +366,6 @@ class AllAssetsScreenerService {
             for (const userId of subscribers) {
               await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
             }
-          } else if (!hasAnySubscriptions) {
-            await this.telegramService.sendNotification(null, 'screener_reversal', payload);
           }
 
           logger.info(`MA Z-Score alert sent: ${signalType}, avg=${avgZScore.toFixed(4)}, prev=${prevAvg.toFixed(4)}`);
@@ -411,8 +419,6 @@ class AllAssetsScreenerService {
           for (const userId of subscribers) {
             await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
           }
-        } else if (!hasAnySubscriptions) {
-          await this.telegramService.sendNotification(null, 'screener_reversal', payload);
         }
 
         logger.info(`MA Z-Score per-asset alert: ${symbol} ${timeframe} ${signalType}, z=${zScoreVal.toFixed(4)}, prev=${prevZScore.toFixed(4)}`);

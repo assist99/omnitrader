@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDatabaseManager } = require('../../db');
 const auth = require('../middleware/auth');
+const AllAssetsScreenerService = require('../../services/allAssetsScreenerService');
 
 const TF_ORDER = ['m5', 'm15', 'h1', 'h4', 'd1', 'w1'];
 
@@ -29,6 +30,7 @@ router.put('/', auth, async (req, res) => {
     const cleaned = [...new Set(timeframes.filter(tf => typeof tf === 'string' && TF_ORDER.includes(tf)))];
     const db = getDatabaseManager();
     await db.replaceEwSubscriptionsForUser(req.user.id, cleaned);
+    AllAssetsScreenerService.invalidateEwSubscribersCache();
     const data = TF_ORDER.map(tf => ({
       timeframe: tf,
       enabled: cleaned.includes(tf),

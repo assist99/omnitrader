@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDatabaseManager } = require('../../db');
 const auth = require('../middleware/auth');
+const AllAssetsScreenerService = require('../../services/allAssetsScreenerService');
 
 const TF_ORDER = ['m5', 'm15', 'h1', 'h4', 'd1', 'w1'];
 
@@ -38,6 +39,7 @@ router.put('/', auth, async (req, res) => {
     const db = getDatabaseManager();
     await db.replaceMazscoreTfSubscriptionsForUser(req.user.id, cleanedTf);
     await db.replaceMazscoreAssetSubscriptionsForUser(req.user.id, cleanedSyms);
+    AllAssetsScreenerService.invalidateMazscoreCaches();
     const data = {
       timeframes: TF_ORDER.map(tf => ({
         timeframe: tf,
