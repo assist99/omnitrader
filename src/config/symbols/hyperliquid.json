@@ -319,8 +319,16 @@
         {
             "symbol": "MEME/USDC:USDC",
             "display": "MEMEUSDC.P"
+        },
+         {
+            "symbol": "SILVER/USDC:USDC",
+            "display": "SILVERUSDC.P"
+        },
+         {
+            "symbol": "GOLD/USDC:USDC",
+            "display": "GOLDUSDC.P"
         }
-    ]
+   ]
 
  
 }
