@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import engineFetch from '@/lib/api';
 import { Bell, BellOff, Save } from 'lucide-react';
 
@@ -77,18 +77,6 @@ export default function SuperTrendScreenerPage() {
     return () => clearInterval(interval);
   }, [fetchData, fetchSubs, fetchMe]);
 
-  // Update indeterminate checkbox states when subscriptions change
-  useEffect(() => {
-    TF_ORDER.forEach(tf => {
-      const checkbox = checkboxRefs.current[tf];
-      if (checkbox) {
-        const allEnabled = isTimeframeAllEnabled(tf);
-        const anyEnabled = isTimeframeAnyEnabled(tf);
-        checkbox.indeterminate = anyEnabled && !allEnabled;
-      }
-    });
-  }, [subs, symbols]);
-
   async function saveSubs() {
     setSubsSaving(true);
     setSubsMessage(null);
@@ -107,34 +95,48 @@ export default function SuperTrendScreenerPage() {
     }
   }
 
-  const symbols = Object.keys(data).sort();
-  const anySubscribed = symbols.some(symbol => 
-    TF_ORDER.some(tf => subs[symbol]?.[tf])
-  );
+  // Calculate symbols from data using useMemo
+  const symbols = useMemo(() => Object.keys(data).sort(), [data]);
+  
+  const isTimeframeAllEnabled = useCallback((tf: string) => {
+    return symbols.every(symbol => subs[symbol]?.[tf]);
+  }, [symbols, subs]);
 
-  const handleTimeframeToggle = (tf: string, enabled: boolean) => {
+  const isTimeframeAnyEnabled = useCallback((tf: string) => {
+    return symbols.some(symbol => subs[symbol]?.[tf]);
+  }, [symbols, subs]);
+
+  const anySubscribed = useMemo(() => symbols.some(symbol => 
+    TF_ORDER.some(tf => subs[symbol]?.[tf])
+  ), [symbols, subs]);
+
+  const handleTimeframeToggle = useCallback((tf: string, enabled: boolean) => {
     const newSubs = { ...subs };
     for (const symbol of symbols) {
       if (!newSubs[symbol]) newSubs[symbol] = {};
       newSubs[symbol][tf] = enabled;
     }
     setSubs(newSubs);
-  };
+  }, [subs, symbols]);
 
-  const handleSymbolTimeframeToggle = (symbol: string, tf: string, enabled: boolean) => {
+  const handleSymbolTimeframeToggle = useCallback((symbol: string, tf: string, enabled: boolean) => {
     const newSubs = { ...subs };
     if (!newSubs[symbol]) newSubs[symbol] = {};
     newSubs[symbol][tf] = enabled;
     setSubs(newSubs);
-  };
+  }, [subs]);
 
-  const isTimeframeAllEnabled = (tf: string) => {
-    return symbols.every(symbol => subs[symbol]?.[tf]);
-  };
-
-  const isTimeframeAnyEnabled = (tf: string) => {
-    return symbols.some(symbol => subs[symbol]?.[tf]);
-  };
+  // Update indeterminate checkbox states when subscriptions change
+  useEffect(() => {
+    TF_ORDER.forEach(tf => {
+      const checkbox = checkboxRefs.current[tf];
+      if (checkbox) {
+        const allEnabled = isTimeframeAllEnabled(tf);
+        const anyEnabled = isTimeframeAnyEnabled(tf);
+        checkbox.indeterminate = anyEnabled && !allEnabled;
+      }
+    });
+  }, [subs, isTimeframeAllEnabled, isTimeframeAnyEnabled]);
 
   if (loading) {
     return (
