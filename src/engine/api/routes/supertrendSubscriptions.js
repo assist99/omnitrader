@@ -63,11 +63,22 @@ router.put('/', auth, async (req, res) => {
         continue; // Skip invalid symbols silently
       }
       
-      for (const timeframe in subscriptions[symbol]) {
-        if (!TF_ORDER.includes(timeframe)) continue;
-        
-        if (subscriptions[symbol][timeframe]) {
-          flatSubs.push({ symbol, timeframe });
+      // Check if using new format {symbol: {enabled: true}} or old format {symbol: {timeframe: true}}
+      if (subscriptions[symbol].enabled !== undefined) {
+        // New format: asset is enabled, subscribe to all timeframes in the request
+        for (const tf in subscriptions) {
+          if (subscriptions[tf] === true && TF_ORDER.includes(tf)) {
+            flatSubs.push({ symbol, timeframe: tf });
+          }
+        }
+      } else {
+        // Old format: direct timeframe mapping
+        for (const timeframe in subscriptions[symbol]) {
+          if (!TF_ORDER.includes(timeframe)) continue;
+          
+          if (subscriptions[symbol][timeframe]) {
+            flatSubs.push({ symbol, timeframe });
+          }
         }
       }
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import engineFetch from '@/lib/api';
 import { Bell, BellOff, Save } from 'lucide-react';
 
@@ -8,12 +8,12 @@ const TF_ORDER = ['m15', 'h1', 'h4', 'd1', 'w1'];
 
 function SignalDot({ signal }: { signal: string | null }) {
   if (!signal) {
-    return <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-700/50 text-slate-500 text-xs">—</span>;
+    return <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-slate-800/50 text-slate-500 text-[8px]">—</span>;
   }
   const isBullish = signal.startsWith('bullish');
   return (
     <span
-      className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${isBullish ? 'bg-green-500' : 'bg-red-500'} shadow-sm`}
+      className={`inline-flex items-center justify-center w-3 h-3 rounded-full ${isBullish ? 'bg-green-800/40' : 'bg-red-800/40'} border ${isBullish ? 'border-green-600/30' : 'border-red-600/30'}`}
       title={signal}
     />
   );
@@ -24,12 +24,11 @@ export default function SuperTrendScreenerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subs, setSubs] = useState<Record<string, Record<string, boolean>>>({});
+  const [selectedTimeframes, setSelectedTimeframes] = useState<Record<string, boolean>>({});
   const [subsLoaded, setSubsLoaded] = useState(false);
   const [subsSaving, setSubsSaving] = useState(false);
   const [subsMessage, setSubsMessage] = useState<string | null>(null);
   const [telegramConfigured, setTelegramConfigured] = useState<boolean | null>(null);
-  
-  const checkboxRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -54,7 +53,19 @@ export default function SuperTrendScreenerPage() {
     try {
       const res = await engineFetch('/api/supertrend-subscriptions');
       if (res.success && res.data) {
-        setSubs(res.data as Record<string, Record<string, boolean>>);
+        const subscriptions = res.data as Record<string, Record<string, boolean>>;
+        setSubs(subscriptions);
+        
+        // Extract selected timeframes from subscriptions
+        const timeframes: Record<string, boolean> = {};
+        for (const symbol in subscriptions) {
+          for (const tf in subscriptions[symbol]) {
+            if (subscriptions[symbol][tf]) {
+              timeframes[tf] = true;
+            }
+          }
+        }
+        setSelectedTimeframes(timeframes);
       }
     } catch {}
     setSubsLoaded(true);
@@ -81,12 +92,46 @@ export default function SuperTrendScreenerPage() {
     setSubsSaving(true);
     setSubsMessage(null);
     try {
+      // Build subscriptions in the format API expects: {symbol: {timeframe: true}}
+      const subscriptions: Record<string, Record<string, boolean>> = {};
+      for (const symbol in subs) {
+        if (subs[symbol]?.enabled) {
+          subscriptions[symbol] = {};
+          for (const tf in selectedTimeframes) {
+            if (selectedTimeframes[tf]) {
+              subscriptions[symbol][tf] = true;
+            }
+          }
+        }
+      }
+      
       const res = await engineFetch('/api/supertrend-subscriptions', {
         method: 'PUT',
-        body: JSON.stringify({ subscriptions: subs }),
+        body: JSON.stringify({ subscriptions }),
       });
       if (!res.success) throw new Error(res.error || 'Failed to save');
-      setSubs(res.data as Record<string, Record<string, boolean>>);
+      
+      // Update local state with server response
+      const updatedSubs = res.data as Record<string, Record<string, boolean>>;
+      
+      // Convert back to our internal format: {symbol: {enabled: true}}
+      const newSubs: Record<string, Record<string, boolean>> = {};
+      for (const symbol in updatedSubs) {
+        newSubs[symbol] = { enabled: true };
+      }
+      setSubs(newSubs);
+      
+      // Re-extract timeframes
+      const timeframes: Record<string, boolean> = {};
+      for (const symbol in updatedSubs) {
+        for (const tf in updatedSubs[symbol]) {
+          if (updatedSubs[symbol][tf]) {
+            timeframes[tf] = true;
+          }
+        }
+      }
+      setSelectedTimeframes(timeframes);
+      
       setSubsMessage('Saved');
     } catch (err: unknown) {
       setSubsMessage(err instanceof Error ? err.message : 'Save failed');
@@ -95,48 +140,21 @@ export default function SuperTrendScreenerPage() {
     }
   }
 
-  // Calculate symbols from data using useMemo
+  // Calculate symbols from data
   const symbols = useMemo(() => Object.keys(data).sort(), [data]);
-  
-  const isTimeframeAllEnabled = useCallback((tf: string) => {
-    return symbols.every(symbol => subs[symbol]?.[tf]);
-  }, [symbols, subs]);
 
-  const isTimeframeAnyEnabled = useCallback((tf: string) => {
-    return symbols.some(symbol => subs[symbol]?.[tf]);
-  }, [symbols, subs]);
+  const handleTimeframeToggle = (tf: string, enabled: boolean) => {
+    setSelectedTimeframes(prev => ({ ...prev, [tf]: enabled }));
+  };
 
-  const anySubscribed = useMemo(() => symbols.some(symbol => 
-    TF_ORDER.some(tf => subs[symbol]?.[tf])
-  ), [symbols, subs]);
+  const handleAssetToggle = (symbol: string, enabled: boolean) => {
+    setSubs(prev => ({ ...prev, [symbol]: { enabled } }));
+  };
 
-  const handleTimeframeToggle = useCallback((tf: string, enabled: boolean) => {
-    const newSubs = { ...subs };
-    for (const symbol of symbols) {
-      if (!newSubs[symbol]) newSubs[symbol] = {};
-      newSubs[symbol][tf] = enabled;
-    }
-    setSubs(newSubs);
-  }, [subs, symbols]);
-
-  const handleSymbolTimeframeToggle = useCallback((symbol: string, tf: string, enabled: boolean) => {
-    const newSubs = { ...subs };
-    if (!newSubs[symbol]) newSubs[symbol] = {};
-    newSubs[symbol][tf] = enabled;
-    setSubs(newSubs);
-  }, [subs]);
-
-  // Update indeterminate checkbox states when subscriptions change
-  useEffect(() => {
-    TF_ORDER.forEach(tf => {
-      const checkbox = checkboxRefs.current[tf];
-      if (checkbox) {
-        const allEnabled = isTimeframeAllEnabled(tf);
-        const anyEnabled = isTimeframeAnyEnabled(tf);
-        checkbox.indeterminate = anyEnabled && !allEnabled;
-      }
-    });
-  }, [subs, isTimeframeAllEnabled, isTimeframeAnyEnabled]);
+  const anySubscribed = useMemo(() => {
+    return Object.keys(subs).some(symbol => subs[symbol]?.enabled) && 
+           Object.keys(selectedTimeframes).some(tf => selectedTimeframes[tf]);
+  }, [subs, selectedTimeframes]);
 
   if (loading) {
     return (
@@ -182,36 +200,24 @@ export default function SuperTrendScreenerPage() {
       <div className="mb-4 rounded-xl border border-slate-700/50 bg-slate-800 p-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <div className="text-sm font-medium text-white">Telegram alerts per asset & timeframe</div>
-            <div className="text-xs text-slate-400">Get notified on SuperTrend trend changes for selected assets and timeframes.</div>
+            <div className="text-sm font-medium text-white">Telegram alert settings</div>
+            <div className="text-xs text-slate-400">Select timeframes and assets to receive alerts.</div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">Timeframes:</span>
-              {TF_ORDER.map(tf => {
-                const allEnabled = isTimeframeAllEnabled(tf);
-                const anyEnabled = isTimeframeAnyEnabled(tf);
-                 return (
-                   <label key={tf} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
-                     <input
-                       type="checkbox"
-                       checked={anyEnabled}
-                       ref={(el) => {
-                         checkboxRefs.current[tf] = el;
-                         if (el) {
-                           const allEnabled = isTimeframeAllEnabled(tf);
-                           const anyEnabled = isTimeframeAnyEnabled(tf);
-                           el.indeterminate = anyEnabled && !allEnabled;
-                         }
-                       }}
-                       onChange={(e) => handleTimeframeToggle(tf, e.target.checked)}
-                       disabled={!subsLoaded}
-                       className="rounded border-slate-600"
-                     />
-                     <span className="uppercase font-mono text-xs">{tf}</span>
-                   </label>
-                 );
-              })}
+              {TF_ORDER.map(tf => (
+                <label key={tf} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!selectedTimeframes[tf]}
+                    onChange={(e) => handleTimeframeToggle(tf, e.target.checked)}
+                    disabled={!subsLoaded}
+                    className="rounded border-slate-600"
+                  />
+                  <span className="uppercase font-mono text-xs">{tf}</span>
+                </label>
+              ))}
             </div>
             <button
               onClick={saveSubs}
@@ -238,32 +244,33 @@ export default function SuperTrendScreenerPage() {
               {TF_ORDER.map((tf) => (
                 <th key={tf} className="px-3 py-2 text-slate-400 font-medium text-center uppercase">{tf}</th>
               ))}
+              <th className="sticky right-0 bg-slate-900 z-10 px-3 py-2 text-slate-400 font-medium text-center">Alert</th>
             </tr>
           </thead>
           <tbody>
             {symbols.map((symbol) => {
               const display = symbol.replace('/USDT:USDT', '');
+              const isAssetEnabled = !!subs[symbol]?.enabled;
               return (
                 <tr key={symbol} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                   <td className="sticky left-0 bg-slate-900 z-10 px-3 py-2 text-white font-mono text-xs">{display}</td>
                   {TF_ORDER.map((tf) => (
                     <td key={tf} className="px-3 py-2 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <SignalDot signal={data[symbol]?.[tf] ?? null} />
-                        <label className="flex items-center gap-1 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={!!subs[symbol]?.[tf]}
-                            onChange={(e) => handleSymbolTimeframeToggle(symbol, tf, e.target.checked)}
-                            disabled={!subsLoaded}
-                            className="h-3 w-3 rounded border-slate-600"
-                            title={`Alert for ${display} ${tf}`}
-                          />
-                          <span className="text-[10px] text-slate-400">Alert</span>
-                        </label>
-                      </div>
+                      <SignalDot signal={data[symbol]?.[tf] ?? null} />
                     </td>
                   ))}
+                  <td className="sticky right-0 bg-slate-900 z-10 px-3 py-2 text-center">
+                    <label className="flex items-center justify-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isAssetEnabled}
+                        onChange={(e) => handleAssetToggle(symbol, e.target.checked)}
+                        disabled={!subsLoaded}
+                        className="h-4 w-4 rounded border-slate-600"
+                        title={`Alert for ${display}`}
+                      />
+                    </label>
+                  </td>
                 </tr>
               );
             })}
