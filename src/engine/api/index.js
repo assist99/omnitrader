@@ -13,6 +13,7 @@ router.use('/webhook', require('./routes/webhook'));
 router.use('/symbols', require('./routes/symbols'));
 router.use('/ew-subscriptions', require('./routes/ewSubscriptions'));
 router.use('/mazscore-subscriptions', require('./routes/mazscoreSubscriptions'));
+router.use('/supertrend-subscriptions', require('./routes/supertrendSubscriptions'));
 router.use('/price-alarms', require('./routes/priceAlarms'));
 
 module.exports = router;

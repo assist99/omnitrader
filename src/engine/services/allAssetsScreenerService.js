@@ -20,7 +20,10 @@ class AllAssetsScreenerService {
   static ewSubscribersCache = null;
   static ewSubscribersCacheTs = 0;
   static EW_SUBSCRIBERS_CACHE_MS = 30 * 1000;
-  static MAZSCORE_SUBSCRIBERS_CACHE_MS = 30 * 1000;
+  static SUPERTREND_SUBSCRIBERS_CACHE_MS = 30 * 1000;
+  static supertrendSubscribersCache = null;
+  static supertrendSubscribersCacheTs = 0;
+  static lastSupertrendSignals = new Map();
   static mazscoreTfSubscribersCache = null;
   static mazscoreTfSubscribersCacheTs = 0;
   static mazscoreAssetSubscribersCache = null;
@@ -40,6 +43,8 @@ class AllAssetsScreenerService {
     this.telegramService = telegramService;
     this.ewSubscribersCache = null;
     this.ewSubscribersCacheTs = 0;
+    this.supertrendSubscribersCache = null;
+    this.supertrendSubscribersCacheTs = 0;
   }
 
   static invalidateEwSubscribersCache() {
@@ -52,6 +57,11 @@ class AllAssetsScreenerService {
     this.mazscoreTfSubscribersCacheTs = 0;
     this.mazscoreAssetSubscribersCache = null;
     this.mazscoreAssetSubscribersCacheTs = 0;
+  }
+
+  static invalidateSupertrendSubscribersCache() {
+    this.supertrendSubscribersCache = null;
+    this.supertrendSubscribersCacheTs = 0;
   }
 
   static _stMinTimeframes = new Set(['m15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1']);
@@ -125,22 +135,22 @@ class AllAssetsScreenerService {
     return { userIds: Array.from(userIds), hasAnySubscriptions: hasAny };
   }
 
-  static async _getMazscoreAssetSubscribers(symbol, timeframe) {
+  static async _getSupertrendSubscribers(symbol, timeframe) {
     if (!this.db) return { userIds: [], hasAnySubscriptions: false };
     const now = Date.now();
-    if (!this.mazscoreAssetSubscribersCache || now - this.mazscoreAssetSubscribersCacheTs > this.MAZSCORE_SUBSCRIBERS_CACHE_MS) {
+    if (!this.supertrendSubscribersCache || now - this.supertrendSubscribersCacheTs > this.SUPERTREND_SUBSCRIBERS_CACHE_MS) {
       try {
-        const rows = await this.db.getEnabledMazscoreAssetSubscribers();
-        this.mazscoreAssetSubscribersCache = rows;
-        this.mazscoreAssetSubscribersCacheTs = now;
+        const rows = await this.db.getEnabledSupertrendSubscribers();
+        this.supertrendSubscribersCache = rows;
+        this.supertrendSubscribersCacheTs = now;
       } catch (err) {
-        logger.error('Failed to load MAZScore asset subscribers:', err.message);
+        logger.error('Failed to load SuperTrend subscribers:', err.message);
         return { userIds: [], hasAnySubscriptions: false };
       }
     }
     const userIds = new Set();
     let hasAny = false;
-    for (const row of this.mazscoreAssetSubscribersCache) {
+    for (const row of this.supertrendSubscribersCache) {
       hasAny = true;
       if (row.symbol === symbol && row.timeframe === timeframe) userIds.add(row.user_id);
     }
@@ -161,10 +171,44 @@ class AllAssetsScreenerService {
 
     const key = `${symbol}:${timeframe}`;
     const lastWritten = this.lastSTWritten.get(key);
+    const lastSignal = this.lastSupertrendSignals.get(key);
 
     if (trend !== lastWritten) {
       await this.db.upsertScreenerSnapshot(symbol, timeframe, 'supertrend', trend);
       this.lastSTWritten.set(key, trend);
+    }
+
+    // Send alert if trend changed (including to/from null)
+    if (trend !== lastSignal && trend !== null && this.telegramService) {
+      const { userIds: subscribers, hasAnySubscriptions } = await this._getSupertrendSubscribers(symbol, timeframe);
+      
+      if (subscribers.length > 0) {
+        const lastBar = bars[bars.length - 1];
+        const price = lastBar ? lastBar.close : 0;
+        const timestamp = lastBar && lastBar.timestamp ? lastBar.timestamp : new Date().toISOString();
+
+        const payload = {
+          symbol,
+          timeframe,
+          indicatorType: 'SUPERTREND',
+          signal: trend,
+          price,
+          exchange: 'bybit',
+          isTestnet: false,
+          timestamp,
+        };
+
+        for (const userId of subscribers) {
+          await this.telegramService.sendNotification(userId, 'screener_reversal', payload);
+        }
+
+        logger.info(`SuperTrend alert sent: ${symbol} ${timeframe} ${trend}, price=${price}`);
+      }
+
+      this.lastSupertrendSignals.set(key, trend);
+    } else if (trend !== lastSignal) {
+      // Update last signal even if no alert sent (for null transitions)
+      this.lastSupertrendSignals.set(key, trend);
     }
   }
 

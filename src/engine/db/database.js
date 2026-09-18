@@ -137,6 +137,8 @@ class Database {
       await this.runPriceAlarmsMigration();
       // Run MA Z-Score subscriptions migration
       await this.runMazscoreSubscriptionsMigration();
+      // Run SuperTrend subscriptions migration
+      await this.runSupertrendSubscriptionsMigration();
     }
 
   }
@@ -190,6 +192,16 @@ class Database {
       await migration.runMigration();
     } catch (error) {
       logger.error('MA Z-Score subscriptions migration failed:', error);
+    }
+  }
+
+  async runSupertrendSubscriptionsMigration() {
+    try {
+      const Migration = require('./migrate_supertrend_subscriptions');
+      const migration = new Migration(this);
+      await migration.runMigration();
+    } catch (error) {
+      logger.error('SuperTrend subscriptions migration failed:', error);
     }
   }
 
@@ -612,6 +624,33 @@ async getExchangeAccountByIndex(index) {
   async deleteAllPriceAlarmsByUser(userId) {
     const sql = `DELETE FROM price_alarms WHERE user_id = ?`;
     return this.run(sql, [userId]);
+  }
+
+  async getSupertrendSubscriptionsByUser(userId) {
+    const sql = `
+      SELECT symbol, timeframe, enabled FROM supertrend_screener_subscriptions
+      WHERE user_id = ? AND enabled = 1
+    `;
+    return this.all(sql, [userId]);
+  }
+
+  async getEnabledSupertrendSubscribers() {
+    const sql = `
+      SELECT user_id, symbol, timeframe FROM supertrend_screener_subscriptions WHERE enabled = 1
+    `;
+    return this.all(sql);
+  }
+
+  async replaceSupertrendSubscriptionsForUser(userId, subscriptions) {
+    await this.run('DELETE FROM supertrend_screener_subscriptions WHERE user_id = ?', [userId]);
+    for (const sub of subscriptions) {
+      if (sub.symbol && sub.timeframe) {
+        await this.run(
+          'INSERT INTO supertrend_screener_subscriptions (user_id, symbol, timeframe, enabled) VALUES (?, ?, ?, 1)',
+          [userId, sub.symbol, sub.timeframe]
+        );
+      }
+    }
   }
 }
 
