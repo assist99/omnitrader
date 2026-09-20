@@ -81,14 +81,38 @@ class ActiveSetupService {
 static async checkBreakEven(ctx, setup, exchangeService) {
     try {
       if (!setup.be_enabled) return;
-
+      
+      // NEW: Check if BE already activated
+      if (setup.be_activated) {
+        logger.info(`BE already activated for setup #${setup.id}`);
+        return;
+      }
+      
       const orders = await ctx.db.getOrdersBySetupId(setup.id);
       const tp1Order = orders.find(o => o.order_type === 'tp1');
       
 
-      const slOrder = orders.find(o => o.order_type === 'sl');
-      if (slOrder.price === setup.entry_price) return;
-
+      // FIX: Find active SL order (pending or filled)
+      const slOrder = orders.find(o => 
+        o.order_type === 'sl' && 
+        (o.status === 'pending' || o.status === 'filled')
+      );
+      if (!slOrder) {
+        logger.warn(`No active SL order found for setup #${setup.id}`);
+        return;
+      }
+      // FIX: Use float tolerance comparison
+      if (Math.abs(slOrder.price - setup.entry_price) < 0.000001) {
+        logger.info(`BE already active for setup #${setup.id} (SL at entry price)`);
+        // Also update be_activated flag for consistency
+        if (!setup.be_activated) {
+          await ctx.db.updateSetupStatus(setup.id, setup.status, { 
+            be_activated: 1 
+          });
+        }
+        return;
+      }
+      
       // Check if we should trigger BE based on be_trigger_price
       if (setup.be_trigger_price > 0) {
         const ticker = await exchangeService.getTicker(setup.symbol);
@@ -137,7 +161,12 @@ static async checkBreakEven(ctx, setup, exchangeService) {
         timestamp: new Date().toISOString()
       });
 
-logger.beActivated(setup.id);
+      // After successful BE activation
+      await ctx.db.updateSetupStatus(setup.id, setup.status, { 
+        be_activated: 1 
+      });
+      
+      logger.beActivated(setup.id);
     } catch (error) {
       logger.error(`Error checking break-even for setup #${setup.id}:`, error);
     }
@@ -316,6 +345,16 @@ logger.beActivated(setup.id);
       
       // Place reduce-only market order for remaining quantity if any
       if (remainingQty > 0) {
+        let closePrice = null;
+        if (exchangeService.exchangeName === 'hyperliquid') {
+          try {
+            const ticker = await exchangeService.getTicker(setup.symbol);
+            closePrice = parseFloat(ticker.lastPrice);
+          } catch (error) {
+            logger.error(`Failed to fetch price for Hyperliquid close order: ${error.message}`);
+          }
+        }
+        
         const closeOrder = {
           symbol: setup.symbol,
           side: setup.side === 'long' ? 'Sell' : 'Buy',
@@ -324,8 +363,13 @@ logger.beActivated(setup.id);
           reduceOnly: true,
           timeInForce: 'IOC'
         };
+        
+        if (closePrice !== null) {
+          closeOrder.price = closePrice;
+        }
+        
         await exchangeService.placeOrder(closeOrder);
-        logger.info(`Placed reduce-only close order for setup #${setup.id}: ${remainingQty} qty remaining`);
+        logger.info(`Placed reduce-only close order for setup #${setup.id}: ${remainingQty} qty${closePrice !== null ? ` at price ${closePrice}` : ''}`);
       } else {
         logger.info(`No remaining qty to close for setup #${setup.id} (already fully closed by TP orders)`);
       }

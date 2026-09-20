@@ -149,11 +149,11 @@ async getSymbolInfo(symbol) {
       };
       
       // Include price for limit orders
-      if ((orderParams.orderType.toLowerCase() === 'limit' || orderParams.orderType.toLowerCase() === 'stop_market') && orderParams.price) {
+      if ((orderParams.orderType.toLowerCase() === 'limit' || orderParams.orderType.toLowerCase() === 'stop_market') && orderParams.price !== undefined && orderParams.price !== null) {
         params.price = parseFloat(orderParams.price);
       }
       
-      if ((orderParams.orderType.toLowerCase() === 'market' && this.exchangeName === 'hyperliquid')) {
+      if ((orderParams.orderType.toLowerCase() === 'market' && this.exchangeName === 'hyperliquid' && orderParams.price !== undefined && orderParams.price !== null)) {
         params.price = parseFloat(orderParams.price);
       }
 
@@ -166,7 +166,7 @@ async getSymbolInfo(symbol) {
       if (orderParams.triggerPrice !== undefined && orderParams.triggerPrice !== null) {
         params.triggerPrice = parseFloat(orderParams.triggerPrice);
         if(this.exchangeName=='hyperliquid'){
-          params.price = orderParams.triggerPrice;
+          params.price = parseFloat(orderParams.triggerPrice);
         }
       }
       

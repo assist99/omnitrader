@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS trading_setups (
   tp_prices TEXT DEFAULT '[1,2,3,4]',
   be_enabled INTEGER DEFAULT 0,
   be_trigger_price REAL DEFAULT 0,
+  be_activated INTEGER DEFAULT 0,
   entry_price REAL,
   entry_qty REAL,
   activated_at TEXT,

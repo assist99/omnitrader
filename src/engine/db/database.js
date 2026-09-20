@@ -139,6 +139,8 @@ class Database {
       await this.runMazscoreSubscriptionsMigration();
       // Run SuperTrend subscriptions migration
       await this.runSupertrendSubscriptionsMigration();
+      // Run BE activated migration
+      await this.runBeActivatedMigration();
     }
 
   }
@@ -202,6 +204,16 @@ class Database {
       await migration.runMigration();
     } catch (error) {
       logger.error('SuperTrend subscriptions migration failed:', error);
+    }
+  }
+
+  async runBeActivatedMigration() {
+    try {
+      const Migration = require('./migrate_be_activated');
+      const migration = new Migration(this);
+      await migration.runMigration();
+    } catch (error) {
+      logger.error('BE activated migration failed:', error);
     }
   }
 

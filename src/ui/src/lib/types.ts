@@ -48,6 +48,7 @@ export interface TradingSetup {
   tp_prices: string;
   be_enabled: number;
   be_trigger_price: number;
+  be_activated: number;  // NEW FIELD
   entry_price: number | null;
   entry_qty: number | null;
   profit: number;
