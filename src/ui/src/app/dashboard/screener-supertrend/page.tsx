@@ -95,7 +95,8 @@ export default function SuperTrendScreenerPage() {
       // Build subscriptions in the format API expects: {symbol: {timeframe: true}}
       const subscriptions: Record<string, Record<string, boolean>> = {};
       for (const symbol in subs) {
-        if (subs[symbol]?.enabled) {
+        const symbolTimeframes = subs[symbol];
+        if (symbolTimeframes && Object.values(symbolTimeframes).some(v => v)) {
           subscriptions[symbol] = {};
           for (const tf in selectedTimeframes) {
             if (selectedTimeframes[tf]) {
@@ -111,15 +112,9 @@ export default function SuperTrendScreenerPage() {
       });
       if (!res.success) throw new Error(res.error || 'Failed to save');
       
-      // Update local state with server response
+      // Update local state with server response (keep server format: {symbol: {timeframe: true}})
       const updatedSubs = res.data as Record<string, Record<string, boolean>>;
-      
-      // Convert back to our internal format: {symbol: {enabled: true}}
-      const newSubs: Record<string, Record<string, boolean>> = {};
-      for (const symbol in updatedSubs) {
-        newSubs[symbol] = { enabled: true };
-      }
-      setSubs(newSubs);
+      setSubs(updatedSubs);
       
       // Re-extract timeframes
       const timeframes: Record<string, boolean> = {};
@@ -148,11 +143,27 @@ export default function SuperTrendScreenerPage() {
   };
 
   const handleAssetToggle = (symbol: string, enabled: boolean) => {
-    setSubs(prev => ({ ...prev, [symbol]: { enabled } }));
+    setSubs(prev => {
+      if (enabled) {
+        // Enable all currently selected timeframes for this symbol
+        const timeframes: Record<string, boolean> = {};
+        for (const tf in selectedTimeframes) {
+          if (selectedTimeframes[tf]) {
+            timeframes[tf] = true;
+          }
+        }
+        return { ...prev, [symbol]: timeframes };
+      } else {
+        // Disable: remove symbol entirely
+        const next = { ...prev };
+        delete next[symbol];
+        return next;
+      }
+    });
   };
 
   const anySubscribed = useMemo(() => {
-    return Object.keys(subs).some(symbol => subs[symbol]?.enabled) && 
+    return Object.keys(subs).some(symbol => subs[symbol] && Object.values(subs[symbol]).some(v => v)) && 
            Object.keys(selectedTimeframes).some(tf => selectedTimeframes[tf]);
   }, [subs, selectedTimeframes]);
 
@@ -250,7 +261,7 @@ export default function SuperTrendScreenerPage() {
           <tbody>
             {symbols.map((symbol) => {
               const display = symbol.replace('/USDT:USDT', '');
-              const isAssetEnabled = !!subs[symbol]?.enabled;
+              const isAssetEnabled = subs[symbol] && Object.values(subs[symbol]).some(v => v);
               return (
                 <tr key={symbol} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                   <td className="sticky left-0 bg-slate-900 z-10 px-3 py-2 text-white font-mono text-xs">{display}</td>
