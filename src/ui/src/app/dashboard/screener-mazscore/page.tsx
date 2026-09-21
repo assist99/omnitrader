@@ -182,8 +182,6 @@ export default function MAZScoreScreenerPage() {
     return acc;
   }, {});
 
-  const allSymbols = Object.keys(data);
-  const allSymbolsSorted = [...new Set([...allSymbols])].sort();
   const anySubscribed = Object.values(tfSubs).some(Boolean) || Object.values(assetSubs).some(Boolean);
 
   if (loading) {
@@ -243,27 +241,6 @@ export default function MAZScoreScreenerPage() {
           </div>
         </div>
 
-        <div className="mb-3">
-          <div className="text-sm font-medium text-white mb-2">Assets</div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {allSymbolsSorted.map(symbol => {
-              const display = symbol.replace('/USDT:USDT', '');
-              return (
-                <label key={symbol} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
-                  <input
-                    type="checkbox"
-                    checked={!!assetSubs[symbol]}
-                    onChange={(e) => setAssetSubs({ ...assetSubs, [symbol]: e.target.checked })}
-                    className="rounded border-slate-600"
-                    disabled={!subsLoaded}
-                  />
-                  <span className="font-mono text-xs">{display}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="flex items-center gap-3">
           <button
             onClick={saveSubs}
@@ -301,6 +278,7 @@ export default function MAZScoreScreenerPage() {
                   <SortIcon active={sortBy === tf} direction={sortDir} />
                 </th>
               ))}
+              <th className="sticky right-0 bg-slate-900 z-10 px-3 py-2 text-slate-400 font-medium text-center">Alert</th>
             </tr>
           </thead>
           <tbody>
@@ -315,8 +293,20 @@ export default function MAZScoreScreenerPage() {
                       <ZScoreCell value={data[symbol]?.[tf] ?? null} extreme={extremes[`${symbol}:${tf}`]} />
                     </td>
                   ))}
+                <td className="sticky right-0 bg-slate-900 z-10 px-3 py-2 text-center">
+                    <label className="flex items-center justify-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!assetSubs[symbol]}
+                        onChange={(e) => setAssetSubs({ ...assetSubs, [symbol]: e.target.checked })}
+                        disabled={!subsLoaded}
+                        className="h-4 w-4 rounded border-slate-600"
+                        title={`Alert for ${display}`}
+                      />
+                    </label>
+                  </td>
                 </tr>
-              );
+              );}
             })}
             <SectionRow label="-- METALS --" values={metalAvg} bgColor="bg-teal-500/20" textColor="text-teal-200" />
             {metalSymbols.map((symbol) => {
@@ -329,8 +319,20 @@ export default function MAZScoreScreenerPage() {
                       <ZScoreCell value={data[symbol]?.[tf] ?? null} extreme={extremes[`${symbol}:${tf}`]} />
                     </td>
                   ))}
+                <td className="sticky right-0 bg-slate-900 z-10 px-3 py-2 text-center">
+                    <label className="flex items-center justify-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!assetSubs[symbol]}
+                        onChange={(e) => setAssetSubs({ ...assetSubs, [symbol]: e.target.checked })}
+                        disabled={!subsLoaded}
+                        className="h-4 w-4 rounded border-slate-600"
+                        title={`Alert for ${display}`}
+                      />
+                    </label>
+                  </td>
                 </tr>
-              );
+              );}
             })}
           </tbody>
         </table>
