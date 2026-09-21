@@ -20,9 +20,9 @@ class AllAssetsScreenerService {
   static ewSubscribersCache = null;
   static ewSubscribersCacheTs = 0;
   static EW_SUBSCRIBERS_CACHE_MS = 30 * 1000;
-  static SUPERTREND_SUBSCRIBERS_CACHE_MS = 30 * 1000;
-  static supertrendSubscribersCache = null;
-  static supertrendSubscribersCacheTs = 0;
+  static SUPERTREND_ASSET_CACHE_MS = 30 * 1000;
+  static supertrendAssetSubscribersCache = null;
+  static supertrendAssetSubscribersCacheTs = 0;
   static lastSupertrendSignals = new Map();
   static mazscoreTfSubscribersCache = null;
   static mazscoreTfSubscribersCacheTs = 0;
@@ -43,8 +43,8 @@ class AllAssetsScreenerService {
     this.telegramService = telegramService;
     this.ewSubscribersCache = null;
     this.ewSubscribersCacheTs = 0;
-    this.supertrendSubscribersCache = null;
-    this.supertrendSubscribersCacheTs = 0;
+    this.supertrendAssetSubscribersCache = null;
+    this.supertrendAssetSubscribersCacheTs = 0;
   }
 
   static invalidateEwSubscribersCache() {
@@ -60,8 +60,8 @@ class AllAssetsScreenerService {
   }
 
   static invalidateSupertrendSubscribersCache() {
-    this.supertrendSubscribersCache = null;
-    this.supertrendSubscribersCacheTs = 0;
+    this.supertrendAssetSubscribersCache = null;
+    this.supertrendAssetSubscribersCacheTs = 0;
   }
 
   static _stMinTimeframes = new Set(['m15', 'm30', 'h1', 'h2', 'h4', 'd1', 'w1']);
@@ -138,19 +138,19 @@ class AllAssetsScreenerService {
   static async _getSupertrendSubscribers(symbol, timeframe) {
     if (!this.db) return { userIds: [], hasAnySubscriptions: false };
     const now = Date.now();
-    if (!this.supertrendSubscribersCache || now - this.supertrendSubscribersCacheTs > this.SUPERTREND_SUBSCRIBERS_CACHE_MS) {
+    if (!this.supertrendAssetSubscribersCache || now - this.supertrendAssetSubscribersCacheTs > this.SUPERTREND_ASSET_CACHE_MS) {
       try {
-        const rows = await this.db.getEnabledSupertrendSubscribers();
-        this.supertrendSubscribersCache = rows;
-        this.supertrendSubscribersCacheTs = now;
+        const rows = await this.db.getEnabledSupertrendAssetSubscribers();
+        this.supertrendAssetSubscribersCache = rows;
+        this.supertrendAssetSubscribersCacheTs = now;
       } catch (err) {
-        logger.error('Failed to load SuperTrend subscribers:', err.message);
+        logger.error('Failed to load SuperTrend asset subscribers:', err.message);
         return { userIds: [], hasAnySubscriptions: false };
       }
     }
     const userIds = new Set();
     let hasAny = false;
-    for (const row of this.supertrendSubscribersCache) {
+    for (const row of this.supertrendAssetSubscribersCache) {
       hasAny = true;
       if (row.symbol === symbol && row.timeframe === timeframe) userIds.add(row.user_id);
     }

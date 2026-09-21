@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import engineFetch from '@/lib/api';
 import { Bell, BellOff, Save } from 'lucide-react';
+import engineFetch from '@/lib/api';
 
 const TF_ORDER = ['m15', 'h1', 'h4', 'd1', 'w1'];
 
@@ -19,10 +19,17 @@ function SignalDot({ signal }: { signal: string | null }) {
   );
 }
 
+function SortIcon({ active, direction }: { active: boolean; direction: 'asc' | 'desc' | null }) {
+  if (!active) return <span className="text-slate-600 ml-1">⇅</span>;
+  return direction === 'asc' ? <span className="text-blue-400 ml-1">↑</span> : <span className="text-blue-400 ml-1">↓</span>;
+}
+
 export default function SuperTrendScreenerPage() {
   const [data, setData] = useState<Record<string, Record<string, string | null>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>('symbol');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [tfSubs, setTfSubs] = useState<Record<string, boolean>>({});
   const [assetSubs, setAssetSubs] = useState<Record<string, boolean>>({});
   const [subsLoaded, setSubsLoaded] = useState(false);
@@ -51,27 +58,15 @@ export default function SuperTrendScreenerPage() {
   const fetchSubs = useCallback(async () => {
     try {
       const res = await engineFetch('/api/supertrend-subscriptions');
-      if (res.success && res.data) {
-        const subscriptions = res.data as Record<string, Record<string, boolean>>;
-        const timeframes: Record<string, boolean> = {};
+      if (res.success) {
+        const tfMap: Record<string, boolean> = {};
+        for (const row of res.data.timeframes || []) tfMap[row.timeframe] = !!row.enabled;
         const assetMap: Record<string, boolean> = {};
-        for (const symbol in subscriptions) {
-          for (const tf in subscriptions[symbol]) {
-            if (subscriptions[symbol][tf]) {
-              timeframes[tf] = true;
-              assetMap[symbol] = true;
-            }
-          }
-        }
-        setTfSubs(timeframes);
+        for (const row of res.data.symbols || []) assetMap[row.symbol] = !!row.enabled;
+        setTfSubs(tfMap);
         setAssetSubs(assetMap);
-        console.log('[SuperTrend] Subscriptions loaded:', subscriptions);
-      } else {
-        console.warn('[SuperTrend] Failed to load subscriptions:', res);
       }
-    } catch (err) {
-      console.error('[SuperTrend] Error loading subscriptions:', err);
-    }
+    } catch {}
     setSubsLoaded(true);
   }, []);
 
@@ -86,50 +81,48 @@ export default function SuperTrendScreenerPage() {
     setSubsSaving(true);
     setSubsMessage(null);
     try {
-      const enabledTimeframes = TF_ORDER.filter(tf => tfSubs[tf]);
-      const enabledSymbols = Object.keys(assetSubs).filter(s => assetSubs[s]);
-      const subscriptions: Record<string, Record<string, boolean>> = {};
-      for (const symbol of enabledSymbols) {
-        subscriptions[symbol] = {};
-        for (const tf of enabledTimeframes) {
-          subscriptions[symbol][tf] = true;
-        }
-      }
-
-      console.log('[SuperTrend] Saving subscriptions:', subscriptions);
-
+      const timeframes = TF_ORDER.filter(tf => tfSubs[tf]);
+      const symbols = Object.keys(assetSubs).filter(s => assetSubs[s]);
       const res = await engineFetch('/api/supertrend-subscriptions', {
         method: 'PUT',
-        body: JSON.stringify({ subscriptions }),
+        body: JSON.stringify({ timeframes, symbols }),
       });
       if (!res.success) throw new Error(res.error || 'Failed to save');
-
-      console.log('[SuperTrend] Save response:', res);
-
-      const updatedSubs = res.data as Record<string, Record<string, boolean>>;
-      const timeframes: Record<string, boolean> = {};
-      const assetMap: Record<string, boolean> = {};
-      for (const symbol in updatedSubs) {
-        for (const tf in updatedSubs[symbol]) {
-          if (updatedSubs[symbol][tf]) {
-            timeframes[tf] = true;
-            assetMap[symbol] = true;
-          }
-        }
-      }
-      setTfSubs(timeframes);
-      setAssetSubs(assetMap);
-
       setSubsMessage('Saved');
     } catch (err: unknown) {
-      console.error('[SuperTrend] Save error:', err);
       setSubsMessage(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSubsSaving(false);
     }
   }
 
-  const allSymbolsSorted = Object.keys(data).sort();
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(key);
+      setSortDir(key === 'symbol' ? 'asc' : 'desc');
+    }
+  };
+
+  const sortSymbols = (a: string, b: string) => {
+    const aEnabled = !!assetSubs[a];
+    const bEnabled = !!assetSubs[b];
+    if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
+    if (sortBy === 'symbol') {
+      const cmp = a.localeCompare(b);
+      return sortDir === 'desc' ? -cmp : cmp;
+    }
+    const aVal = data[a]?.[sortBy];
+    const bVal = data[b]?.[sortBy];
+    if (aVal === null && bVal === null) return 0;
+    if (aVal === null) return 1;
+    if (bVal === null) return -1;
+    return sortDir === 'desc' ? (aVal < bVal ? 1 : -1) : (aVal < bVal ? -1 : 1);
+  };
+
+  const allSymbols = Object.keys(data);
+  const allSymbolsSorted = [...allSymbols].sort(sortSymbols);
   const anySubscribed = Object.values(tfSubs).some(Boolean) && Object.values(assetSubs).some(Boolean);
 
   if (loading) {
@@ -168,51 +161,85 @@ export default function SuperTrendScreenerPage() {
       </div>
 
       <div className="mb-4 rounded-xl border border-slate-700/50 bg-slate-800 p-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
           <div>
-            <div className="text-sm font-medium text-white">Telegram alert settings</div>
-            <div className="text-xs text-slate-400">Select timeframes and assets to receive alerts.</div>
+            <div className="text-sm font-medium text-white">Telegram alerts per timeframe</div>
+            <div className="text-xs text-slate-400">Get notified on SuperTrend reversals for the selected timeframes and assets.</div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">Timeframes:</span>
-              {TF_ORDER.map(tf => (
-                <label key={tf} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
-                  <input
-                    type="checkbox"
-                    checked={!!tfSubs[tf]}
-                    onChange={(e) => setTfSubs({ ...tfSubs, [tf]: e.target.checked })}
-                    disabled={!subsLoaded}
-                    className="rounded border-slate-600"
-                  />
-                  <span className="uppercase font-mono text-xs">{tf}</span>
-                </label>
-              ))}
-            </div>
-            <button
-              onClick={saveSubs}
-              disabled={subsSaving || !subsLoaded}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" />
-              {subsSaving ? 'Saving…' : 'Save'}
-            </button>
+            {TF_ORDER.map(tf => (
+              <label key={tf} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
+                <input
+                  type="checkbox"
+                  checked={!!tfSubs[tf]}
+                  onChange={(e) => setTfSubs({ ...tfSubs, [tf]: e.target.checked })}
+                  className="rounded border-slate-600"
+                  disabled={!subsLoaded}
+                />
+                <span className="uppercase font-mono text-xs">{tf}</span>
+              </label>
+            ))}
           </div>
         </div>
-        {subsMessage && (
-          <div className={`mt-2 text-xs ${subsMessage === 'Saved' ? 'text-green-400' : 'text-red-400'}`}>
-            {subsMessage}
+
+        <div className="mb-3">
+          <div className="text-sm font-medium text-white mb-2">Assets</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {allSymbolsSorted.map(symbol => {
+              const display = symbol.replace('/USDT:USDT', '');
+              return (
+                <label key={symbol} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!assetSubs[symbol]}
+                    onChange={(e) => setAssetSubs({ ...assetSubs, [symbol]: e.target.checked })}
+                    className="rounded border-slate-600"
+                    disabled={!subsLoaded}
+                  />
+                  <span className="font-mono text-xs">{display}</span>
+                </label>
+              );
+            })}
           </div>
-        )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={saveSubs}
+            disabled={subsSaving || !subsLoaded}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {subsSaving ? 'Saving…' : 'Save'}
+          </button>
+          {subsMessage && (
+            <div className={`text-xs ${subsMessage === 'Saved' ? 'text-green-400' : 'text-red-400'}`}>
+              {subsMessage}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead>
             <tr className="border-b border-slate-700/50">
-              <th className="sticky left-0 bg-slate-900 z-10 px-3 py-2 text-slate-400 font-medium">Symbol</th>
+              <th
+                onClick={() => handleSort('symbol')}
+                className={`sticky left-0 bg-slate-900 z-10 px-3 py-2 font-medium cursor-pointer select-none hover:text-white transition-colors ${sortBy === 'symbol' ? 'text-white' : 'text-slate-400'}`}
+              >
+                Symbol
+                <SortIcon active={sortBy === 'symbol'} direction={sortDir} />
+              </th>
               {TF_ORDER.map((tf) => (
-                <th key={tf} className="px-3 py-2 text-slate-400 font-medium text-center uppercase">{tf}</th>
+                <th
+                  key={tf}
+                  onClick={() => handleSort(tf)}
+                  className={`px-3 py-2 text-slate-400 font-medium text-center uppercase cursor-pointer select-none hover:text-white transition-colors ${sortBy === tf ? 'text-white' : ''}`}
+                >
+                  {tf}
+                  <SortIcon active={sortBy === tf} direction={sortDir} />
+                </th>
               ))}
               <th className="sticky right-0 bg-slate-900 z-10 px-3 py-2 text-slate-400 font-medium text-center">Alert</th>
             </tr>

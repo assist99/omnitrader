@@ -638,30 +638,56 @@ async getExchangeAccountByIndex(index) {
     return this.run(sql, [userId]);
   }
 
-  async getSupertrendSubscriptionsByUser(userId) {
+  async getSupertrendTfSubscriptionsByUser(userId) {
     const sql = `
-      SELECT symbol, timeframe, enabled FROM supertrend_screener_subscriptions
+      SELECT timeframe, enabled FROM supertrend_tf_subscriptions
       WHERE user_id = ? AND enabled = 1
     `;
     return this.all(sql, [userId]);
   }
 
-  async getEnabledSupertrendSubscribers() {
+  async getEnabledSupertrendTfSubscribers() {
     const sql = `
-      SELECT user_id, symbol, timeframe FROM supertrend_screener_subscriptions WHERE enabled = 1
+      SELECT user_id, timeframe FROM supertrend_tf_subscriptions WHERE enabled = 1
     `;
     return this.all(sql);
   }
 
-  async replaceSupertrendSubscriptionsForUser(userId, subscriptions) {
-    await this.run('DELETE FROM supertrend_screener_subscriptions WHERE user_id = ?', [userId]);
-    for (const sub of subscriptions) {
-      if (sub.symbol && sub.timeframe) {
-        await this.run(
-          'INSERT INTO supertrend_screener_subscriptions (user_id, symbol, timeframe, enabled) VALUES (?, ?, ?, 1)',
-          [userId, sub.symbol, sub.timeframe]
-        );
-      }
+  async replaceSupertrendTfSubscriptionsForUser(userId, timeframes) {
+    await this.run('DELETE FROM supertrend_tf_subscriptions WHERE user_id = ?', [userId]);
+    for (const tf of timeframes) {
+      await this.run(
+        'INSERT INTO supertrend_tf_subscriptions (user_id, timeframe, enabled) VALUES (?, ?, 1)',
+        [userId, tf]
+      );
+    }
+  }
+
+  async getSupertrendAssetSubscriptionsByUser(userId) {
+    const sql = `
+      SELECT symbol, enabled FROM supertrend_asset_subscriptions
+      WHERE user_id = ? AND enabled = 1
+    `;
+    return this.all(sql, [userId]);
+  }
+
+  async getEnabledSupertrendAssetSubscribers() {
+    const sql = `
+      SELECT ast.user_id, ast.symbol, tf.timeframe
+      FROM supertrend_asset_subscriptions ast
+      JOIN supertrend_tf_subscriptions tf ON ast.user_id = tf.user_id
+      WHERE ast.enabled = 1 AND tf.enabled = 1
+    `;
+    return this.all(sql);
+  }
+
+  async replaceSupertrendAssetSubscriptionsForUser(userId, symbols) {
+    await this.run('DELETE FROM supertrend_asset_subscriptions WHERE user_id = ?', [userId]);
+    for (const sym of symbols) {
+      await this.run(
+        'INSERT INTO supertrend_asset_subscriptions (user_id, symbol, enabled) VALUES (?, ?, 1)',
+        [userId, sym]
+      );
     }
   }
 }

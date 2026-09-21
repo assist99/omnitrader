@@ -252,17 +252,31 @@ async createUser(email, passwordHash, timeoutMs) {
     }, timeoutMs);
   }
 
-  async getSupertrendSubscriptionsByUser(userId) {
-    return this.db.getSupertrendSubscriptionsByUser(userId);
+  async getSupertrendTfSubscriptionsByUser(userId) {
+    return this.db.getSupertrendTfSubscriptionsByUser(userId);
   }
 
-  async getEnabledSupertrendSubscribers() {
-    return this.db.getEnabledSupertrendSubscribers();
+  async getEnabledSupertrendTfSubscribers() {
+    return this.db.getEnabledSupertrendTfSubscribers();
   }
 
-  async replaceSupertrendSubscriptionsForUser(userId, subscriptions, timeoutMs) {
-    return this.runWriteOperation('replaceSupertrendSubscriptionsForUser', async () => {
-      return this.db.replaceSupertrendSubscriptionsForUser(userId, subscriptions);
+  async replaceSupertrendTfSubscriptionsForUser(userId, timeframes, timeoutMs) {
+    return this.runWriteOperation('replaceSupertrendTfSubscriptionsForUser', async () => {
+      return this.db.replaceSupertrendTfSubscriptionsForUser(userId, timeframes);
+    }, timeoutMs);
+  }
+
+  async getSupertrendAssetSubscriptionsByUser(userId) {
+    return this.db.getSupertrendAssetSubscriptionsByUser(userId);
+  }
+
+  async getEnabledSupertrendAssetSubscribers() {
+    return this.db.getEnabledSupertrendAssetSubscribers();
+  }
+
+  async replaceSupertrendAssetSubscriptionsForUser(userId, symbols, timeoutMs) {
+    return this.runWriteOperation('replaceSupertrendAssetSubscriptionsForUser', async () => {
+      return this.db.replaceSupertrendAssetSubscriptionsForUser(userId, symbols);
     }, timeoutMs);
   }
 
