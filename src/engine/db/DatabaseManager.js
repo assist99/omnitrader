@@ -252,6 +252,20 @@ async createUser(email, passwordHash, timeoutMs) {
     }, timeoutMs);
   }
 
+  async getSupertrendSubscriptionsByUser(userId) {
+    return this.db.getSupertrendSubscriptionsByUser(userId);
+  }
+
+  async getEnabledSupertrendSubscribers() {
+    return this.db.getEnabledSupertrendSubscribers();
+  }
+
+  async replaceSupertrendSubscriptionsForUser(userId, subscriptions, timeoutMs) {
+    return this.runWriteOperation('replaceSupertrendSubscriptionsForUser', async () => {
+      return this.db.replaceSupertrendSubscriptionsForUser(userId, subscriptions);
+    }, timeoutMs);
+  }
+
   async getMazscoreTfSubscriptionsByUser(userId) {
     return this.db.getMazscoreTfSubscriptionsByUser(userId);
   }
