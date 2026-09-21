@@ -156,7 +156,7 @@ export default function SuperTrendScreenerPage() {
       setSubs(prev => {
         const next = { ...prev };
         for (const symbol in next) {
-          if (next[symbol] && Object.values(next[symbol]).some(v => v)) {
+          if (next[symbol]) {
             next[symbol] = { ...next[symbol], [tf]: true };
           }
         }
