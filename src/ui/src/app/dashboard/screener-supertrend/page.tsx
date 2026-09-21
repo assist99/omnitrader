@@ -92,10 +92,11 @@ export default function SuperTrendScreenerPage() {
     setSubsSaving(true);
     setSubsMessage(null);
     try {
-      // Build subscriptions in the format API expects: {symbol: {timeframe: true}}
+      // Build subscriptions using global selectedTimeframes for all enabled symbols
       const subscriptions: Record<string, Record<string, boolean>> = {};
       for (const symbol in subs) {
         const symbolTimeframes = subs[symbol];
+        // Symbol is enabled if it has any timeframe selected
         if (symbolTimeframes && Object.values(symbolTimeframes).some(v => v)) {
           subscriptions[symbol] = {};
           for (const tf in selectedTimeframes) {
@@ -116,7 +117,7 @@ export default function SuperTrendScreenerPage() {
       const updatedSubs = res.data as Record<string, Record<string, boolean>>;
       setSubs(updatedSubs);
       
-      // Re-extract timeframes
+      // Re-extract global timeframes from all symbols
       const timeframes: Record<string, boolean> = {};
       for (const symbol in updatedSubs) {
         for (const tf in updatedSubs[symbol]) {
@@ -140,6 +141,33 @@ export default function SuperTrendScreenerPage() {
 
   const handleTimeframeToggle = (tf: string, enabled: boolean) => {
     setSelectedTimeframes(prev => ({ ...prev, [tf]: enabled }));
+    // Propagate to all enabled symbols
+    if (enabled) {
+      setSubs(prev => {
+        const next = { ...prev };
+        for (const symbol in next) {
+          if (next[symbol] && Object.values(next[symbol]).some(v => v)) {
+            next[symbol] = { ...next[symbol], [tf]: true };
+          }
+        }
+        return next;
+      });
+    } else {
+      setSubs(prev => {
+        const next = { ...prev };
+        for (const symbol in next) {
+          if (next[symbol]) {
+            const { [tf]: removed, ...rest } = next[symbol];
+            if (Object.keys(rest).length === 0) {
+              delete next[symbol];
+            } else {
+              next[symbol] = rest;
+            }
+          }
+        }
+        return next;
+      });
+    }
   };
 
   const handleAssetToggle = (symbol: string, enabled: boolean) => {
