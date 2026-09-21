@@ -306,7 +306,7 @@ export default function MAZScoreScreenerPage() {
                     </label>
                   </td>
                 </tr>
-              );}
+              );
             })}
             <SectionRow label="-- METALS --" values={metalAvg} bgColor="bg-teal-500/20" textColor="text-teal-200" />
             {metalSymbols.map((symbol) => {
@@ -332,7 +332,7 @@ export default function MAZScoreScreenerPage() {
                     </label>
                   </td>
                 </tr>
-              );}
+              );
             })}
           </tbody>
         </table>
