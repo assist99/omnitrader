@@ -182,27 +182,6 @@ export default function SuperTrendScreenerPage() {
           </div>
         </div>
 
-        <div className="mb-3">
-          <div className="text-sm font-medium text-white mb-2">Assets</div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {allSymbolsSorted.map(symbol => {
-              const display = symbol.replace('/USDT:USDT', '');
-              return (
-                <label key={symbol} className="flex items-center gap-1.5 text-sm text-slate-300 select-none">
-                  <input
-                    type="checkbox"
-                    checked={!!assetSubs[symbol]}
-                    onChange={(e) => setAssetSubs({ ...assetSubs, [symbol]: e.target.checked })}
-                    className="rounded border-slate-600"
-                    disabled={!subsLoaded}
-                  />
-                  <span className="font-mono text-xs">{display}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="flex items-center gap-3">
           <button
             onClick={saveSubs}
