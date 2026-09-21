@@ -179,7 +179,7 @@ class AllAssetsScreenerService {
     }
 
     // Send alert if trend changed (including to/from null)
-    if (trend !== lastSignal && trend !== null && this.telegramService) {
+    if (lastSignal !== undefined && trend !== lastSignal && trend !== null && this.telegramService) {
       const { userIds: subscribers, hasAnySubscriptions } = await this._getSupertrendSubscribers(symbol, timeframe);
       
       if (subscribers.length > 0) {
