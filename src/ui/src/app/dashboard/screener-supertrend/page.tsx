@@ -66,8 +66,13 @@ export default function SuperTrendScreenerPage() {
           }
         }
         setSelectedTimeframes(timeframes);
+        console.log('[SuperTrend] Subscriptions loaded:', subscriptions);
+      } else {
+        console.warn('[SuperTrend] Failed to load subscriptions:', res);
       }
-    } catch {}
+    } catch (err) {
+      console.error('[SuperTrend] Error loading subscriptions:', err);
+    }
     setSubsLoaded(true);
   }, []);
 
@@ -107,11 +112,15 @@ export default function SuperTrendScreenerPage() {
         }
       }
       
+      console.log('[SuperTrend] Saving subscriptions:', subscriptions);
+      
       const res = await engineFetch('/api/supertrend-subscriptions', {
         method: 'PUT',
         body: JSON.stringify({ subscriptions }),
       });
       if (!res.success) throw new Error(res.error || 'Failed to save');
+      
+      console.log('[SuperTrend] Save response:', res);
       
       // Update local state with server response (keep server format: {symbol: {timeframe: true}})
       const updatedSubs = res.data as Record<string, Record<string, boolean>>;
@@ -130,6 +139,7 @@ export default function SuperTrendScreenerPage() {
       
       setSubsMessage('Saved');
     } catch (err: unknown) {
+      console.error('[SuperTrend] Save error:', err);
       setSubsMessage(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSubsSaving(false);
