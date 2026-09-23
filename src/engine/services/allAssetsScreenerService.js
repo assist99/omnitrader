@@ -10,6 +10,11 @@ const METAL_SYMBOLS = new Set([
   'XAUT/USDT:USDT',
   'XAGUSD/USD:USD',
   'GOLD/USDT:USDT',
+  'PAXG/USDC:USDC',
+  'XAU/USDC:USDC',
+  'XAG/USDC:USDC',
+  'XAUT/USDC:USDC',
+  'GOLD/USDC:USDC',
 ]);
 
 class AllAssetsScreenerService {
@@ -37,6 +42,7 @@ class AllAssetsScreenerService {
   static lastMAZScorePerAsset = new Map();
   static lastMAZScoreExtreme = new Map();
   static lastMAZScoreAvgExtreme = null;
+  static currentExchange = 'hyperliquid'; // Default exchange
 
   static setDeps(db, telegramService) {
     this.db = db;
@@ -45,6 +51,11 @@ class AllAssetsScreenerService {
     this.ewSubscribersCacheTs = 0;
     this.supertrendAssetSubscribersCache = null;
     this.supertrendAssetSubscribersCacheTs = 0;
+  }
+
+  static setExchange(exchange) {
+    this.currentExchange = exchange;
+    this.nonMetalSymbols = null; // Invalidate cache when exchange changes
   }
 
   static invalidateEwSubscribersCache() {
@@ -258,7 +269,7 @@ class AllAssetsScreenerService {
           indicatorType: 'EW',
           signal: ewResult.signal,
           price,
-          exchange: 'bybit',
+          exchange: this.currentExchange,
           isTestnet: false,
           timestamp,
         };
@@ -309,7 +320,7 @@ class AllAssetsScreenerService {
       const path = require('path');
       const fs = require('fs');
       const { getProjectRoot } = require('../config');
-      const symbolsConfigPath = path.resolve(getProjectRoot(), 'config/symbols/bybit.json');
+      const symbolsConfigPath = path.resolve(getProjectRoot(), `config/symbols/${this.currentExchange}.json`);
       const symbolsConfig = JSON.parse(fs.readFileSync(symbolsConfigPath, 'utf8'));
       const intervals = symbolsConfig.intervals;
       const symbols = symbolsConfig.symbols.map(s => s.symbol);
@@ -399,7 +410,7 @@ class AllAssetsScreenerService {
             indicatorType: 'MAZSCORE',
             signal: signalType,
             price: avgZScore,
-            exchange: 'bybit',
+exchange: this.currentExchange,
             isTestnet: false,
             timestamp,
           };
@@ -452,7 +463,7 @@ class AllAssetsScreenerService {
           indicatorType: 'MAZSCORE',
           signal: signalType,
           price: zScoreVal,
-          exchange: 'bybit',
+          exchange: this.currentExchange,
           isTestnet: false,
           timestamp,
         };
@@ -478,7 +489,7 @@ class AllAssetsScreenerService {
     const path = require('path');
     const fs = require('fs');
     const { getProjectRoot } = require('../config');
-    const symbolsConfigPath = path.resolve(getProjectRoot(), 'config/symbols/bybit.json');
+    const symbolsConfigPath = path.resolve(getProjectRoot(), `config/symbols/${this.currentExchange}.json`);
     const symbolsConfig = JSON.parse(fs.readFileSync(symbolsConfigPath, 'utf8'));
     const allSymbols = new Set(symbolsConfig.symbols.map(s => s.symbol));
     this.nonMetalSymbols = new Set([...allSymbols].filter(s => !METAL_SYMBOLS.has(s)));
@@ -492,7 +503,7 @@ class AllAssetsScreenerService {
       const allCandles = candleProvider.getAllClosedCandles();
       const symbolsConfigPath = require('path').resolve(
         require('../config').getProjectRoot(),
-        'config/symbols/bybit.json'
+        `config/symbols/${this.currentExchange}.json`
       );
       const symbolsConfig = JSON.parse(require('fs').readFileSync(symbolsConfigPath, 'utf8'));
       const intervals = symbolsConfig.intervals;

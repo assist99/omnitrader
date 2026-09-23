@@ -28,17 +28,41 @@ class ScreenerCandleProvider {
   }
 
   loadSymbols() {
-    const configPath = path.resolve(Config.getProjectRoot(), 'config/symbols/bybit.json');
+    const exchange = process.env.EXCHANGE || 'hyperliquid';
+    const configPath = path.resolve(Config.getProjectRoot(), `config/symbols/${exchange}.json`);
     const raw = fs.readFileSync(configPath, 'utf8');
     const config = JSON.parse(raw);
     return config.symbols.map(s => s.symbol);
   }
 
   loadTimeframes() {
-    const configPath = path.resolve(Config.getProjectRoot(), 'config/symbols/bybit.json');
+    const exchange = process.env.EXCHANGE || 'hyperliquid';
+    const configPath = path.resolve(Config.getProjectRoot(), `config/symbols/${exchange}.json`);
     const raw = fs.readFileSync(configPath, 'utf8');
     const config = JSON.parse(raw);
     return config.intervals;
+  }
+
+  async cleanupDatabase(exchange) {
+    try {
+      logger.info(`Preparing database for ${exchange} migration...`);
+      
+      // For production safety, we log but don't actually delete data
+      // In a real migration, you would:
+      // 1. Backup the database first
+      // 2. Run specific cleanup SQL
+      // 3. Validate the cleanup
+      
+      logger.info(`Database preparation for ${exchange} completed (dry-run)`);
+      
+      // Example cleanup code (commented out for safety):
+      // await this.db.run('DELETE FROM screener_snapshot');
+      // await this.db.run('DELETE FROM price_alarms');
+      
+    } catch (error) {
+      logger.error('Database cleanup failed:', error);
+      throw error;
+    }
   }
 
   async start() {
@@ -53,8 +77,14 @@ class ScreenerCandleProvider {
       const ExchangeServiceManager = require('./services/exchangeServiceManager');
       await ExchangeServiceManager.initialize(this.db);
       
+      const exchange = process.env.EXCHANGE || 'hyperliquid';
+      
+      // Database cleanup when switching exchanges
+      await this.cleanupDatabase(exchange);
+      
       // Initialize AllAssetsScreenerService dependencies
       AllAssetsScreenerService.setDeps(this.db, this.telegramService);
+      AllAssetsScreenerService.setExchange(exchange);
 
       // Initialize PendingSetupService dependencies
       PendingSetupService.setDeps(this.db, this.telegramService);
@@ -69,11 +99,11 @@ class ScreenerCandleProvider {
       const symbols = this.loadSymbols();
       const timeframes = this.loadTimeframes();
       
-      logger.info(`Loaded ${symbols.length} symbols and ${timeframes.length} timeframes from config`);
+      logger.info(`Loaded ${symbols.length} symbols and ${timeframes.length} timeframes from ${exchange} config`);
       
       // Create and start CandleProvider
       this.candleProvider = new CandleProvider({
-        exchange: 'bybit',
+        exchange: exchange,
         symbols,
         timeframes,
         limit: 1000,

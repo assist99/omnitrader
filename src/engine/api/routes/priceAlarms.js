@@ -8,10 +8,10 @@ const auth = require('../middleware/auth');
 const TF_ORDER = ['m5', 'm15', 'h1', 'h4', 'd1', 'w1'];
 const VALID_DIRECTIONS = ['cross_above', 'cross_below'];
 
-function loadBybitSymbols() {
+function loadSymbols(exchange = 'bybit') {
   const candidates = [
-    path.resolve(__dirname, '../../../config/symbols/bybit.json'),
-    path.resolve(__dirname, '../../../../config/symbols/bybit.json'),
+    path.resolve(__dirname, `../../../config/symbols/${exchange}.json`),
+    path.resolve(__dirname, `../../../../config/symbols/${exchange}.json`),
   ];
   for (const p of candidates) {
     try {
@@ -21,27 +21,39 @@ function loadBybitSymbols() {
   return { symbols: [] };
 }
 
-const bybitConfig = loadBybitSymbols();
-const VALID_SYMBOLS = new Set(bybitConfig.symbols.map(s => s.symbol));
+function getExchangeFromRequest(req) {
+  // Try to get exchange from query param, body, or default to bybit for backward compatibility
+  return req.query.exchange || req.body.exchange || 'bybit';
+}
 
-function validateAlarmPayload(body) {
+function validateAlarmPayload(body, exchange) {
   const errors = [];
   const { symbol, timeframe, direction, price_level } = body || {};
 
-  if (!symbol || !VALID_SYMBOLS.has(symbol)) errors.push('symbol is invalid or not supported on Bybit');
+  const symbolsConfig = loadSymbols(exchange);
+  const validSymbols = new Set(symbolsConfig.symbols.map(s => s.symbol));
+  
+  if (!symbol || !validSymbols.has(symbol)) errors.push(`symbol is invalid or not supported on ${exchange}`);
   if (!timeframe || !TF_ORDER.includes(timeframe)) errors.push(`timeframe must be one of ${TF_ORDER.join(', ')}`);
   if (!direction || !VALID_DIRECTIONS.includes(direction)) errors.push(`direction must be one of ${VALID_DIRECTIONS.join(', ')}`);
 
   const level = Number(price_level);
   if (!Number.isFinite(level) || level <= 0) errors.push('price_level must be a positive number');
 
-  return { errors, value: { symbol, timeframe, direction, price_level: level } };
+  return { errors, value: { symbol, timeframe, direction, price_level: level, exchange } };
 }
 
 router.get('/', auth, async (req, res) => {
   try {
     const db = getDatabaseManager();
-    const rows = await db.getPriceAlarmsByUser(req.user.id);
+    let rows = await db.getPriceAlarmsByUser(req.user.id);
+    
+    // Optional: filter by exchange if query parameter is provided
+    const exchangeFilter = req.query.exchange;
+    if (exchangeFilter) {
+      rows = rows.filter(alarm => alarm.exchange === exchangeFilter);
+    }
+    
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -50,7 +62,8 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   try {
-    const { errors, value } = validateAlarmPayload(req.body);
+    const exchange = getExchangeFromRequest(req);
+    const { errors, value } = validateAlarmPayload(req.body, exchange);
     if (errors.length > 0) {
       return res.status(400).json({ success: false, error: errors.join('; ') });
     }
@@ -100,7 +113,8 @@ router.put('/:id', auth, async (req, res) => {
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Not found' });
     }
-    const { errors, value } = validateAlarmPayload(req.body);
+    const exchange = getExchangeFromRequest(req);
+    const { errors, value } = validateAlarmPayload(req.body, exchange);
     if (errors.length > 0) {
       return res.status(400).json({ success: false, error: errors.join('; ') });
     }
